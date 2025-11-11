@@ -1,2 +1,2 @@
-from .local import LocalSettings
+from .dev import DevSettings
 from .deployment import DeploymentSettings

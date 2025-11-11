@@ -30,6 +30,11 @@ install: ## Install backend dependencies
 	$(VENV_ACTIVATE) && pip3 install -e ".[dev, tests]"
 	$(VENV_ACTIVATE) && alembic init migrations || echo "alembic init already started"
 
+# 1) Boot-up 
+dev: ## Start backend development server. Note, the recommended usage is with make dev-start from parent Makefile. Flaky behavior warned.
+	$(VENV_ACTIVATE) &&  ENVIRONMENT=dev uvicorn $(APP_PATH) --reload --host 0.0.0.0 --port $(PORT)
+
+
 # 2) CI
 lint: ## Run linting and formatting (local dev)
 	@echo "$(YELLOW)Running linting and formatting...$(RESET)"
@@ -87,7 +92,7 @@ db-downgrade-specific-version:
 push_docker:
 	$(MAKE) check_enviroment_variables
 	docker login
-	docker buildx build -t javidsegura/ai_ticket_platform:$(ENVIRONMENT) --platform linux/amd64,linux/arm64 --push -f ./Dockerfile ./
+	docker buildx build -t javidsegura/ai_ticket_platform:$(ENVIRONMENT) -t javidsegura/ai_ticket_platform:latest --platform linux/amd64,linux/arm64 --push -f ./Dockerfile ./
 
 # 5) Tests
 pytest-run:

@@ -11,7 +11,8 @@ class DeploymentSettings(BaseSettings):
             return [
                   "REDIS_URL", "MYSQL_USER", "MYSQL_PASSWORD", "MYSQL_HOST",
                   "MYSQL_PORT", "MYSQL_DATABASE", "MYSQL_SYNC_DRIVER", 
-                  "MYSQL_ASYNC_DRIVER", "S3_MAIN_BUCKET_NAME", "AWS_MAIN_REGION"
+                  "MYSQL_ASYNC_DRIVER", 
+                  "S3_MAIN_BUCKET_NAME", "AWS_MAIN_REGION"
             ]
 
       def extract_all_variables(self):

@@ -7,7 +7,9 @@ E) Create confetst dependency (create an user and get its token)
 
 
 """
-class LocalSettings(BaseSettings):
+
+from dotenv import load_dotenv
+class DevSettings(BaseSettings):
       def __init__(self) -> None:
             super().__init__()
 
@@ -16,8 +18,8 @@ class LocalSettings(BaseSettings):
             return [
                   "REDIS_URL", "MYSQL_USER", "MYSQL_PASSWORD", "MYSQL_HOST",
                   "MYSQL_PORT", "MYSQL_DATABASE", "MYSQL_SYNC_DRIVER", 
-                  "MYSQL_ASYNC_DRIVER", "S3_MAIN_BUCKET_NAME", "AWS_MAIN_REGION",
-                  "USING_FIREBASE_EMULATOR", "FB_AUTH_EMULATOR_HOST", "FB_PROJECT_ID"
+                  "MYSQL_ASYNC_DRIVER", 
+                  "S3_MAIN_BUCKET_NAME", "AWS_MAIN_REGION","USING_FIREBASE_EMULATOR", "FB_AUTH_EMULATOR_HOST", "FB_PROJECT_ID"
             ]
 
       def extract_all_variables(self):

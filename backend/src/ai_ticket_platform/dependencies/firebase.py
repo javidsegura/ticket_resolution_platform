@@ -10,10 +10,6 @@ oauth2scheme = OAuth2PasswordBearer(tokenUrl="token")
 def verify_user(
 	email_needs_verification: bool = False, user_private_route: bool = False
 ) -> callable:
-	"""
-	Args:
-		Note => user_id is for the the path dynamic part
-	"""
 
 	def get_token_dependency(
 		request: Request, token: str = Depends(oauth2scheme)
@@ -48,4 +44,5 @@ def verify_user(
 	return get_token_dependency
 
 def is_user_admin(token : Annotated[str, Depends(oauth2scheme)]):
+	"""To be implemented"""
 	...

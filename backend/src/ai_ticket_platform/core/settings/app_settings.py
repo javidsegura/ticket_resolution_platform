@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 
 import logging
-from .environment import LocalSettings, DeploymentSettings
+from .environment import DevSettings, DeploymentSettings
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ class Settings:
 
 	def _get_resolve_per_environment(self):
 		if self.ENVIRONMENT in ["test", "dev"]:
-			return LocalSettings()
+			return DevSettings()
 		elif self.ENVIRONMENT in ["staging", "production"]:
 			return DeploymentSettings()
 
@@ -41,8 +41,10 @@ app_settings = None
 
 def initialize_settings():
 	global app_settings
-	logger.debug(f"Intiliazing settings")
+	print(f"Intiliazing settings")
 	if not app_settings:
 		logger.debug(f"Instantiating settings for the first time")
 		app_settings = Settings()
+	settings_dict = {k: v for k, v in vars(app_settings).items() if k.isupper()}
+	print(f"App settings loaded: {settings_dict}") # Remove in prod
 	return app_settings

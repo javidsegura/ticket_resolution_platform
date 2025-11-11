@@ -46,7 +46,6 @@ dev-stop: ## Stop development environment
 	pkill -f "uvicorn" || true
 	pkill -f "vite" || true
 	pkill -f "npm run dev" || true
-	$(MAKE) delete_ci_artifacts
 	
 dev-restart-docker-compose: ## Restart docker compose for dev
 	@echo "Restarting docker compose"

@@ -1,0 +1,1 @@
+Define here all the CRUD operations for each router (each is a file)

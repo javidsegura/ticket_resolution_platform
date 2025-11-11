@@ -13,7 +13,7 @@ services:
       backend:
         condition: service_started
   backend:
-      image: javidsegura/url_shortener_backend:production  # Add :production tag
+      image: javidsegura/ai_ticket_platform:production  # Add :production tag
       ports:
         - "8000:8000"
       env_file:
@@ -23,5 +23,5 @@ services:
       depends_on:
         - db-migration
   db-migration:
-      image: javidsegura/url_shortener_backend:production  # Add :production tag
+      image: javidsegura/ai_ticket_platform:production  # Add :production tag
 

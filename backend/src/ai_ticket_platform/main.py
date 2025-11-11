@@ -23,8 +23,8 @@ async def lifespan(app: FastAPI):
     initialize_firebase()
     initialize_logger() 
     settings.app_settings = settings.initialize_settings()
-    clients.s3_client = clients.initialize_aws_s3_client()
-    clients.secrets_manager_client = clients.initialize_aws_secrets_manager_client()
+    #clients.s3_client = clients.initialize_aws_s3_client()
+    #clients.secrets_manager_client = clients.initialize_aws_secrets_manager_client()
     clients.redis = clients.initialize_redis_client()
 
     yield
@@ -33,7 +33,7 @@ async def lifespan(app: FastAPI):
     # You can add any cleanup code here, like closing database connections.
     logger.debug("INFO:     Application shutdown complete.")
 
-app = FastAPI(title="URL shortener", lifespan=lifespan)
+app = FastAPI(title="AI Ticket Platform", lifespan=lifespan)
 
 app.add_middleware(
 	CORSMiddleware,
