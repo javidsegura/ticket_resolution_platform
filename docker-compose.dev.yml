@@ -1,0 +1,83 @@
+# Nginx server (added later), redis, db (added later)
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: frontend:dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend/app:/app
+      - /app/node_modules  # Anonymous volume for node_modules
+    # healthcheck:
+    #   test: ["CMD", "curl", "--fail", "http://localhost:5173"]
+    #   interval: 10s
+    #   timeout: 5s
+    #   retries: 3
+    #   start_period: 30s
+  database:
+    image: mysql:8.0
+    volumes:
+      - db-data:/var/lib/mysql
+    ports: 
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: "rootpassword"
+      MYSQL_DATABASE: "url_shortener"
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -P 3306 -uroot -p\"$${MYSQL_ROOT_PASSWORD}\" --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 30s
+  db-migration:
+      build:
+         context: ./backend
+         dockerfile: Dockerfile
+      image: db-migration:dev
+      depends_on:
+        database:
+          condition: service_healthy
+
+  backend:
+      build:
+        context: ./backend
+        dockerfile: Dockerfile
+      image: backend:dev
+      ports:
+        - "8000:8000"
+      volumes:
+        - ./backend/src:/app/src
+      command: ["sh", "-c", "uvicorn src.url_shortener.main:app --reload --host 0.0.0.0 --port 8000"]
+      depends_on:
+        db-migration:
+          condition: service_completed_successfully
+        redis:
+          condition: service_healthy
+      healthcheck: 
+        test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+        interval: 30s
+        timeout: 5s
+        retries: 5
+        start_period: 5s
+      env_file:
+      - ${BACKEND_ENV_FILE}
+  nginx:
+    volumes:
+      - ./nginx.dev.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      redis:
+        condition: service_started
+      database:
+        condition: service_started
+      backend:
+        condition: service_started
+      frontend:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost/nginx-health"]
+      
+volumes:
+  db-data:

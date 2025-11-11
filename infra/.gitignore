@@ -1,0 +1,33 @@
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+terraform.tfvars
+*.auto.tfvars
+
+# Terraform plan files
+*.plan
+
+# Ansible
+**/__pycache__/
+**/*.retry
+**/.vault_pass*
+**/inventory/*.ini
+**/inventory/*.yml
+**/inventory/*.yaml
+**/inventory/*_vault.yml
+**/inventory/*_vault.yaml
+**/inventory/*_secrets.yml
+**/inventory/*_secrets.yaml
+
+# General
+.DS_Store
+*.log
+

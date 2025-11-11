@@ -1,0 +1,92 @@
+[project]
+name = "ai_ticket_platform"
+version = "0.1.0"
+requires-python = ">=3.8"
+dependencies = [ 
+      "fastapi",
+      "uvicorn",
+      "gunicorn",
+      "pydantic",
+      "redis",
+      "pydantic-settings",
+      "sqlacodegen",
+      "sqlalchemy[asyncio]",
+      "aiomysql",
+      "pymysql",
+      "firebase-admin",
+      "boto3",
+      "alembic",
+      "boto3-stubs",
+      "boto3-stubs[s3,secretsmanager]",
+      "python-json-logger>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+      "ruff",
+      "bandit",
+      "pre-commit",
+      "Jinja2",
+      "botocore",
+      "ansible-core",
+      "PyYAML",
+      "cryptography",
+      "paramiko",
+
+]
+tests = [
+      "pytest",
+      "pytest-asyncio",
+      "pytest-mock",
+      "pytest-cov",
+      "httpx",
+      "faker",
+      "factory-boy",
+      "moto[s3,secretsmanager]",
+      "testcontainers",
+      "mysqlclient",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+
+[tool.ruff]
+line-length = 88
+exclude = [
+      "src/database/generated_models.py"
+]
+
+[tool.ruff.format]
+indent-style = "tab"
+quote-style = "double"
+docstring-code-format = true
+
+[tool.ruff.lint]
+select = [
+      "N",
+      "ANN",
+      "TID",
+      "E",
+      "C4",
+      "G",
+      "FAST001",
+      "FAST002",
+      "FAST003",
+      "ASYNC100",
+      "S101",
+      "S105",
+      "S106",
+      "S107",
+      "S310",
+      "S311",
+      "I",
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"

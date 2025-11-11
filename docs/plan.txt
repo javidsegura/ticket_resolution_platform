@@ -1,0 +1,20 @@
+
+## pre-commit 
+- CI: 
+  - security
+  - ruff 
+  - gitleaks 
+  - unit tests (optional -- how do I not run all)
+
+## github actions
+      - Add PR tempalte
+      - Add e2e tests 
+      - Set codeowners 
+      - All unit tests + regression tests
+            - Test coverage
+      - Benchmarking 
+      - integration
+      - e2e 
+
+## code of conduct 
+      - Write conditions for approval 

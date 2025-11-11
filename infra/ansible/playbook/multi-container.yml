@@ -1,0 +1,139 @@
+- name: Docker compose launch
+  hosts: web_servers
+  become: yes
+
+  vars:
+    remote_project_path: "/opt/{{ project_name }}"
+    project_name: "url-shortener"
+    src_backend_env_synced_path: "../../../backend/env_config/synced/.env.{{ stage_environment }}"
+    dest_backend_env_synced_path: "{{ remote_project_path }}/backend/env_config/synced/.env.{{ stage_environment }}"
+  tasks:
+  - name: Show resolved paths
+    debug:
+      msg: "Source path is {{ src_backend_env_synced_path }} and destination path is {{ dest_backend_env_synced_path }}"
+  - name: Ensure Docker and dependencies are installed
+    ansible.builtin.dnf:
+      name: 
+        - docker
+        - python3
+        - python3-pip
+      state: present
+      update_cache: yes
+      
+  - name: Start Docker service
+    ansible.builtin.service:
+      name: docker
+      state: started
+      enabled: yes
+      
+  - name: Add ec2 user to the docker group
+    ansible.builtin.user:
+      name: ec2-user
+      groups: docker 
+      append: yes
+      
+  - name: Reset ssh connection in order to update user persmission
+    ansible.builtin.meta: reset_connection
+    
+  - name: Create project directory
+    ansible.builtin.file:
+      path: "{{ remote_project_path }}"
+      state: directory
+      owner: ec2-user
+      group: docker
+      mode: "0755"
+  - name: Create frontend app directory
+    ansible.builtin.file:
+      path: "{{ remote_project_path }}/frontend/app"
+      state: directory
+      owner: ec2-user
+      group: docker
+      mode: "0755"
+  - name: Create backend directory
+    ansible.builtin.file:
+      path: "{{ remote_project_path }}/backend"
+      state: directory
+      owner: ec2-user
+      group: docker
+      mode: "0755"
+  - name: Create backend env_config directory structure
+    ansible.builtin.file:
+      path: "{{ remote_project_path }}/backend/env_config/synced"
+      state: directory
+      owner: ec2-user
+      group: docker
+      mode: "0755"
+      
+  - name: Copy docker-compose files and dependencies to the root level
+    ansible.builtin.copy:
+      src: "../../../{{ item }}"
+      dest: "{{ remote_project_path }}/{{ item }}"
+      owner: ec2-user
+      group: docker
+      mode: "0644"
+    loop:
+      - docker-compose.yml
+      - docker-compose.{{ stage_environment }}.yml
+      - nginx.prod.conf
+      
+  - name: Copy backend synced .env
+    ansible.builtin.copy:
+      src: "{{ src_backend_env_synced_path  }}"
+      dest: "{{ dest_backend_env_synced_path }}"
+      owner: ec2-user
+      group: docker
+      mode: "0644"
+      directory_mode: "0755"
+
+  - name: Copy frontend dist directory
+    ansible.builtin.copy:
+      src: "../../../frontend/app/dist/"
+      dest: "{{ remote_project_path }}/frontend/app/dist/"
+      owner: ec2-user
+      group: docker
+      mode: "0644"
+      directory_mode: "0755"
+
+  # Install Docker Compose V2 plugin
+  - name: Create Docker CLI plugins directory
+    ansible.builtin.file:
+      path: /usr/local/lib/docker/cli-plugins
+      state: directory
+      mode: "0755"
+
+  - name: Download Docker Compose V2 plugin
+    ansible.builtin.get_url:
+      url: "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64"
+      dest: "/usr/local/lib/docker/cli-plugins/docker-compose"
+      mode: "0755"
+      owner: root
+      group: root
+
+  # Install Python docker library for Ansible modules
+  - name: Install python docker library
+    ansible.builtin.pip:
+      name: docker
+      state: present
+      extra_args: "--user"
+    become_user: ec2-user
+
+  - name: Stop existing Docker Compose services
+    community.docker.docker_compose_v2:
+      project_src: "{{ remote_project_path }}"
+      project_name: "{{ project_name }}"
+      state: absent
+    
+  - name: Start and build Docker Compose Services
+    community.docker.docker_compose_v2: 
+      project_src: "{{ remote_project_path }}"
+      files:
+        - docker-compose.yml
+        - docker-compose.{{stage_environment}}.yml
+      project_name: "{{ project_name }}"
+      state: present
+      pull: always 
+      recreate: always
+    environment:
+      ENVIRONMENT: "{{ stage_environment }}"
+      BACKEND_ENV_FILE: "{{ dest_backend_env_synced_path }}"
+    

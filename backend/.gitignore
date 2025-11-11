@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Virtual envs
+.venv/
+venv/
+env/
+secret.*
+
+# Build/dist
+build/
+dist/
+*.egg-info/
+
+# Testing
+.pytest_cache/
+htmlcov/
+.coverage*
+coverage.xml
+
+# Type checkers
+.mypy_cache/
+.pytype/
+pyrightconfig.json
+
+# Alembic
+src/database/migrations/versions/*.pyc
+src/database/migrations/versions/*__pycache__/
+
+# Logs
+*.log
+
+# Local env
+*.env*
+
+# Docker
+*.pid
+/.local/
+
+# IDE
+.vscode/
+.idea/
+

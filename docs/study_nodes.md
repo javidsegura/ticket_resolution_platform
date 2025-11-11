@@ -1,0 +1,3 @@
+Acess Javi's full-stack notes if you want to understand a missing concept: [link](https://javidominguez.notion.site/FULL-STACK-2100b4d050fd807492c1c012d0a948c5?source=copy_link)
+
+This repo was originally built from [this](https://github.com/javidsegura/url-shortener). Consider using this to accelerate your understanding process: [link](https://deepwiki.com/javidsegura/url-shortener/2.2-local-development-setup)
