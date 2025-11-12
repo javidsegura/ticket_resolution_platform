@@ -35,7 +35,7 @@ async def delete_user(db: AsyncSession, user_id: str) -> bool:
 	await db.commit()
 	return True
 
-async def edit_user_name(db: AsyncSession, user_id: str, new_name: str) -> bool:
+async def edit_user_name(db: AsyncSession, user_id: str, new_name: str) -> User | None:
 	new_name_statment = update(User)\
 						  .where(User.user_id == user_id)\
 						  .values(displayable_name=new_name)
