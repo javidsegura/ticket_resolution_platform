@@ -12,38 +12,38 @@ Examples of commit messages:
 
 
 ## Conditions
-###Global Scope & Purpose
+### Global Scope & Purpose
 - The PR clearly states its purpose (feature, fix, refactor, infra, etc.).
 - Scope is focused; no unrelated or excessive changes.
 - Links to issue/ticket or includes concise context for reviewers.
 
-###Code Quality
+### Code Quality
 - Code is readable and uses meaningful naming conventions.
 - Consistent with existing formatting, linting, and style rules.
 - Functions and components are small, cohesive, and easy to test.
 - No obvious security issues (XSS, SQL injection, unsafe operations).
 - No unnecessary loops, API calls, or expensive UI/backend computations.
 
-###Tests (Backend)
+### Tests (Backend)
 - All new logic is covered by FastAPI and frontend unit tests.
 - Overall test coverage is ≥ 70% or meets current project baseline.
 - Tests are deterministic, readable, and relevant.
 - CI passes successfully with all tests green.
 
-###Backend (FastAPI)
+### Backend (FastAPI)
 - Endpoints follow FastAPI best practices with typed params and Pydantic models.
 - Input/output validation is implemented.
 - Proper error handling with HTTPException and relevant status codes.
 - Includes FastAPI test client coverage for all new or modified routes.
 
-###Frontend (React)
+### Frontend (React)
 - Component and file structure follow project conventions.
 - Proper use of hooks/context/state management (no prop drilling abuse).
 - Errors and loading states are handled gracefully.
 - No console warnings or runtime errors.
 - Built app runs without breaking existing functionality.
 
-###Infrastructure / DevOps
+### Infrastructure / DevOps
 - Dockerfile builds cleanly and reproducibly; no secrets hardcoded.
 - Environment variables are declared in .env.example.
 - CI/CD pipelines pass successfully.
