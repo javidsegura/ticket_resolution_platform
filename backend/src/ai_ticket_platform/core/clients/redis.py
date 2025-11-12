@@ -20,7 +20,7 @@ class RedisClientConnector:
 				url=self.app_settings.REDIS_URL,
 				encoding="utf-8",
 				decode_responses=True,
-				max_connections=1,
+				max_connections=self.app_settings.REDIS_MAX_CONNECTIONS or 10,
 			)
 		logger.debug(f"REDIS CLIENT ID: {id(self._client)}")
 		return self._client
