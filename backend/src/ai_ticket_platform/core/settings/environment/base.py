@@ -27,5 +27,9 @@ class BaseSettings(ABC):
             for var in self.required_vars:
                   if not getattr(self, var):
                         missing_vars.append(var)
+                  else:
+                        print(f"VAR: {var} has {getattr(self, var)}")
+            if missing_vars:
+                  raise Exception(f"Missing vars: {missing_vars}")
 
 

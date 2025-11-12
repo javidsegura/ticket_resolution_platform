@@ -19,7 +19,10 @@ class Settings:
 				Do export ENVIRONMENT=<value>")
 		if self.ENVIRONMENT not in POSSIBLE_ENVIRONMENTS:  
 			raise ValueError(f"{self.ENVIRONMENT} not an accepted environment. Accepted environment is: {POSSIBLE_ENVIRONMENTS}")
-		self._extract_all_variables()
+	
+	def get_settings(self):
+		return self._extract_all_variables()
+
 
 	def _get_resolve_per_environment(self):
 		if self.ENVIRONMENT in ["test", "dev"]:
@@ -33,6 +36,7 @@ class Settings:
 
 		resolver.extract_all_variables()
 		resolver.validate_required_vars()
+		return resolver
 		
 	
 
@@ -43,8 +47,10 @@ def initialize_settings():
 	global app_settings
 	print(f"Intiliazing settings")
 	if not app_settings:
-		logger.debug(f"Instantiating settings for the first time")
-		app_settings = Settings()
-	settings_dict = {k: v for k, v in vars(app_settings).items() if k.isupper()}
-	print(f"App settings loaded: {settings_dict}") # Remove in prod
+		print(f"Instantiating settings for the first time")
+		app_settings = Settings().get_settings()
+	else:
+		print("Settings already existed")
+	print(f"APP SETTINGS: {dir(app_settings)}") # Delete in prod 
+	print("="*30)
 	return app_settings

@@ -19,14 +19,15 @@ class DevSettings(BaseSettings):
                   "REDIS_URL", "MYSQL_USER", "MYSQL_PASSWORD", "MYSQL_HOST",
                   "MYSQL_PORT", "MYSQL_DATABASE", "MYSQL_SYNC_DRIVER", 
                   "MYSQL_ASYNC_DRIVER", 
-                  "S3_MAIN_BUCKET_NAME", "AWS_MAIN_REGION","USING_FIREBASE_EMULATOR", "FB_AUTH_EMULATOR_HOST", "FB_PROJECT_ID"
+                  "S3_MAIN_BUCKET_NAME", "AWS_MAIN_REGION",#"USING_FIREBASE_EMULATOR", "FB_AUTH_EMULATOR_HOST", "FB_PROJECT_ID"
             ]
 
       def extract_all_variables(self):
+            load_dotenv("./env_config/synced/.env.dev")
             self._extract_database_variables()
             self._extract_aws_variables()
             self._extract_app_logic_variables()
-            self._extract_firebase_variables()
+            #self._extract_firebase_variables()
       def _extract_database_variables(self):
             self.REDIS_URL = os.getenv("REDIS_URL")
             self.MYSQL_USER = os.getenv("MYSQL_USER")
@@ -39,10 +40,10 @@ class DevSettings(BaseSettings):
       def _extract_aws_variables(self):
             self.S3_MAIN_BUCKET_NAME = os.getenv("S3_MAIN_BUCKET_NAME")
             self.AWS_MAIN_REGION = os.getenv("AWS_MAIN_REGION")
-      def _extract_firebase_variables(self):
-            self.USING_FIREBASE_EMULATOR = os.getenv("USING_FIREBASE_EMULATOR")
-            self.FB_AUTH_EMULATOR_HOST= os.getenv("FB_AUTH_EMULATOR_HOST")
-            self.FB_PROJECT_ID = os.getenv("FB_PROJECT_ID")
+      # def _extract_firebase_variables(self):
+      #       self.USING_FIREBASE_EMULATOR = os.getenv("USING_FIREBASE_EMULATOR")
+      #       self.FB_AUTH_EMULATOR_HOST= os.getenv("FB_AUTH_EMULATOR_HOST")
+      #       self.FB_PROJECT_ID = os.getenv("FB_PROJECT_ID")
       
 
 

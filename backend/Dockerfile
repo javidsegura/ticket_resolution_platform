@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM  python:3.11-slim
 
 ENV APP_PATH="src.ai_ticket_platform.main:app"
 ENV PYTHONUNBUFFERED=1
@@ -9,7 +9,6 @@ WORKDIR /app
 COPY ./pyproject.toml ./
 COPY ./src ./src
 RUN pip3 install --no-cache-dir .
-RUN pip3 install -v numpy
 
 
 COPY ./alembic.ini ./
