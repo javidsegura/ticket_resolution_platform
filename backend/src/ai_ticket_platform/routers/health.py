@@ -13,7 +13,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-router = APIRouter(prefix="/health") # lolazo
+router = APIRouter(prefix="/health")
 
 # Health
 @router.get(path="/dependencies", status_code=status.HTTP_200_OK)
