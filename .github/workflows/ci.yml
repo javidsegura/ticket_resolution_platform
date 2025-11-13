@@ -1,0 +1,150 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e './backend[tests]'
+      - name: Run unit tests
+        run: pytest backend/test/unit
+
+#   integration-tests:
+#     name: Integration Tests
+#     runs-on: ubuntu-latest
+#     services:
+#       mysql:
+#         image: mysql:8.0
+#         env:
+#           MYSQL_ROOT_PASSWORD: rootpassword
+#           MYSQL_DATABASE: url_shortener
+#         ports:
+#           - 3307:3306
+#         options: >-
+#           --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -p${MYSQL_ROOT_PASSWORD}"
+#           --health-interval=5s
+#           --health-timeout=3s
+#           --health-retries=30
+#           --health-start-period=30s
+#     steps:
+#       - name: Checkout
+#         uses: actions/checkout@v4
+#       - name: Set up Python
+#         uses: actions/setup-python@v5
+#         with:
+#           python-version: ${{ env.PYTHON_VERSION }}
+#           cache: pip
+#           cache-dependency-path: backend/pyproject.toml
+#       - name: Install system dependencies
+#         run: |
+#           sudo apt-get update
+#           sudo apt-get install -y mysql-client
+#       - name: Install dependencies
+#         run: |
+#           python -m pip install --upgrade pip
+#           python -m pip install -e './backend[tests]'
+#       - name: Verify database readiness
+#         run: |
+#           for i in {1..30}; do
+#             if mysql -h 127.0.0.1 -P 3307 -uroot -prootpassword -e "SELECT 1;" >/dev/null 2>&1; then
+#               echo "Database is ready."
+#               exit 0
+#             fi
+#             echo "Waiting for database..."
+#             sleep 2
+#           done
+#           echo "Database did not become ready in time."
+#           exit 1
+#       - name: Run integration tests
+#         env:
+# #           DATABASE_URL: mysql+pymysql://root:rootpassword@127.0.0.1:3307/url_shortener
+#         run: pytest backend/test/integration
+
+#   e2e-tests:
+#     name: End-to-End Tests
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout
+#         uses: actions/checkout@v4
+#       - name: Set up Python
+#         uses: actions/setup-python@v5
+#         with:
+#           python-version: ${{ env.PYTHON_VERSION }}
+#           cache: pip
+#           cache-dependency-path: backend/pyproject.toml
+#       - name: Install dependencies
+#         run: |
+#           python -m pip install --upgrade pip
+#           python -m pip install -e './backend[tests]'
+#       - name: Run end-to-end tests
+#         run: pytest tests/e2e
+
+  formatting:
+    name: Formatting & Lint (Ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+      - name: Install Ruff
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install ruff
+      - name: Check formatting
+        run: |
+          ruff format --check backend infra tests
+      - name: Run lint checks
+        run: |
+          ruff check backend infra tests
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+      - name: Install Bandit
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install bandit
+      - name: Run Bandit
+        run: |
+          bandit -r backend/src infra
+

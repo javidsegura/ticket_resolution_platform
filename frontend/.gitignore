@@ -1,0 +1,23 @@
+# Node/Vite/React
+node_modules/
+dist/
+build/
+*.log
+
+# Env
+*.env*
+
+# Vite cache
+.vite/
+
+# TypeScript
+*.tsbuildinfo
+
+# Testing
+coverage/
+.nyc_output/
+
+# IDE
+.vscode/
+.idea/
+
