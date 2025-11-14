@@ -16,8 +16,9 @@ AI-Powered Ticket Resolution Platform
    - You may need to install multi-platform iamge from Docker if you face issues with images from docker being installed for a different
      architecture. In order to do that you just need to do the following:
     `docker buildx build --platform linux/amd64,linux/arm64 -t javidsegura/url_shortener_backend --push ./backend` 
-### Secrets 
-- Backend: 
+### Secrets
+- Backend:
+  - Add to "./src/ai_ticket_platform/core/clients/secret.url-shortener-abadb-firebase-adminsdk-fbsvc-48d38c91f0.json" the json shared in slack  
   - Copy to backend/env_config/synced/.env.dev:
 ```bash
   # SET-UP
