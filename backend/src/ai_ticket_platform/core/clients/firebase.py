@@ -20,7 +20,7 @@ def initialize_firebase():
 	else:
 		logger.info("Using Real Firebase Auth")
 		cred = credentials.Certificate(
-			"./src/ai_ticket_platform/core/clients/secret.url-shortener-abadb-firebase-adminsdk-fbsvc-48d38c91f0.json"
+			"./src/url_shortener/core/clients/secret.url-shortener-abadb-firebase-adminsdk-fbsvc-48d38c91f0.json"
 		)
 		try:
 			firebase_admin.get_app()

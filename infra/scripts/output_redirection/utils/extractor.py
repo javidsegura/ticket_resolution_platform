@@ -16,32 +16,6 @@ class Extractor:
                         text=True,
                         capture_output=True
                   )
-                  # raw_outputs = {
-                  #       "EC2_PRIVATE_SERVER_INSTANCE_ID": 
-                  #       {
-                  #             "value": "i-1234567890abcdef0"
-                  #       },
-                  #       "AWS_MAIN_REGION": 
-                  #       {
-                  #             "value": "us-east-1"
-                  #       },
-                  #       "S3_MAIN_BUCKET_NAME": 
-                  #       {
-                  #             "value": "great-bucket"
-                  #       },
-                  #       "EC2_APP_SERVER_PUBLIC_IP": 
-                  #       {
-                  #             "value": "12.323.12"
-                  #       },
-                  #       "RDS_DB_CREDENTIALS_KEY": 
-                  #       {
-                  #             "value": "a great key"
-                  #       },
-                  #       "RDS_MYSQL_HOST": 
-                  #       {
-                  #             "value": "aws.host.com"
-                  #       },
-                  # }
 
                   raw_outputs =  json.loads(output.stdout)
                   flattened_outputs = {

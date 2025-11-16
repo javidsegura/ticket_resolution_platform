@@ -1,3 +1,5 @@
+
+
 terraform {
   required_providers {
     aws = {
@@ -6,7 +8,7 @@ terraform {
     }
   }
   backend "s3" {
-    bucket = "ai-ticket-platform-remote-state-bucket-ijbgn11u"
+    bucket = "url-shortener-remote-state-bucket-sblyckh5"
     key = "remote-state/dev/terraform.tfstate"
     region = "us-east-1"
     encrypt = true
