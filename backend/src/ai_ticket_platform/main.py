@@ -24,7 +24,7 @@ async def lifespan(app: FastAPI):
     This is the recommended way to manage resources that need to be
     available for the entire application lifecycle.
     """
-    initialize_firebase()
+    #initialize_firebase()
     initialize_logger() 
     settings.app_settings = settings.initialize_settings()
     #clients.s3_client = clients.initialize_aws_s3_client()
