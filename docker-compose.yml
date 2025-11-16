@@ -10,6 +10,15 @@ services:
       interval: 1s
       timeout: 3s
       retries: 5
+  db-migration:
+    image: javidsegura/ai_ticket_platform
+    command: ["python", "scripts/migrate.py"]
+    working_dir: /app
+    env_file:
+      - ${BACKEND_ENV_FILE}
+    restart: "no"
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT}  
   nginx:
     image: nginx:alpine
     ports:

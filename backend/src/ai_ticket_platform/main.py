@@ -11,6 +11,10 @@ from ai_ticket_platform.routers import (
 	health_router,
 )
 import logging 
+from prometheus_fastapi_instrumentator import Instrumentator
+
+
+
 logger = logging.getLogger(__name__)
 
 @asynccontextmanager
@@ -48,3 +52,6 @@ routers = [health_router]
 
 for router in routers:
 	app.include_router(router, prefix="/api")
+
+Instrumentator().instrument(app).expose(app)
+
