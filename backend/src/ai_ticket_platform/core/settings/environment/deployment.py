@@ -12,13 +12,15 @@ class DeploymentSettings(BaseSettings):
                   "REDIS_URL", "MYSQL_USER", "MYSQL_PASSWORD", "MYSQL_HOST",
                   "MYSQL_PORT", "MYSQL_DATABASE", "MYSQL_SYNC_DRIVER", 
                   "MYSQL_ASYNC_DRIVER", 
-                  "S3_MAIN_BUCKET_NAME", "AWS_MAIN_REGION"
+                  "S3_MAIN_BUCKET_NAME", "AWS_MAIN_REGION",
+                  "OPENAI_API_KEY", 
             ]
 
       def extract_all_variables(self):
             self._extract_database_variables()
             self._extract_aws_variables()
             self._extract_app_logic_variables()
+            self._extract_llm_variables()
       def _extract_secret_manger_databaseb_credentials(self):
             from ai_ticket_platform.services.infra.aws.secretsmanager import SecretsManager 
             secret_key = os.getenv("SECRETS_MANAGER_DB_CREDENTIALS_KEY")
@@ -38,8 +40,9 @@ class DeploymentSettings(BaseSettings):
       def _extract_aws_variables(self):
             self.S3_MAIN_BUCKET_NAME = os.getenv("S3_MAIN_BUCKET_NAME")
             self.AWS_MAIN_REGION = os.getenv("AWS_MAIN_REGION")
-
-      
+      def _extract_llm_variables(self):
+            self.OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+            self.OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
 
 
 
