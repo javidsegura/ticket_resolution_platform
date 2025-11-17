@@ -40,7 +40,7 @@ async def send_slack_message(
 
 
 @router.post(path="/send-article-proposal", status_code=status.HTTP_200_OK)
-async def send_slack_message(
+async def send_article_proposal(
 	settings: Annotated[object, Depends(get_app_settings)],
 	url: str,
 	content: str
@@ -69,7 +69,7 @@ async def send_slack_message(
 
 
 @router.post(path="/send-approval-confirmation", status_code=status.HTTP_200_OK)
-async def send_slack_message(
+async def send_approval_confirmation(
 	settings: Annotated[object, Depends(get_app_settings)],
 	url: str
 ):
