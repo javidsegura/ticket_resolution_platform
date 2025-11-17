@@ -11,6 +11,7 @@ Infrastructure Note:
 import pytest
 import pytest_asyncio
 import asyncio
+import os
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
@@ -18,6 +19,19 @@ from httpx import AsyncClient
 from ai_ticket_platform.main import app
 from ai_ticket_platform.database.generated_models import Base
 from ai_ticket_platform.dependencies.database import get_db
+from ai_ticket_platform.dependencies.settings import get_app_settings
+
+
+# ============================================================================
+# Environment Setup for Testing
+# ============================================================================
+
+# Set test environment before any app initialization
+os.environ.setdefault("ENVIRONMENT", "test")
+os.environ.setdefault("OPENAI_API_KEY", "test-key-123")
+os.environ.setdefault("OPENAI_MODEL", "gpt-4")
+os.environ.setdefault("SLACK_BOT_TOKEN", "xoxb-test-token")
+os.environ.setdefault("SLACK_CHANNEL_ID", "C123456789")
 
 
 # ============================================================================
@@ -76,11 +90,31 @@ async def db_session(setup_test_db):
 
 
 # ============================================================================
+# Settings Setup for Testing
+# ============================================================================
+
+class TestSettings:
+    """Test settings object for dependency injection"""
+    ENVIRONMENT = 'test'
+    OPENAI_API_KEY = 'test-key-123'
+    OPENAI_MODEL = 'gpt-4'
+    SLACK_BOT_TOKEN = 'xoxb-test-token'
+    SLACK_CHANNEL_ID = 'C123456789'
+    DATABASE_URL = TEST_DATABASE_URL
+
+
+@pytest.fixture
+def test_settings():
+    """Provide test settings with mocked values"""
+    return TestSettings()
+
+
+# ============================================================================
 # FastAPI Test Client Setup
 # ============================================================================
 
 @pytest_asyncio.fixture
-async def async_client(db_session):
+async def async_client(db_session, test_settings):
     """
     Provide an async test client for making requests to the app.
     Uses the test database session.
@@ -90,7 +124,11 @@ async def async_client(db_session):
     async def override_get_db():
         yield db_session
 
+    async def override_get_settings():
+        return test_settings
+
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_app_settings] = override_get_settings
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:

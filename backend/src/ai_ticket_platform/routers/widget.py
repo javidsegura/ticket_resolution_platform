@@ -1,13 +1,18 @@
 """
 Widget Router
 Handles JS widget rendering and micro-answer delivery
-TODO: Integrate with actual widget rendering engine
+Converts markdown to HTML for widget display
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 import logging
+
+try:
+    import markdown
+except ImportError:
+    markdown = None
 
 from ai_ticket_platform.database.generated_models import PublishedArticle
 from ai_ticket_platform.dependencies.database import get_db
@@ -173,8 +178,22 @@ async def manual_trigger(
 # Helper functions for widget HTML generation
 # ============================================================================
 
+def _markdown_to_html(markdown_content: str) -> str:
+    """Convert markdown content to HTML."""
+    if markdown and markdown_content:
+        try:
+            return markdown.markdown(markdown_content, extensions=['extra', 'codehilite', 'toc'])
+        except Exception as e:
+            logger.error(f"Error converting markdown to HTML: {str(e)}")
+            # Fallback: escape markdown and wrap in pre tag
+            return f"<pre>{markdown_content}</pre>"
+    return markdown_content
+
+
 def _generate_widget_html(article) -> str:
-    """Generate widget HTML from article content."""
+    """Generate widget HTML from article content (converts markdown to HTML)."""
+    html_content = _markdown_to_html(article.markdown_content)
+
     return f"""
     <div class="ai-ticket-widget" data-article-id="{article.article_id}">
         <div class="micro-answer">
@@ -182,7 +201,7 @@ def _generate_widget_html(article) -> str:
                 <h3>AI-Generated Answer</h3>
             </div>
             <div class="widget-content">
-                {article.markdown_content}
+                {html_content}
             </div>
             <div class="widget-footer">
                 <a href="{article.microsite_url}" target="_blank" class="view-full-article">
@@ -212,6 +231,28 @@ def _generate_widget_html(article) -> str:
                 line-height: 1.6;
                 margin-bottom: 12px;
             }}
+            .widget-content h1, .widget-content h2, .widget-content h3 {{
+                margin: 16px 0 8px 0;
+                font-weight: 600;
+            }}
+            .widget-content p {{
+                margin: 8px 0;
+            }}
+            .widget-content ul, .widget-content ol {{
+                margin: 8px 0 8px 20px;
+            }}
+            .widget-content code {{
+                background: #f0f0f0;
+                padding: 2px 6px;
+                border-radius: 3px;
+                font-family: 'Courier New', monospace;
+            }}
+            .widget-content pre {{
+                background: #f0f0f0;
+                padding: 12px;
+                border-radius: 4px;
+                overflow-x: auto;
+            }}
             .view-full-article {{
                 color: #0066cc;
                 text-decoration: none;
@@ -227,10 +268,12 @@ def _generate_widget_html(article) -> str:
 
 
 def _generate_embed_html(article) -> str:
-    """Generate embeddable HTML from article content."""
+    """Generate embeddable HTML from article content (converts markdown to HTML)."""
+    html_content = _markdown_to_html(article.markdown_content)
+
     return f"""
     <div class="ai-ticket-embed" data-article-id="{article.article_id}">
-        {article.markdown_content}
+        {html_content}
     </div>
     """
 

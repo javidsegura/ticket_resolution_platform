@@ -1,7 +1,7 @@
 """
 Draft Management Router
 Handles draft generation, sending for approval, and state transitions
-TODO: Integrate with actual AI content generation service
+Integrates with Slack for approval workflow
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -18,6 +18,8 @@ from ai_ticket_platform.database.generated_models import (
     ApprovalStatus
 )
 from ai_ticket_platform.dependencies.database import get_db
+from ai_ticket_platform.dependencies.settings import get_app_settings
+from ai_ticket_platform.core.clients.slack import Slack
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["drafts"])
@@ -105,18 +107,17 @@ This is a placeholder for the AI-generated draft content.
 async def send_draft_for_approval(
     draft_id: str,
     slack_channel: str = "general",
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    settings = Depends(get_app_settings)
 ):
     """
-    Send a draft for approval (creates an approval record).
-
-    TODO: Integrate with Slack client when feat/slack_implementation merges
-    For now: Creates approval record with mock Slack timestamp
+    Send a draft for approval (creates an approval record and sends to Slack).
 
     Args:
         draft_id: ID of the draft
         slack_channel: Slack channel to send approval message to
         db: Database session
+        settings: Application settings with Slack configuration
 
     Returns:
         dict with approval_id and message_sent status
@@ -142,7 +143,7 @@ async def send_draft_for_approval(
         # Create approval record
         approval = Approval(
             draft_id=draft_id,
-            slack_message_ts="mock.ts.123",  # Mock timestamp - will be real when Slack integrated
+            slack_message_ts="pending",
             status=ApprovalStatus.PENDING
         )
 
@@ -156,17 +157,42 @@ async def send_draft_for_approval(
 
         logger.info(f"Sent draft {draft_id} for approval (approval_id: {approval.approval_id})")
 
-        # TODO: Call actual Slack client here when feat/slack_implementation merges
-        # For now, just log that we would send to Slack
-        logger.info(f"Would send approval message to Slack channel: {slack_channel}")
+        # Send to Slack
+        slack_message_ts = None
+        slack_sent = False
+
+        try:
+            slack = Slack(slack_bot_token=settings.SLACK_BOT_TOKEN)
+            result = slack.send_new_article_proposal(
+                slack_channel_id=settings.SLACK_CHANNEL_ID,
+                url=f"https://app.example.com/draft/{draft_id}",
+                content=draft.content[:500]  # Send first 500 chars of draft
+            )
+
+            if result:
+                slack_message_ts = result[1]  # second element is message timestamp
+                slack_sent = True
+                approval.slack_message_ts = slack_message_ts
+                await db.commit()
+                logger.info(f"Slack message sent for approval {approval.approval_id}")
+            else:
+                logger.warning(f"Failed to send Slack message for approval {approval.approval_id}")
+        except Exception as slack_error:
+            logger.error(f"Slack integration error: {str(slack_error)}")
+            # Don't fail the approval flow if Slack fails
+            slack_sent = False
 
         return {
             "approval_id": approval.approval_id,
             "draft_id": draft_id,
             "status": "awaiting_approval",
-            "message_sent": True,
-            "slack_channel": slack_channel
+            "message_sent": slack_sent,
+            "slack_channel": slack_channel,
+            "slack_message_ts": slack_message_ts
         }
+    except HTTPException:
+        await db.rollback()
+        raise
     except Exception as e:
         logger.error(f"Error sending draft for approval: {str(e)}")
         await db.rollback()
@@ -180,18 +206,19 @@ async def send_draft_for_approval(
 async def handle_approval_response(
     approval_id: str,
     response: ApprovalResponse,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    settings = Depends(get_app_settings)
 ):
     """
     Handle approval response (approved or needs_edit).
 
-    This endpoint simulates Slack button clicks or receives direct API calls.
-    Tests can call this to validate state transitions.
+    Sends confirmation to Slack when approved.
 
     Args:
         approval_id: ID of the approval
         response: ApprovalResponse with action and feedback
         db: Database session
+        settings: Application settings with Slack configuration
 
     Returns:
         Updated approval with new status
@@ -245,6 +272,19 @@ async def handle_approval_response(
             f"Approval {approval_id} set to {response.action} "
             f"(Draft {draft.draft_id} status: {draft.status})"
         )
+
+        # Send Slack confirmation if approved
+        if response.action == "approved":
+            try:
+                slack = Slack(slack_bot_token=settings.SLACK_BOT_TOKEN)
+                slack.send_confirmation_message(
+                    slack_channel_id=settings.SLACK_CHANNEL_ID,
+                    url=f"https://app.example.com/article/{draft.draft_id}"
+                )
+                logger.info(f"Slack confirmation sent for approval {approval_id}")
+            except Exception as slack_error:
+                logger.error(f"Failed to send Slack confirmation: {str(slack_error)}")
+                # Don't fail the approval if Slack fails
 
         return {
             "approval_id": approval.approval_id,

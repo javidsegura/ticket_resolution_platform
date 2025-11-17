@@ -1,16 +1,20 @@
 """
 CSV Upload and Ticket Management Router
 Handles ticket creation, clustering, and draft generation
-TODO: Replace mock implementations with actual clustering and AI services
 """
 
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 import logging
+import csv
+from io import StringIO
 
 from ai_ticket_platform.database.generated_models import Ticket, TicketStatus
 from ai_ticket_platform.dependencies.database import get_db
+from ai_ticket_platform.dependencies.settings import get_app_settings
+from ai_ticket_platform.core.clients.llm import LLMClient
+from ai_ticket_platform.services.clustering.cluster_service import cluster_and_categorize_tickets
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["tickets"])
@@ -19,44 +23,91 @@ router = APIRouter(tags=["tickets"])
 @router.post("/csv/upload", response_model=dict)
 async def upload_csv(
     file: UploadFile = File(...),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    settings = Depends(get_app_settings)
 ):
     """
-    Upload a CSV file and create a ticket.
-
-    TODO: Implement actual CSV parsing and validation
-    For now: Creates a single ticket with the filename as title
+    Upload a CSV file, create tickets, and perform clustering.
 
     Args:
-        file: CSV file to upload
+        file: CSV file to upload (expects columns: title, content)
         db: Database session
+        settings: Application settings with LLM configuration
 
     Returns:
-        dict with ticket_id and status
+        dict with ticket IDs and clustering results
     """
     try:
-        # Read file content
+        # Read and decode file
         content = await file.read()
+        csv_text = content.decode('utf-8')
 
-        # TODO: Parse CSV properly when teammates implement
-        # For now, just create a ticket with the filename
-        ticket = Ticket(
-            title=file.filename or "Untitled Ticket",
-            content=content.decode('utf-8', errors='ignore')[:5000],  # Max 5000 chars
-            status=TicketStatus.UPLOADED
-        )
+        # Parse CSV
+        csv_reader = csv.DictReader(StringIO(csv_text))
+        rows = list(csv_reader)
 
-        db.add(ticket)
+        if not rows:
+            raise ValueError("CSV file is empty")
+
+        # Create Ticket records
+        tickets = []
+        ticket_ids = []
+
+        for row in rows:
+            title = row.get('title', '').strip()
+            content = row.get('content', '').strip()
+
+            if not title:
+                logger.warning("Skipping row with empty title")
+                continue
+
+            ticket = Ticket(
+                title=title,
+                content=content[:5000],  # Max 5000 chars
+                status=TicketStatus.UPLOADED
+            )
+            db.add(ticket)
+            tickets.append(ticket)
+            ticket_ids.append(ticket.title)  # Store title for clustering
+
         await db.commit()
-        await db.refresh(ticket)
 
-        logger.info(f"Created ticket {ticket.ticket_id} from CSV upload")
+        # Refresh to get IDs
+        for ticket in tickets:
+            await db.refresh(ticket)
 
-        return {
-            "ticket_id": ticket.ticket_id,
-            "status": "uploaded",
-            "title": ticket.title
-        }
+        logger.info(f"Created {len(tickets)} tickets from CSV upload")
+
+        # Perform clustering using LLM service
+        try:
+            llm_client = LLMClient(settings)
+
+            # Prepare tickets for clustering (expects "Ticket Subject" field)
+            clustering_input = [
+                {"Ticket Subject": ticket.title}
+                for ticket in tickets
+            ]
+
+            clustering_result = cluster_and_categorize_tickets(clustering_input, llm_client)
+
+            logger.info(f"Clustering complete: {clustering_result.get('clusters_created', 0)} clusters created")
+
+            return {
+                "ticket_count": len(tickets),
+                "ticket_ids": [ticket.ticket_id for ticket in tickets],
+                "status": "uploaded_and_clustered",
+                "clustering": clustering_result
+            }
+        except Exception as clustering_error:
+            logger.error(f"Clustering failed: {str(clustering_error)}")
+            # Don't fail the upload if clustering fails - tickets are already created
+            return {
+                "ticket_count": len(tickets),
+                "ticket_ids": [ticket.ticket_id for ticket in tickets],
+                "status": "uploaded",
+                "clustering_error": str(clustering_error)
+            }
+
     except Exception as e:
         logger.error(f"Error uploading CSV: {str(e)}")
         await db.rollback()
@@ -69,20 +120,19 @@ async def upload_csv(
 @router.post("/tickets/{ticket_id}/cluster", response_model=dict)
 async def cluster_ticket(
     ticket_id: str,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    settings = Depends(get_app_settings)
 ):
     """
-    Cluster a ticket into categories.
-
-    TODO: Implement actual clustering logic with ML model
-    For now: Returns mock clusters for testing
+    Cluster a ticket into categories using LLM service.
 
     Args:
         ticket_id: ID of the ticket to cluster
         db: Database session
+        settings: Application settings with LLM configuration
 
     Returns:
-        dict with clusters and confidence scores
+        dict with clusters and primary cluster
     """
     # Verify ticket exists
     result = await db.execute(select(Ticket).where(Ticket.ticket_id == ticket_id))
@@ -94,21 +144,28 @@ async def cluster_ticket(
             detail=f"Ticket {ticket_id} not found"
         )
 
-    # TODO: Replace with actual clustering service
-    # Mock response for testing
-    mock_clusters = [
-        {"category": "Technical Issue", "confidence": 0.92},
-        {"category": "Feature Request", "confidence": 0.78},
-        {"category": "Documentation", "confidence": 0.65}
-    ]
+    try:
+        # Initialize LLM client and perform clustering
+        llm_client = LLMClient(settings)
 
-    logger.info(f"Clustered ticket {ticket_id}")
+        clustering_input = [{"Ticket Subject": ticket.title}]
+        clustering_result = cluster_and_categorize_tickets(clustering_input, llm_client)
 
-    return {
-        "ticket_id": ticket_id,
-        "clusters": mock_clusters,
-        "primary_cluster": mock_clusters[0]["category"]
-    }
+        logger.info(f"Clustered ticket {ticket_id}")
+
+        return {
+            "ticket_id": ticket_id,
+            "total_tickets": clustering_result.get("total_tickets", 0),
+            "clusters_created": clustering_result.get("clusters_created", 0),
+            "clusters": clustering_result.get("clusters", []),
+            "primary_cluster": clustering_result.get("clusters", [{}])[0].get("topic_name") if clustering_result.get("clusters") else None
+        }
+    except Exception as e:
+        logger.error(f"Error clustering ticket {ticket_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Clustering failed: {str(e)}"
+        )
 
 
 @router.post("/tickets/{ticket_id}/status", response_model=dict)
