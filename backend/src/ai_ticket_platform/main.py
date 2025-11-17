@@ -10,6 +10,10 @@ import ai_ticket_platform.core.settings as settings
 from ai_ticket_platform.routers import (
 	health_router,
 )
+from ai_ticket_platform.routers.tickets import router as tickets_router
+from ai_ticket_platform.routers.drafts import router as drafts_router
+from ai_ticket_platform.routers.publishing import router as publishing_router
+from ai_ticket_platform.routers.widget import router as widget_router
 import logging 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +48,7 @@ app.add_middleware(
 )
 
 # Update the routers section, keep health
-routers = [health_router]
+routers = [health_router, tickets_router, drafts_router, publishing_router, widget_router]
 
 for router in routers:
 	app.include_router(router, prefix="/api")

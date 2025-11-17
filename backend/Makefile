@@ -106,6 +106,25 @@ test-docker-compose-start: ## Stats docker compose for integration tests of endp
 test-docker-compose-stop: ## Stops docker compose for integration tests of endpoints
 	BACKEND_ENV_FILE=$(BACKEND_ENV_FILE_SYNCED_PATH) docker compose -f ../docker-compose.yml -f ../docker-compose.test.yml -p $(PROJECT_NAME) down -v
 
+test-integration: ## Run all integration tests (CSV → Draft → Approval → Publish)
+	@echo "$(YELLOW)Running integration tests...$(RESET)"
+	$(VENV_ACTIVATE) && pytest -s -vv --cov=ai_ticket_platform --cov-report=term-missing tests/integration/
+
+test-integration-csv: ## Run CSV→Draft pipeline tests
+	@echo "$(YELLOW)Running CSV→Draft pipeline tests...$(RESET)"
+	$(VENV_ACTIVATE) && pytest -s -vv tests/integration/test_csv_draft_pipeline.py
+
+test-integration-approval: ## Run Slack approval flow tests
+	@echo "$(YELLOW)Running Slack approval flow tests...$(RESET)"
+	$(VENV_ACTIVATE) && pytest -s -vv tests/integration/test_approval_flow.py
+
+test-integration-publish: ## Run publish→microsite flow tests
+	@echo "$(YELLOW)Running publish flow tests...$(RESET)"
+	$(VENV_ACTIVATE) && pytest -s -vv tests/integration/test_publish_flow.py
+
+test-integration-widget: ## Run JS widget rendering tests
+	@echo "$(YELLOW)Running widget tests...$(RESET)"
+	$(VENV_ACTIVATE) && pytest -s -vv tests/integration/test_js_widget.py
 
 # 6) Miscellaneous
 check_enviroment_variables:
