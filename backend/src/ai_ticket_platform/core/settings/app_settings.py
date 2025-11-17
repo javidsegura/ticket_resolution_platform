@@ -23,7 +23,6 @@ class Settings:
 	def get_settings(self):
 		return self._extract_all_variables()
 
-
 	def _get_resolve_per_environment(self):
 		if self.ENVIRONMENT in ["test", "dev"]:
 			return DevSettings()

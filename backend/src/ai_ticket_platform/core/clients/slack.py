@@ -68,3 +68,91 @@ class Slack:
             return slack_channel_id, data.get("ts")
         else:
             self.logger.error(f"{data}")
+            
+            
+    def send_confirmation_message(self, slack_channel_id: str, url: str):
+        """Send the approval confirmation block message."""
+
+        blocks = [
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": "Success! 🎉",
+                    "emoji": True,
+                },
+            },
+            {"type": "divider"},
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": (
+                        "Your article was approved and stored in the company docs "
+                        "successfully."
+                    ),
+                },
+            },
+            {
+                "type": "actions",
+                "elements": [
+                    {
+                        "type": "button",
+                        "text": {"type": "plain_text", "text": "See Article Page"},
+                        "url": url,
+                        "action_id": "open-article",
+                    }
+                ],
+            },
+        ]
+
+        return self.send_channel_block_message(blocks=blocks, slack_channel_id=slack_channel_id)
+
+    
+    def send_new_article_proposal(self, slack_channel_id: str, url: str, content: str):
+        """send a structured message for user to check AI proposal"""
+        blocks = [
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": "Zeffo has a suggestion",
+                }
+            },
+            {
+                "type": "divider"
+            },
+            {
+                "type": "rich_text",
+                "elements": [
+                    {
+                        "type": "rich_text_section",
+                        "elements": [
+                            {
+                                "type": "text",
+                                "text": content
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "This is the article I have created."
+                },
+                "accessory": {
+                    "type": "button",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "Open Article",
+                    },
+                    "value": "click_me_123",
+                    "url": url,
+                    "action_id": "button-action"
+                }
+            }
+        ]
+
+        return self.send_channel_block_message(blocks=blocks, slack_channel_id=slack_channel_id)
