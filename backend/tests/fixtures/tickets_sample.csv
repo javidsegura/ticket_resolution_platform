@@ -1,0 +1,85 @@
+title,content
+Login Fails with SSO,Users cannot log in using Single Sign-On. Getting error code 401 Unauthorized. Issue started after recent security update.
+Password Reset Not Working,Clicking password reset sends no email. Users check spam folder but nothing arrives. Issue affects all email providers.
+Account Locked After 5 Attempts,User accounts are being locked after just 5 failed login attempts. Should be 10. Need to increase threshold.
+2FA SMS Not Received,Two-factor authentication SMS codes are not arriving within expected timeframe. Some users report 10+ minute delays.
+Auth Token Expiration Too Quick,JWT tokens expire after 15 minutes which causes frequent re-authentication. Need to extend to 4 hours.
+LDAP Integration Broken,LDAP authentication stopped working after server maintenance. Users with LDAP accounts cannot log in at all.
+Social Login Callback Error,OAuth callbacks from Google/GitHub are failing with 500 errors. Certificate might be expired.
+Session Timeout Too Aggressive,Users are being logged out after 30 minutes of inactivity. Should be 2 hours for better UX.
+Forgot Password Link Expires,Password reset links expire after 24 hours. Users report missing emails and then link is invalid.
+MFA Setup Not Completing,Users cannot complete MFA setup process. Stuck on verification step. Works for 10% of users.
+Dashboard Slow on Chrome,Dashboard takes 30+ seconds to load in Chrome browser. Safari and Firefox are normal. Likely frontend issue.
+API Response Time Degraded,API endpoints responding in 2-3 seconds instead of normal 200ms. Database queries are slow. May need indexing.
+Search Feature Freezes UI,Searching for tickets freezes the entire application for 10+ seconds. Search results eventually load but UX is poor.
+Modal Dialogs Not Responsive,Modal popups are not responsive on mobile devices. Touch interactions dont work properly.
+Report Generation Timeout,Generating PDF reports times out for datasets with 10k+ records. Need better pagination or async processing.
+Dark Mode Toggle Missing,Users request dark mode option for accessibility. Current UI is bright white only.
+Font Size Not Customizable,Users with vision impairment cannot adjust font sizes. Fixed at 14px.
+Mobile Navigation Menu Broken,Hamburger menu on mobile doesn't open properly. Icon visible but menu slides in partially.
+Responsive Images Not Loading,Images don't scale properly on mobile. Appear cropped or stretched instead of responsive.
+Loading Spinner Not Centered,Loading indicator appears off-center on some pages. Minor UX issue but looks unprofessional.
+Add User Feature Missing,No UI option to add new users to workspace. Only admin API call works. Needs UI form.
+Bulk Edit Not Available,Cannot edit multiple items at once. Need shift-click multi-select and bulk action panel.
+Export to CSV Broken,Export CSV button visible but doesn't download anything. No error message shown either.
+Import from Excel Failing,Users trying to import Excel files get generic error. No helpful validation messages.
+Print Styling Issues,Printed pages have wrong margins and headers. CSS media queries for print need review.
+Database Connection Pool Exhausted,App crashes when concurrent users exceed 50. Getting connection pool error. Need to increase pool size.
+Query Timeout on Reports,Complex reports timeout after 30 seconds. Need query optimization or materialized views.
+Backup Script Failing,Nightly backups not running. Cron job logs show permission denied errors on backup directory.
+Memory Leak in Worker,Background worker process memory grows to 500MB then crashes. Likely event listener not cleaning up properly.
+CPU Spikes During Peak Hours,System CPU usage hits 100% between 2-4 PM. Load balancer not distributing traffic evenly.
+Disk Space Running Low,Server disk is 95% full. Logs are not being rotated. Cleanup is urgent.
+Add Webhook Support,Users need webhook endpoints for integrations with Zapier and IFTTT. Currently no API for notifications.
+OAuth2 Client Credentials,Implement client credentials flow for service-to-service authentication. Current JWT-only approach limits integrations.
+Rate Limiting API,API needs rate limiting to prevent abuse. Currently anyone can make unlimited requests.
+API Documentation Missing,Swagger/OpenAPI docs are outdated. Many endpoints not documented. Developers requesting current specs.
+GraphQL Endpoint Needed,Some users prefer GraphQL over REST API. Should add GraphQL endpoint alongside REST.
+Improve Error Messages,API error messages are technical and unhelpful. Need user-friendly error responses with recovery suggestions.
+Add Pagination to Results,API returns all results which causes timeouts. Need cursor-based pagination or limit parameters.
+Field Validation Weak,API accepts invalid data formats. Email fields accept anything. Need stricter schema validation.
+Webhook Retry Logic,Webhooks fail once and dont retry. Need exponential backoff retry strategy for failed deliveries.
+Add Logging Middleware,API requests and responses aren't logged. Need structured logging for debugging and monitoring.
+CSV Upload Documentation,Help center lacks documentation on CSV import format and requirements. Users making lots of mistakes.
+API Rate Limit Docs,Documentation doesn't explain rate limits or how to request higher limits. Causing confusion and support tickets.
+Getting Started Guide Outdated,Quick start guide references deprecated endpoints. New users follow guide and hit errors.
+Setup Instructions for Docker,Users want Docker setup instructions but only have VM docs. Need Dockerfile and docker-compose guide.
+Database Schema Documentation,Database ER diagram missing. Developers working on integrations need to understand data model.
+Integration Guide Needed,Partners need step-by-step integration guide with code examples. Currently only raw API docs.
+Feature Request: Dark Mode,Users requesting dark mode for accessibility and reduced eye strain. Mentioned in 20+ support tickets.
+Feature Request: Bulk Operations,Users want to bulk delete and bulk update items. Currently one-at-a-time only.
+Feature Request: Custom Branding,White-label customers need to customize logo and colors. Currently hardcoded brand everywhere.
+Feature Request: Advanced Filtering,Current filters are basic. Users need complex boolean queries on multiple fields.
+Feature Request: Two-Way Sync,Users want bidirectional sync with Salesforce. Currently one-way only.
+Feature Request: Real-Time Notifications,Users want push notifications for events. Currently email only.
+Feature Request: Custom Fields,Users need ability to add custom metadata fields. Schema is fixed.
+Feature Request: Webhook Events,Users need webhooks for workflow automation. Currently no events triggered.
+Feature Request: SAML SSO,Enterprise customers require SAML support. Currently OAuth2 only.
+Feature Request: Role-Based Access,Users need fine-grained permission control. Currently just admin/user binary.
+Bug: Duplicate Entries Created,Bulk import sometimes creates duplicate records. No deduplication logic.
+Bug: Missing Updated Timestamps,Some records dont have correct updated_at timestamps. May be SQL timestamp issue.
+Bug: Timezone Handling Broken,Dates display wrong timezone. User in PST sees times in UTC. Need timezone conversion.
+Bug: String Encoding Issues,Emoji and special characters display as question marks. UTF-8 encoding problem.
+Bug: Float Precision Error,Decimal calculations slightly off. Money fields show 0.01 cent discrepancies. Float rounding issue.
+Bug: Null Reference Exception,Sometimes getting null pointer errors in logs. Accessing property on undefined object.
+Bug: Race Condition on Update,Concurrent updates corrupt data. Last write should win but both writes sometimes partially apply.
+Bug: Cache Invalidation Failed,Updated records still show old values until cache expires. Need manual cache clear.
+Bug: SQL Injection Vulnerability,User input in search field allows SQL injection. Need parameterized queries.
+Bug: XSS in Comments,HTML in comments renders instead of escaping. Stored XSS vulnerability exists.
+Bug: CSRF Token Missing,POST endpoints missing CSRF token validation. Forms vulnerable to cross-site attacks.
+Bug: Password Stored in Logs,User passwords accidentally logged in debug output. Sensitive data exposure.
+Bug: API Key Hardcoded,Third-party API key hardcoded in source code. Should use environment variables.
+Performance: Optimize Database,Queries are inefficient. Need proper indexing strategy review.
+Performance: Cache User Data,Frequently accessed user data not cached. Every request hits database.
+Performance: Minify Assets,Frontend JS and CSS not minified. Wasting bandwidth on large files.
+Performance: CDN Configuration,Static assets not served from CDN. Load times slow for international users.
+Performance: Database Connection,Opening new connection per request instead of reusing pool.
+Performance: Bundle Size,Frontend bundle is 2.5MB. Need code splitting and lazy loading.
+Refactor Legacy Code,Old authentication module has duplicated code. Needs modernization.
+Update Dependencies,npm packages 3+ versions behind. Security updates available but not installed.
+Add Unit Tests,Code coverage is 15%. Need unit tests for critical business logic.
+Fix Code Style,Inconsistent indentation and naming conventions across codebase. Need linter configured.
+Setup CI Pipeline,No automated testing before deployment. Manual testing is error-prone.
+Database Migration Needed,Schema changes queued but migration script hasn't run. Blocked on deployment.
+Configuration Management,Environment configs hardcoded. Need proper config management per environment.
+Logging Configuration,Debug logs too verbose. Production logs not capturing errors. Need log level management.
