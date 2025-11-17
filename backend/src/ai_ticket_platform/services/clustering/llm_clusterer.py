@@ -1,5 +1,4 @@
 from typing import List, Dict
-from 
 from ai_ticket_platform.core.clients import LLMClient
 from ai_ticket_platform.services.clustering import prompt_builder
 
@@ -35,8 +34,7 @@ def cluster_tickets(llm_client: LLMClient, ticket_texts: List[str]) -> Dict:
     clusters = result.get("clusters", [])
 
     # validate that all tickets were assigned
-        # validate that all tickets were assigned
-    assigned_tickets = set()
+    assigned_tickets = set()    
     for cluster in clusters:
         assigned_tickets.update(cluster["ticket_indices"])
     expected_tickets = set(range(len(ticket_texts)))

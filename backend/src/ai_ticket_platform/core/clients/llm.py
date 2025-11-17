@@ -72,6 +72,9 @@ class LLMClient():
                     temperature=temperature
                 )
 
+                if not response.choices:
+                    raise ValueError("OpenAI API returned empty choices list")
+
                 # parse response
                 result = json.loads(response.choices[0].message.content)
 
@@ -81,8 +84,6 @@ class LLMClient():
                 logger.warning(f"LLM call attempt {attempt + 1}/{max_retries} failed: {e}")
                 if attempt == max_retries - 1:
                     raise
-
-        raise Exception("LLM call failed after all retries")
 
 
 def initialize_llm_client(settings):

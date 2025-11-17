@@ -175,6 +175,15 @@ class TestLLMClient:
 class TestInitializeLLMClient:
 	"""Test suite for initialize_llm_client function."""
 
+	@pytest.fixture(autouse=True)
+	def reset_global_client(self):
+		"""Reset global LLM client before and after each test."""
+		import ai_ticket_platform.core.clients.llm as llm_module
+		original_client = llm_module.llm_client
+		llm_module.llm_client = None
+		yield
+		llm_module.llm_client = original_client
+
 	@pytest.fixture
 	def mock_settings(self):
 		"""Create mock settings object."""
@@ -185,10 +194,7 @@ class TestInitializeLLMClient:
 
 	def test_initialize_llm_client_first_time(self, mock_settings):
 		"""Test initializing LLM client for the first time."""
-		# reset global client
 		import ai_ticket_platform.core.clients.llm as llm_module
-		llm_module.llm_client = None
-
 		with patch.object(OpenAI, '__init__', return_value=None):
 			client = initialize_llm_client(mock_settings)
 
@@ -199,10 +205,7 @@ class TestInitializeLLMClient:
 
 	def test_initialize_llm_client_singleton(self, mock_settings):
 		"""Test LLM client follows singleton pattern."""
-		# reset global client
 		import ai_ticket_platform.core.clients.llm as llm_module
-		llm_module.llm_client = None
-
 		with patch.object(OpenAI, '__init__', return_value=None):
 			client1 = initialize_llm_client(mock_settings)
 			client2 = initialize_llm_client(mock_settings)

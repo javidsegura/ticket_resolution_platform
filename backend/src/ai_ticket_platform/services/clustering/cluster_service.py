@@ -46,10 +46,12 @@ def cluster_and_categorize_tickets(tickets: List[Dict],llm_client: LLMClient) ->
             "clusters": []
         }
 
-    # cluster tickets using injected LLM client
-    clustering_result = llm_clusterer.cluster_tickets(llm_client=llm_client, ticket_texts=ticket_texts)
-
-    return clustering_result
+     # cluster tickets using injected LLM client
+    try:
+        clustering_result = llm_clusterer.cluster_tickets(llm_client=llm_client, ticket_texts=ticket_texts)
+        return clustering_result
+    except Exception as e:
+          raise RuntimeError(f"Failed to cluster tickets: {str(e)}") from e
 
 
 def _extract_ticket_texts(tickets: List[Dict]) -> List[str]:
