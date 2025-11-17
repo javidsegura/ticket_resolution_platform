@@ -25,7 +25,7 @@ class Slack:
             message: The message to send.
 
         Returns:
-            bool: True if the message was sent successfully, False otherwise.
+            tuple[str, str] | None: A tuple with the channel ID and message timestamp on success, None otherwise.
         """
         url = "https://slack.com/api/chat.postMessage"
         payload = {
