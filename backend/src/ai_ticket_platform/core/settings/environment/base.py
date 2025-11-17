@@ -18,20 +18,14 @@ class BaseSettings(ABC):
             """
             Not environment dependent 
             """
-            self.SHORTENED_URL_LENGTH = int(os.getenv("SHORTENED_URL_LENGTH", "8"))
-            self.MAX_MINUTES_STORAGE = int(os.getenv("MAX_MINUTES_STORAGE", "60"))
-            self.MIN_MINUTES_STORAGE = int(os.getenv("MIN_MINUTES_STORAGE", "5"))
+            pass
             
       def validate_required_vars(self):
             missing_vars = []
             for var in self.required_vars:
                   if not getattr(self, var, None):
                         missing_vars.append(var)
-            if missing_vars:
-                raise ValueError(f"Missing required environment variables: {', '.join(missing_vars)}")
                   else:
                         print(f"VAR: {var} has {getattr(self, var)}")
             if missing_vars:
-                  raise Exception(f"Missing vars: {missing_vars}")
-
-
+                raise ValueError(f"Missing required environment variables: {', '.join(missing_vars)}") 
