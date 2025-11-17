@@ -1,4 +1,4 @@
-from openai import OpenAI
+from openai import OpenAI, APIError
 import json
 from typing import Dict
 import logging
@@ -77,11 +77,8 @@ class LLMClient():
 
                 return result
 
-            except json.JSONDecodeError as e:
-                if attempt == max_retries - 1:
-                    raise
-
-            except Exception as e:
+            except (json.JSONDecodeError, APIError) as e:
+                logger.warning(f"LLM call attempt {attempt + 1}/{max_retries} failed: {e}")
                 if attempt == max_retries - 1:
                     raise
 

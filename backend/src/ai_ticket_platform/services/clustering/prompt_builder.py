@@ -1,9 +1,3 @@
-"""
-Prompt builder for LLM clustering.
-
-Creates optimized prompts for single-pass ticket clustering.
-"""
-
 from typing import List
 
 

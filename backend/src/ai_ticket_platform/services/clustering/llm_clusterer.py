@@ -1,11 +1,5 @@
-"""
-LLM-based ticket clustering.
-
-Handles the core clustering logic using LLM with structured output.
-"""
-
 from typing import List, Dict
-
+from 
 from ai_ticket_platform.core.clients import LLMClient
 from ai_ticket_platform.services.clustering import prompt_builder
 
@@ -19,19 +13,7 @@ def cluster_tickets(llm_client: LLMClient, ticket_texts: List[str]) -> Dict:
         ticket_texts: List of ticket text strings
 
     Returns:
-        Dict with clustering results:
-        {
-            "clusters": [
-                {
-                    "topic_name": "Password Reset Issues",
-                    "category": "Account Management",
-                    "subcategory": "Authentication",
-                    "ticket_indices": [0, 5, 12, 23, ...],
-                    "summary": "Users unable to reset passwords..."
-                },
-                ...
-            ]
-        }
+        Dict with clustering results
     """
 
     # build prompt and get schema
@@ -53,8 +35,18 @@ def cluster_tickets(llm_client: LLMClient, ticket_texts: List[str]) -> Dict:
     clusters = result.get("clusters", [])
 
     # validate that all tickets were assigned
+        # validate that all tickets were assigned
     assigned_tickets = set()
     for cluster in clusters:
         assigned_tickets.update(cluster["ticket_indices"])
+    expected_tickets = set(range(len(ticket_texts)))
+    
+    if assigned_tickets != expected_tickets:
+        unassigned = expected_tickets - assigned_tickets
+        extra = assigned_tickets - expected_tickets
+        raise ValueError(
+            f"Ticket assignment mismatch! Unassigned: {unassigned}, "
+            f"Invalid/extra: {extra}"
+        )
 
     return result

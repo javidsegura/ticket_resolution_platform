@@ -1,9 +1,3 @@
-"""
-Unit tests for LLM client module.
-
-Tests cover initialization, structured output calls, error handling, and retries.
-"""
-
 import json
 import pytest
 from unittest.mock import Mock, MagicMock, patch
@@ -22,15 +16,7 @@ class TestLLMClient:
 		settings.OPENAI_API_KEY = "test-api-key-12345"
 		settings.OPENAI_MODEL = "gpt-4o"
 		return settings
-
-	@pytest.fixture
-	def mock_settings_no_model(self):
-		"""Create mock settings without model specified (should use default)."""
-		settings = Mock()
-		settings.OPENAI_API_KEY = "test-api-key-12345"
-		settings.OPENAI_MODEL = None
-		return settings
-
+	
 	@pytest.fixture
 	def llm_client(self, mock_settings):
 		"""Create LLMClient instance with mocked settings."""

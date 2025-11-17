@@ -1,9 +1,3 @@
-"""
-Unit tests for clustering service module.
-
-Tests cover ticket clustering, categorization, prompt building, and LLM integration.
-"""
-
 import pytest
 from unittest.mock import Mock, patch
 
