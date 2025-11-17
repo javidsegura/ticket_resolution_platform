@@ -26,7 +26,7 @@ help: ## Show this help message
 
 # 0) Set-up
 install: ## Install backend dependencies
-	python3.11 -m venv $(VENV)
+	python3 -m venv $(VENV)
 	$(VENV_ACTIVATE) && pip3 install -e ".[dev, tests]"
 	$(VENV_ACTIVATE) && alembic init migrations || echo "alembic init already started"
 

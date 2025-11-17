@@ -4,7 +4,7 @@ import datetime
 from uuid import uuid4
 import enum
 
-from sqlalchemy import DateTime, Enum, ForeignKeyConstraint, Index, Integer, String, TIMESTAMP, text, JSON
+from sqlalchemy import DateTime, Enum, ForeignKeyConstraint, Index, Integer, String, TIMESTAMP, text, JSON, Text
 from sqlalchemy.dialects.mysql import TINYINT
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -133,7 +133,7 @@ class PublishedArticle(Base):
 
     article_id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
     draft_id: Mapped[str] = mapped_column(String(36), nullable=False)
-    markdown_content: Mapped[str] = mapped_column(String(20000), nullable=False)
+    markdown_content: Mapped[str] = mapped_column(Text, nullable=False)
     microsite_url: Mapped[str] = mapped_column(String(500), nullable=False)
     published_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), nullable=False)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), nullable=False)

@@ -1,9 +1,13 @@
 """
 Integration test fixtures
 Provides helper functions and fixtures for integration tests
+
+All fixtures are marked with @pytest_asyncio.fixture to support async test methods.
+Fixtures automatically create and persist test data to Docker MySQL database.
 """
 
 import pytest
+import pytest_asyncio
 from uuid import uuid4
 from sqlalchemy import select
 
@@ -22,7 +26,7 @@ from ai_ticket_platform.database.generated_models import (
 # Ticket Fixtures
 # ============================================================================
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def create_test_ticket():
     """Factory fixture to create test tickets"""
     async def _create(db_session, **kwargs):
@@ -39,7 +43,7 @@ async def create_test_ticket():
     return _create
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def sample_ticket(db_session, create_test_ticket):
     """Provide a sample ticket for tests"""
     return await create_test_ticket(db_session)
@@ -49,7 +53,7 @@ async def sample_ticket(db_session, create_test_ticket):
 # Draft Fixtures
 # ============================================================================
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def create_test_draft():
     """Factory fixture to create test drafts"""
     async def _create(db_session, **kwargs):
@@ -77,7 +81,7 @@ async def create_test_draft():
     return _create
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def sample_draft(db_session, create_test_draft):
     """Provide a sample draft for tests"""
     return await create_test_draft(db_session)
@@ -87,7 +91,7 @@ async def sample_draft(db_session, create_test_draft):
 # Approval Fixtures
 # ============================================================================
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def create_test_approval():
     """Factory fixture to create test approvals"""
     async def _create(db_session, **kwargs):
@@ -125,7 +129,7 @@ async def create_test_approval():
     return _create
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def sample_approval(db_session, create_test_approval):
     """Provide a sample approval for tests"""
     return await create_test_approval(db_session)
@@ -135,7 +139,7 @@ async def sample_approval(db_session, create_test_approval):
 # Published Article Fixtures
 # ============================================================================
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def create_test_published_article():
     """Factory fixture to create test published articles"""
     async def _create(db_session, **kwargs):
@@ -172,7 +176,7 @@ async def create_test_published_article():
     return _create
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def sample_published_article(db_session, create_test_published_article):
     """Provide a sample published article for tests"""
     return await create_test_published_article(db_session)

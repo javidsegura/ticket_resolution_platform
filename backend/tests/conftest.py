@@ -1,9 +1,15 @@
 """
 Root conftest for all tests
 Provides shared fixtures and configuration
+
+Infrastructure Note:
+- Tests connect to Docker MySQL running on localhost:3307
+- Start Docker containers with: docker compose -f docker-compose.yml -f docker-compose.test.yml up -d
+- Requires: Colima, Docker, and docker-compose
 """
 
 import pytest
+import pytest_asyncio
 import asyncio
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from fastapi.testclient import TestClient
@@ -18,7 +24,7 @@ from ai_ticket_platform.dependencies.database import get_db
 # Database Setup for Testing
 # ============================================================================
 
-TEST_DATABASE_URL = "mysql+aiomysql://root:password@localhost:3307/test_ai_ticket_platform"
+TEST_DATABASE_URL = "mysql+aiomysql://root:rootpassword@localhost:3307/ai_ticket_platform"
 
 
 @pytest.fixture(scope="session")
@@ -29,7 +35,7 @@ def event_loop():
     loop.close()
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest_asyncio.fixture(scope="session")
 async def setup_test_db():
     """
     Set up test database before running all tests.
@@ -51,8 +57,8 @@ async def setup_test_db():
         await engine.dispose()
 
 
-@pytest.fixture
-async def db_session():
+@pytest_asyncio.fixture
+async def db_session(setup_test_db):
     """
     Provide a fresh database session for each test.
     Automatically rolls back changes after test.
@@ -73,18 +79,21 @@ async def db_session():
 # FastAPI Test Client Setup
 # ============================================================================
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def async_client(db_session):
     """
     Provide an async test client for making requests to the app.
     Uses the test database session.
     """
+    from httpx import ASGITransport
+
     async def override_get_db():
         yield db_session
 
     app.dependency_overrides[get_db] = override_get_db
 
-    async with AsyncClient(app=app, base_url="http://test") as client:
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
         yield client
 
     app.dependency_overrides.clear()
