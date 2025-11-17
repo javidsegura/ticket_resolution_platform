@@ -107,7 +107,7 @@ class Slack:
         ]
 
         return self.send_channel_block_message(blocks=blocks, slack_channel_id=slack_channel_id)
-
+    
     
     def send_new_article_proposal(self, slack_channel_id: str, url: str, content: str):
         """send a structured message for user to check AI proposal"""
