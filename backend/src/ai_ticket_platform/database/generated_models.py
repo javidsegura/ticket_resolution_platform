@@ -7,7 +7,6 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 class Base(DeclarativeBase):
     pass
 
-
 # THESE MODELS NEED TO BE UPDATED
 class User(Base):
     __tablename__ = 'user'
@@ -16,7 +15,7 @@ class User(Base):
     displayable_name: Mapped[str] = mapped_column(String(100), nullable=False)
     email: Mapped[str] = mapped_column(String(255), nullable=False)
     profile_pic_object_name: Mapped[str] = mapped_column(String(299), nullable=False)
-    country: Mapped[str] = mapped_column(String(2), nullable=False)
+    country: Mapped[str] = mapped_column(String(299), nullable=False)
     timeRegistered: Mapped[Optional[datetime.datetime]] = mapped_column(TIMESTAMP, server_default=text('CURRENT_TIMESTAMP'))
     isAdmin: Mapped[Optional[int]] = mapped_column(TINYINT(1), server_default=text("'0'"))
 
@@ -50,7 +49,7 @@ class Article(Base):
     blob_path: Mapped[str] = mapped_column(String(1000), nullable=False)
     status: Mapped[str] = mapped_column(String(20), nullable=False, server_default=text("'iteration'"))
     version: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("1")) #TODO: autoincrement versions on update
-    feedback: Mapped[str | None] = mapped_column(String(2000))
+    feedback: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), nullable=False)
     updated_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), onupdate=text('CURRENT_TIMESTAMP'))
 
@@ -111,7 +110,7 @@ class Intent(Base):
     category_level_2_id: Mapped[int | None] = mapped_column(ForeignKey("categories.id"), nullable=True)
     category_level_3_id: Mapped[int | None] = mapped_column(ForeignKey("categories.id"), nullable=True)
     area: Mapped[str | None] = mapped_column(String(255))
-    is_processed: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("'0'"))
+    is_processed: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text('false'))
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), nullable=False)
     updated_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), onupdate=text('CURRENT_TIMESTAMP'))
 

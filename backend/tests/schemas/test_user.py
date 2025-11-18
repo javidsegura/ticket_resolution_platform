@@ -13,7 +13,6 @@ class TestUserCreate:
             user_id="user123",
             displayable_name="John Doe",
             email="john@example.com",
-            profile_pic_object_name="profiles/john.jpg",
             country="US"
         )
         assert user.user_id == "user123"
@@ -23,47 +22,29 @@ class TestUserCreate:
         """Test user_id length constraints"""
         with pytest.raises(ValidationError):
             UserCreate(
-                user_id="", displayable_name="J", email="j@e.com",
-                profile_pic_object_name="p.jpg", country="US"
+                user_id="", displayable_name="J", email="j@e.com", country="US"
             )
         with pytest.raises(ValidationError):
             UserCreate(
-                user_id="x" * 300, displayable_name="J", email="j@e.com",
-                profile_pic_object_name="p.jpg", country="US"
+                user_id="x" * 300, displayable_name="J", email="j@e.com", country="US"
             )
 
     def test_displayable_name_validation(self):
         """Test displayable_name length constraints"""
         with pytest.raises(ValidationError):
             UserCreate(
-                user_id="u1", displayable_name="", email="j@e.com",
-                profile_pic_object_name="p.jpg", country="US"
+                user_id="u1", displayable_name="", email="j@e.com", country="US"
             )
         with pytest.raises(ValidationError):
             UserCreate(
-                user_id="u1", displayable_name="x" * 101, email="j@e.com",
-                profile_pic_object_name="p.jpg", country="US"
+                user_id="u1", displayable_name="x" * 101, email="j@e.com", country="US"
             )
 
     def test_email_validation(self):
         """Test email format and length"""
         with pytest.raises(ValidationError):
             UserCreate(
-                user_id="u1", displayable_name="John", email="invalid",
-                profile_pic_object_name="p.jpg", country="US"
-            )
-
-    def test_country_validation(self):
-        """Test country must be exactly 2 chars"""
-        with pytest.raises(ValidationError):
-            UserCreate(
-                user_id="u1", displayable_name="J", email="j@e.com",
-                profile_pic_object_name="p.jpg", country="U"
-            )
-        with pytest.raises(ValidationError):
-            UserCreate(
-                user_id="u1", displayable_name="J", email="j@e.com",
-                profile_pic_object_name="p.jpg", country="USA"
+                user_id="u1", displayable_name="John", email="invalid", country="US"
             )
 
 

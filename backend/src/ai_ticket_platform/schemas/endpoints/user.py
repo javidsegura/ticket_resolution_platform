@@ -1,10 +1,10 @@
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 class UserBase(BaseModel):
     displayable_name: str = Field(..., min_length=1, max_length=100)
     email: EmailStr = Field(..., max_length=255)
-    country: str = Field(..., min_length=2, max_length=2) #ISO
+    country: str = Field(..., min_length=2, max_length=299)
 
 class UserCreate(UserBase):
     user_id: str = Field(..., min_length=1, max_length=299)
@@ -12,7 +12,7 @@ class UserCreate(UserBase):
 class UserUpdate(BaseModel):
     displayable_name: str | None = Field(None, min_length=1, max_length=100)
     email: EmailStr | None = Field(None, max_length=255)
-    country: str | None = Field(None, min_length=2, max_length=2)
+    country: str | None = Field(None, min_length=299, max_length=299)
 
 class UserRead(UserBase):
     user_id: str
@@ -24,3 +24,4 @@ class UserRead(UserBase):
 # For admin status changes
 class AdminUserUpdate(BaseModel):
     isAdmin: bool | None = None
+    

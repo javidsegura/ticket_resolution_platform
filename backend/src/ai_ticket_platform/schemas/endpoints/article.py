@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Literal
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field
 
 class ArticleBase(BaseModel):
     intent_id: int = Field(..., gt=0, description="Must be a positive integer referencing an intent")
@@ -26,3 +26,4 @@ class ArticleRead(ArticleBase):
     blob_path: str = Field(..., min_length=1, max_length=1000, description="Server-generated Azure storage path")
 
     model_config = ConfigDict(from_attributes=True)
+    

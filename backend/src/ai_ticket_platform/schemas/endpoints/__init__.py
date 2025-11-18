@@ -4,7 +4,7 @@ from .company import (
     CompanyProfileRead,
     CompanyProfileUpdate,
 )
-from .user import UserBase, UserCreate, UserRead, UserUpdate
+from .user import UserBase, UserCreate, UserRead, UserUpdate, AdminUserUpdate
 from .company_file import CompanyFileBase, CompanyFileCreate, CompanyFileRead
 from .category import CategoryBase, CategoryCreate, CategoryRead, CategoryUpdate
 from .intent import IntentBase, IntentCreate, IntentRead, IntentUpdate
@@ -19,6 +19,7 @@ __all__ = [
     "UserCreate",
     "UserRead",
     "UserUpdate",
+    "AdminUserUpdate",
     "CompanyFileBase",
     "CompanyFileCreate",
     "CompanyFileRead",
