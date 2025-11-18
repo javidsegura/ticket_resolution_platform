@@ -1,43 +1,29 @@
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-
-def validate_parent_id(v: int | None, level: int | None) -> int | None:
-    """Validate parent_id based on category level.
-    
-    Skip validation if level is not provided (for partial updates).
-    Level 1 must not have a parent, Level 2+ must have a parent.
-    """
-    # Skip validation if level is not provided (for partial updates)
-    if level is None:
-        return v
-    # Level 1 must not have a parent
-    if level == 1 and v is not None:
-        raise ValueError('Level 1 categories cannot have a parent')
-    # Level 2+ must have a parent
-    if level and level > 1 and v is None:
-        raise ValueError(f'Level {level} categories must have a parent')
-    
-    return v
 
 class CategoryBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     level: int = Field(..., ge=1, le=3, description='Category level (1-3)')
     parent_id: int | None = Field(None, ge=1, description="Parent category ID")
     
-    @field_validator('parent_id', mode='after') #after parent_id ge=1
-    @classmethod
-    def validate_parent_id_field(cls, v: int | None, info) -> int | None:
-        level = info.data.get('level')
-        return validate_parent_id(v, level)
+    @model_validator(mode='after')
+    def validate_parent_relationship(self) -> 'CategoryBase':
+        # Level 1 must not have a parent
+        if self.level == 1 and self.parent_id is not None:
+            raise ValueError('Level 1 categories cannot have a parent')
+        
+        # Level 2+ must have a parent
+        if self.level > 1 and self.parent_id is None:
+            raise ValueError(f'Level {self.level} categories must have a parent')
+        
+        return self
 
 class CategoryCreate(CategoryBase):
     pass
 
 class CategoryUpdate(BaseModel):
     name: str | None = Field(None, min_length=1, max_length=255)
-    level: int | None = Field(None, ge=1, le=3)
-    parent_id: int | None = Field(None, ge=1)
 
 class CategoryRead(CategoryBase):
     id: int

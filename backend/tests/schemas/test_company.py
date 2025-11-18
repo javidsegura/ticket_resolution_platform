@@ -64,7 +64,7 @@ class TestCompanyProfileCreate:
             name="Test",
             support_email="support@example.com"
         )
-        assert "support@example.com" in company.support_email
+        assert company.support_email == "support@example.com"
 
 
 class TestCompanyProfileUpdate:

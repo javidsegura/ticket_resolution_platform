@@ -32,7 +32,7 @@ class CompanyProfileUpdate(BaseModel):
     name: str | None = Field(None, min_length=1, max_length=255)
     domain: str | None = Field(None, min_length=1, max_length=255, description="Company domain")
     industry: str | None = Field(None, min_length=1, max_length=100)
-    support_email: EmailStr | None = None
+    support_email: EmailStr | None = Field(None, max_length=255)
 
     @field_validator('domain')
     @classmethod

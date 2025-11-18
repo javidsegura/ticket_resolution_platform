@@ -40,7 +40,7 @@ class TestCompanyFileCreate:
             original_filename="report.pdf",
             area="Reports"
         )
-        assert "report.pdf" in file.original_filename
+        assert file.original_filename == "report.pdf"
 
     def test_area_optional(self):
         """Test area is optional"""

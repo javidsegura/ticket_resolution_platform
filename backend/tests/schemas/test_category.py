@@ -49,6 +49,16 @@ class TestCategoryCreate:
         """Test level 1 rejects parent_id"""
         with pytest.raises(ValidationError):
             CategoryCreate(name="Root", level=1, parent_id=1)
+    
+    def test_level_2_without_parent_fails(self):
+        """Test level 2 without parent_id raises ValidationError"""
+        with pytest.raises(ValidationError):
+            CategoryCreate(name="Sub", level=2)
+
+    def test_level_3_without_parent_fails(self):
+        """Test level 3 without parent_id raises ValidationError"""
+        with pytest.raises(ValidationError):
+            CategoryCreate(name="SubSub", level=3)
 
 
 class TestCategoryUpdate:
@@ -58,21 +68,16 @@ class TestCategoryUpdate:
         """Test all fields are optional"""
         category = CategoryUpdate()
         assert category.name is None
-        assert category.level is None
-        assert category.parent_id is None
 
     def test_partial_update(self):
         """Test updating individual fields"""
         cat1 = CategoryUpdate(name="Updated")
         assert cat1.name == "Updated"
-        assert cat1.level is None
 
     def test_validation_on_provided_fields(self):
         """Test validation only on provided fields"""
         with pytest.raises(ValidationError):
             CategoryUpdate(name="")
-        with pytest.raises(ValidationError):
-            CategoryUpdate(level=5)
 
 
 class TestCategoryRead:

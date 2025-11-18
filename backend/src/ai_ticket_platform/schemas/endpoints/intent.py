@@ -48,7 +48,7 @@ class IntentCreate(IntentBase):
     category_level_1_id: int = Field(..., ge=1)
 
 
-class IntentUpdate(BaseModel):
+class IntentUpdate(IntentBase):
     name: str | None = Field(None, min_length=1, max_length=255)
     category_level_1_id: int | None = Field(None, ge=1)
     category_level_2_id: int | None = Field(None, ge=1)
