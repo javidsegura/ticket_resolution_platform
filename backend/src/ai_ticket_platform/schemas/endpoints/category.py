@@ -29,7 +29,7 @@ class CategoryCreate(CategoryBase):
 
 class CategoryUpdate(CategoryBase):
     name: str | None = Field(None, min_length=1, max_length=255)
-    level: int | None = Field(None, ge=1,le=3)
+    level: int | None = Field(None, ge=1, le=3)
     parent_id: int | None = Field(None, ge=1)
 
 

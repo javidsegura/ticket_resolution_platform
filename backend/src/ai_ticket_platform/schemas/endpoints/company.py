@@ -13,8 +13,8 @@ class CompanyProfileBase(BaseModel):
     def validate_domain(cls, v: str | None) -> str | None:
         if v is None:
             return v
-        # Convert to lowercase for consistency
-        v = v.lower()
+        # Convert to lowercase for consistency and strip whitespace
+        v = v.strip().lower()
         # Basic domain pattern validation
         if not re.match(r'^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$', v):
             raise ValueError('Invalid domain format')
@@ -26,9 +26,9 @@ class CompanyProfileCreate(CompanyProfileBase):
 
 
 class CompanyProfileUpdate(CompanyProfileBase):
-    name: str | None = None
-    domain: str | None = None
-    industry: str | None = None
+    name: str | None = Field(None, min_length=1, max_length=255)
+    domain: str | None = Field(None, min_length=1, max_length=255, description="Company domain")
+    industry: str | None = Field(None, min_length=1, max_length=100)
     support_email: EmailStr | None = None
 
 

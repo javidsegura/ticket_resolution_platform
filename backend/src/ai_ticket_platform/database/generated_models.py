@@ -48,11 +48,11 @@ class Article(Base):
     intent_id: Mapped[int] = mapped_column(ForeignKey("intents.id"), nullable=False)
     type: Mapped[str] = mapped_column(String(10), nullable=False)
     blob_path: Mapped[str] = mapped_column(String(1000), nullable=False)
-    status: Mapped[str] = mapped_column(String(20), nullable=False, server_default="iteration")
-    version: Mapped[int] = mapped_column(Integer, nullable=False, server_default=1) #TODO: autoincrement versions on update
+    status: Mapped[str] = mapped_column(String(20), nullable=False, server_default=text("iteration"))
+    version: Mapped[int] = mapped_column(Integer, nullable=False, server_default=("1")) #TODO: autoincrement versions on update
     feedback: Mapped[str | None] = mapped_column(String(2000))
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), nullable=False)
-    updated_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'))
+    updated_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), onupdate=text('CURRENT_TIMESTAMP'))
 
     intent = relationship("Intent", back_populates="articles") 
 
@@ -65,7 +65,7 @@ class Category(Base): #TODO: Create a utility function that checks no circular d
     level: Mapped[int] = mapped_column(Integer, nullable=False)
     parent_id: Mapped[int | None] = mapped_column(ForeignKey("categories.id"), nullable=True)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), nullable=False)
-    updated_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'))
+    updated_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), onupdate=text('CURRENT_TIMESTAMP'))
     
     __table_args__ = (
         CheckConstraint('id != parent_id', name='check_no_self_reference'),
@@ -88,7 +88,7 @@ class CompanyFile(Base):
     blob_path: Mapped[str] = mapped_column(String(1000), nullable=False)
     original_filename: Mapped[str] = mapped_column(String(255), nullable=False)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), nullable=False)
-    updated_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'))
+    updated_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), onupdate=text('CURRENT_TIMESTAMP'))
 
 class CompanyProfile(Base):
     __tablename__ = "company_profile"
@@ -99,7 +99,7 @@ class CompanyProfile(Base):
     industry: Mapped[str | None] = mapped_column(String(100))
     support_email: Mapped[str | None] = mapped_column(String(255), unique=True)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), nullable=False)
-    updated_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'))
+    updated_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), onupdate=text('CURRENT_TIMESTAMP'))
 
 class Intent(Base):
     __tablename__ = "intents"
@@ -112,7 +112,7 @@ class Intent(Base):
     area: Mapped[str | None] = mapped_column(String(255))
     is_processed: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("'0'"))
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), nullable=False)
-    updated_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'))
+    updated_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), onupdate=text('CURRENT_TIMESTAMP'))
 
     category_level_1 = relationship("Category", foreign_keys=[category_level_1_id], lazy="joined")
     category_level_2 = relationship("Category", foreign_keys=[category_level_2_id], lazy="joined")
