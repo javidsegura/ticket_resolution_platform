@@ -1,26 +1,81 @@
-"""
-Clustering service for categorizing tickets
-Temporary stub implementation pending @catebros integration
-"""
+from typing import List, Dict
 
-import logging
-from typing import List, Dict, Any
+from ai_ticket_platform.core.clients import LLMClient
+from ai_ticket_platform.services.clustering import llm_clusterer
 
-logger = logging.getLogger(__name__)
-
-
-def cluster_and_categorize_tickets(tickets: List[Dict[str, Any]], llm_client) -> Dict[str, Any]:
+def cluster_and_categorize_tickets(tickets: List[Dict],llm_client: LLMClient) -> Dict:
     """
-    Cluster and categorize tickets using LLM service
+    Main entry point for ticket clustering.
+
+    Orchestrates the complete workflow:
+    1. Extract ticket texts from 'Ticket Subject' column
+    2. Call LLM clusterer
+    3. Transform results for storage
+    TODO: 4. Save to database
 
     Args:
         tickets: List of ticket dicts with 'Ticket Subject' field
-        llm_client: LLMClient instance for making API calls
+        llm_client: Initialized LLM client instance for making API calls
 
     Returns:
-        Dict with clustering results including clusters list
+        Dict with clustering results:
+        {
+            "total_tickets": 150,
+            "clusters_created": 7,
+            "clusters": [
+                {
+                    "topic_name": "Password Reset Issues",
+                    "product_category": "Account Management",
+                    "product_subcategory": "Authentication",
+                    "ticket_count": 35,
+                    "example_tickets": ["How to reset...", ...],
+                    "summary": "Users unable to reset passwords"
+                },
+                ...
+            ]
+        }
     """
-    raise NotImplementedError(
-        "cluster_and_categorize_tickets() must be implemented by @catebros. "
-        "This is a stub for testing purposes."
-    )
+
+    # preprocess ticket data
+    ticket_texts = _extract_ticket_texts(tickets)
+
+    if not ticket_texts:
+        return {
+            "total_tickets": 0,
+            "clusters_created": 0,
+            "clusters": []
+        }
+
+    # cluster tickets using injected LLM client
+    try:
+        llm_result = llm_clusterer.cluster_tickets(llm_client=llm_client, ticket_texts=ticket_texts)
+
+        # Transform LLM result to expected format
+        clusters = llm_result.get("clusters", [])
+        return {
+            "total_tickets": len(ticket_texts),
+            "clusters_created": len(clusters),
+            "clusters": clusters
+        }
+    except Exception as e:
+        raise RuntimeError(f"Failed to cluster tickets: {str(e)}") from e
+
+
+def _extract_ticket_texts(tickets: List[Dict]) -> List[str]:
+    """
+    Extract 'Ticket Subject' field from ticket dictionaries.
+
+    Args:
+        tickets: List of ticket dicts with 'Ticket Subject' field
+
+    Returns: List of ticket subject strings
+    """
+    ticket_texts = []
+
+    for ticket in tickets:
+        # try to get 'Ticket Subject'
+        subject = ticket.get("Ticket Subject", "").strip()
+        if subject:
+            ticket_texts.append(subject)
+
+    return ticket_texts
