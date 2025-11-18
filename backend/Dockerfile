@@ -1,5 +1,8 @@
 FROM  python:3.11-slim
 
+
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+
 ENV APP_PATH="src.ai_ticket_platform.main:app"
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
