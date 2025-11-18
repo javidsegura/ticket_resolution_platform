@@ -1,7 +1,10 @@
 from typing import List, Dict
+import logging
 
 from ai_ticket_platform.core.clients import LLMClient
 from ai_ticket_platform.services.clustering import llm_clusterer
+
+logger = logging.getLogger(__name__)
 
 def cluster_and_categorize_tickets(tickets: List[Dict],llm_client: LLMClient) -> Dict:
     """
@@ -37,21 +40,26 @@ def cluster_and_categorize_tickets(tickets: List[Dict],llm_client: LLMClient) ->
     """
 
     # preprocess ticket data
+    logger.debug(f"Starting ticket clustering for {len(tickets)} tickets")
     ticket_texts = _extract_ticket_texts(tickets)
 
     if not ticket_texts:
+        logger.warning("No valid ticket texts extracted from tickets")
         return {
             "total_tickets": 0,
             "clusters_created": 0,
             "clusters": []
         }
 
+    logger.info(f"Extracted {len(ticket_texts)} ticket texts for clustering")
      # cluster tickets using injected LLM client
     try:
         clustering_result = llm_clusterer.cluster_tickets(llm_client=llm_client, ticket_texts=ticket_texts)
+        logger.info(f"Successfully clustered tickets into {clustering_result.get('clusters_created', 0)} clusters")
         return clustering_result
     except Exception as e:
-          raise RuntimeError(f"Failed to cluster tickets: {str(e)}") from e
+        logger.exception(f"Failed to cluster tickets: {str(e)}")
+        raise RuntimeError(f"Failed to cluster tickets: {str(e)}") from e
 
 
 def _extract_ticket_texts(tickets: List[Dict]) -> List[str]:
@@ -71,4 +79,5 @@ def _extract_ticket_texts(tickets: List[Dict]) -> List[str]:
         if subject:
             ticket_texts.append(subject)
 
+    logger.debug(f"Extracted {len(ticket_texts)} valid ticket subjects from {len(tickets)} tickets")
     return ticket_texts

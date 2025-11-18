@@ -3,6 +3,9 @@
 
 from abc import ABC, abstractmethod
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 class BaseSettings(ABC):      
       @abstractmethod
@@ -28,6 +31,6 @@ class BaseSettings(ABC):
                   if not getattr(self, var, None):
                         missing_vars.append(var)
                   else:
-                        print(f"VAR: {var} has {getattr(self, var)}")
+                        logger.debug(f"VAR: {var} has {getattr(self, var)}")
             if missing_vars:
                 raise ValueError(f"Missing required environment variables: {', '.join(missing_vars)}") 

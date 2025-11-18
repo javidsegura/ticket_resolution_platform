@@ -47,6 +47,8 @@ class LLMClient():
         system_prompt = task_config.get("system_prompt", "You are a helpful AI assistant.")
         schema_name = task_config.get("schema_name", "response")
 
+        logger.debug(f"Calling LLM with model {self.model}, temperature {temperature}, schema_name {schema_name}")
+
         for attempt in range(max_retries):
             try:
                 response = self.client.chat.completions.create(
@@ -73,16 +75,19 @@ class LLMClient():
                 )
 
                 if not response.choices:
+                    logger.error("OpenAI API returned empty choices list")
                     raise ValueError("OpenAI API returned empty choices list")
 
                 # parse response
                 result = json.loads(response.choices[0].message.content)
+                logger.info(f"Successfully received and parsed LLM response for schema {schema_name}")
 
                 return result
 
             except (json.JSONDecodeError, APIError) as e:
                 logger.warning(f"LLM call attempt {attempt + 1}/{max_retries} failed: {e}")
                 if attempt == max_retries - 1:
+                    logger.error(f"All {max_retries} LLM call attempts failed")
                     raise
 
 
