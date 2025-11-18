@@ -1,24 +1,35 @@
 from datetime import datetime
-
-from pydantic import BaseModel, ConfigDict, Field
-
+from pydantic import BaseModel, ConfigDict, Field, EmailStr, field_validator
+import re
 
 class CompanyProfileBase(BaseModel):
-    name: str = Field(..., min_length=1)
-    domain: str | None = None
-    industry: str | None = None
-    support_email: str | None = None
+    name: str = Field(..., min_length=1, max_length=255)
+    domain: str | None = Field(None, min_length=1, max_length=255, description="Company domain")
+    industry: str | None = Field(None, min_length=1, max_length=100)
+    support_email: EmailStr | None = Field(None, max_length=255)
+
+    @field_validator('domain')
+    @classmethod
+    def validate_domain(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        # Convert to lowercase for consistency
+        v = v.lower()
+        # Basic domain pattern validation
+        if not re.match(r'^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$', v):
+            raise ValueError('Invalid domain format')
+        return v
 
 
 class CompanyProfileCreate(CompanyProfileBase):
     pass
 
 
-class CompanyProfileUpdate(BaseModel):
+class CompanyProfileUpdate(CompanyProfileBase):
     name: str | None = None
     domain: str | None = None
     industry: str | None = None
-    support_email: str | None = None
+    support_email: EmailStr | None = None
 
 
 class CompanyProfileRead(CompanyProfileBase):

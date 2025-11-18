@@ -1,22 +1,36 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class CategoryBase(BaseModel):
-    name: str
-    level: int
-    parent_id: int | None = None
+    name: str = Field(..., min_length=1, max_length=255)
+    level: int = Field(..., ge=1, le=3, description='Category level (1-3)')
+    parent_id: int | None = Field(None, ge=1, description="Parent category ID")
 
+    @field_validator('parent_id')
+    @classmethod
+    def validate_parent_id(cls, v: int | None, info) -> int | None:
+        level = info.data.get('level')
+        
+        # Level 1 must not have a parent
+        if level == 1 and v is not None:
+            raise ValueError('Level 1 categories cannot have a parent')
+        
+        # Level 2+ must have a parent
+        if level and level > 1 and v is None:
+            raise ValueError(f'Level {level} categories must have a parent')
+        
+        return v
 
 class CategoryCreate(CategoryBase):
     pass
 
 
-class CategoryUpdate(BaseModel):
-    name: str | None = None
-    level: int | None = None
-    parent_id: int | None = None
+class CategoryUpdate(CategoryBase):
+    name: str | None = Field(None, min_length=1, max_length=255)
+    level: int | None = Field(None, ge=1,le=3)
+    parent_id: int | None = Field(None, ge=1)
 
 
 class CategoryRead(CategoryBase):

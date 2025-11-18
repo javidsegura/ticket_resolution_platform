@@ -1,14 +1,21 @@
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict
-
+from typing import Literal
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 class ArticleBase(BaseModel):
-    intent_id: int
-    type: str
-    blob_path: str
-    status: str = "iteration"
-    version: int = 1
-    feedback: str | None = None
+    intent_id: int = Field(..., gt=0, description="Must be a positive integer referencing an intent")
+    type: Literal["micro", "article"]
+    blob_path: str = Field(..., min_length=1, max_length=1000, description="Server-generated Azure storage path")
+    status: Literal["accepted", "iteration", "denied"] = "iteration"
+    version: int = Field(default=1, ge=1, description="Version must be 1 or higher")
+    feedback: str | None = Field(None, max_length=2000, description="Feedback on the article")
+
+    @field_validator('blob_path')
+    @classmethod
+    def validate_blob_path(cls, v: str) -> str:
+        if '..' in v:
+            raise ValueError('Blob path contains invalid ".." sequence')
+        return v
 
 
 class ArticleCreate(ArticleBase):
@@ -16,10 +23,17 @@ class ArticleCreate(ArticleBase):
 
 
 class ArticleUpdate(BaseModel):
-    status: str | None = None
-    version: int | None = None
-    blob_path: str | None = None
-    feedback: str | None = None
+    status: Literal["accepted", "iteration", "denied"] | None = None
+    version: int | None = Field(None, ge=1)
+    blob_path: str | None = Field(None, min_length=1, max_length=1000)
+    feedback: str | None = Field(None, max_length=2000)
+
+    @field_validator('blob_path')
+    @classmethod
+    def validate_blob_path(cls, v: str | None) -> str | None:
+        if v and '..' in v:
+            raise ValueError('Blob path contains invalid ".." sequence')
+        return v
 
 
 class ArticleRead(ArticleBase): 

@@ -1,27 +1,28 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class IntentBase(BaseModel):
-    name: str | None = None
-    category_level_1_id: int | None = None
-    category_level_2_id: int | None = None
-    category_level_3_id: int | None = None
-    area: str | None = None
+    name: str = Field(..., min_length=1, max_length=255)
+    category_level_1_id: int | None = Field(None, ge=1)
+    category_level_2_id: int | None = Field(None, ge=1)
+    category_level_3_id: int | None = Field(None, ge=1)
+    area: str | None = Field(None, min_length=1, max_length=255)
     is_processed: bool = False
 
 
 class IntentCreate(IntentBase):
-    pass
+    name: str = Field(..., min_length=1, max_length=255)
+    category_level_1_id: int = Field(..., ge=1)
 
 
 class IntentUpdate(BaseModel):
-    name: str | None = None
-    category_level_1_id: int | None = None
-    category_level_2_id: int | None = None
-    category_level_3_id: int | None = None
-    area: str | None = None
+    name: str | None = Field(None, min_length=1, max_length=255)
+    category_level_1_id: int | None = Field(None, ge=1)
+    category_level_2_id: int | None = Field(None, ge=1)
+    category_level_3_id: int | None = Field(None, ge=1)
+    area: str | None = Field(None, min_length=1, max_length=255)
     is_processed: bool | None = None
 
 
