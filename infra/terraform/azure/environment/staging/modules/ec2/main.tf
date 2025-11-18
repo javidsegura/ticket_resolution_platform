@@ -1,0 +1,135 @@
+
+
+# EC2 instance 
+resource "aws_instance" "web_app" {
+  ami = "ami-08982f1c5bf93d976" # Standard AWS Linux 2023
+  instance_type = var.instance_type_web_app
+  subnet_id = var.private_subnet_sever_id
+  vpc_security_group_ids = [var.web_app_sg_id]
+
+  iam_instance_profile = aws_iam_instance_profile.web_app_profile.name
+  key_name = aws_key_pair.key_pair_ssh.key_name
+  
+  root_block_device {
+    volume_size = 8
+    delete_on_termination = true
+
+  }
+  tags = {
+    Name = "Web server" 
+  }
+}
+
+resource "aws_instance" "bastion_host" { # Make this a weaker instance 
+  ami = "ami-00ca32bbc84273381" # Standard AWS Linux 2023
+  instance_type = var.instance_type_bastion
+  subnet_id = var.public_subnet_id
+  vpc_security_group_ids = [var.bastion_sg_id]
+
+  key_name = aws_key_pair.key_pair_ssh.key_name
+  
+  root_block_device {
+    volume_size = 8
+    delete_on_termination = true
+  }
+
+  tags = {
+    Name = "Bastion server" 
+  }
+}
+
+
+# SSH KEYS
+resource "tls_private_key" "priv_key" {
+  algorithm = "RSA"
+  rsa_bits = 4096
+}
+resource "aws_key_pair" "key_pair_ssh" {
+  key_name = "ssh_key"
+  public_key = tls_private_key.priv_key.public_key_openssh  
+}
+
+resource "local_file" "private_key" {
+  content = tls_private_key.priv_key.private_key_pem
+  filename = var.ssh_key_local_path
+  file_permission = "0400"
+}
+
+
+# IAM ROLES
+## Policy allowing EC2 to assume this role (Trust Policy)
+data "aws_iam_policy_document" "assume_role" {
+  statement {
+    sid = "AllowEC2ToAssumeRole"
+    principals {
+      type = "Service"
+      identifiers = ["ec2.amazonaws.com"]
+    }
+    actions = ["sts:AssumeRole"]
+  }
+}
+
+# IAM Role for EC2 instance
+resource "aws_iam_role" "app_server_role_staging" {
+  name = "app_server_role"
+  assume_role_policy = data.aws_iam_policy_document.assume_role.json
+}
+
+# IAM Instance Profile to attach the role to the EC2 instance
+resource "aws_iam_instance_profile" "web_app_profile" {
+  name = "web_app_profile"
+  role = aws_iam_role.app_server_role_staging.name
+}
+
+# == POLICIES ==
+# A) Policy defining S3 permissions
+data "aws_iam_policy_document" "s3_access_policy" {
+  statement {
+    sid = "S3ReadAndPut"
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject"
+    ]
+    resources = ["${var.aws_s3_web_arn}/*"]
+  }
+}
+
+resource "aws_iam_policy" "s3_read_put_policy" {
+  name        = "S3_Read_Put_Policy"
+  description = "A policy that allows S3 read and put access."
+  policy      = data.aws_iam_policy_document.s3_access_policy.json
+}
+
+resource "aws_iam_role_policy_attachment" "s3_attachment" {
+  role       = aws_iam_role.app_server_role_staging.name
+  policy_arn = aws_iam_policy.s3_read_put_policy.arn
+}
+
+# B) Secret manager
+data "aws_iam_policy_document" "secret_manager_access_policy" {
+  statement {
+    sid = "SecretsManagerAccessSecret"
+    actions = [
+      "secretsmanager:GetSecretValue"
+    ]
+    resources = ["${var.aws_secretsmanager_database_crentials_arn}"]
+  }
+}
+
+resource "aws_iam_policy" "get_secret_value" {
+  name        = "Secrets_manager_get_secret_value"
+  description = "Policy that allows getting secret values from Secrets Manager"
+  policy      = data.aws_iam_policy_document.secret_manager_access_policy.json
+}
+
+# Attaching the secrets manager policy to the IAM Role
+resource "aws_iam_role_policy_attachment" "secrets_manager_attachment" {
+  role       = aws_iam_role.app_server_role_staging.name
+  policy_arn = aws_iam_policy.get_secret_value.arn
+}
+# C) SSM Agent
+resource "aws_iam_role_policy_attachment" "ssm_managed_instance_core" {
+  role       = aws_iam_role.app_server_role_staging.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+

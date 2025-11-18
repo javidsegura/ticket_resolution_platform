@@ -15,18 +15,39 @@ class DevSettings(BaseSettings):
 
       @property
       def required_vars(self):
-            return [
+            base_vars = [
                   "REDIS_URL", "MYSQL_USER", "MYSQL_PASSWORD", "MYSQL_HOST",
                   "MYSQL_PORT", "MYSQL_DATABASE", "MYSQL_SYNC_DRIVER", 
                   "MYSQL_ASYNC_DRIVER", 
+<<<<<<< HEAD
                   # AWS variables are optional - only required if using AWS services
                   # "S3_MAIN_BUCKET_NAME", "AWS_MAIN_REGION",
+=======
+                  "CLOUD_PROVIDER",
+>>>>>>> b7bda452db4592a7a86ce23afacd2835aa40031d
                   #"USING_FIREBASE_EMULATOR", "FB_AUTH_EMULATOR_HOST", "FB_PROJECT_ID"
             ]
+            
+            # Cloud-specific vars 
+            cloud_provider = os.getenv("CLOUD_PROVIDER", "aws").lower()
+            if cloud_provider == "aws":
+                  base_vars.extend(["S3_MAIN_BUCKET_NAME", "AWS_MAIN_REGION"])
+            elif cloud_provider == "azure":
+                  base_vars.extend([
+                        "AZURE_STORAGE_CONTAINER_NAME",
+                        "AZURE_STORAGE_ACCOUNT_NAME", 
+                        "AZURE_STORAGE_ACCOUNT_KEY"
+                  ])
+            
+            return base_vars
 
       def extract_all_variables(self):
             self._extract_database_variables()
+<<<<<<< HEAD
             # self._extract_aws_variables()  # Commented out - AWS variables are optional
+=======
+            self._extract_storage_variables()
+>>>>>>> b7bda452db4592a7a86ce23afacd2835aa40031d
             self._extract_app_logic_variables()
             self._extract_slack_variables()
             #self._extract_firebase_variables()
@@ -39,12 +60,27 @@ class DevSettings(BaseSettings):
             self.MYSQL_DATABASE = os.getenv("MYSQL_DATABASE")
             self.MYSQL_SYNC_DRIVER = os.getenv("MYSQL_SYNC_DRIVER")
             self.MYSQL_HOST = os.getenv("MYSQL_HOST")
+<<<<<<< HEAD
       # def _extract_aws_variables(self):
       #       self.S3_MAIN_BUCKET_NAME = os.getenv("S3_MAIN_BUCKET_NAME")
       #       self.AWS_MAIN_REGION = os.getenv("AWS_MAIN_REGION")
       def _extract_slack_variables(self):
             self.SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")
             self.SLACK_CHANNEL_ID = os.getenv("SLACK_CHANNEL_ID")
+=======
+      def _extract_storage_variables(self):
+            self.CLOUD_PROVIDER = os.getenv("CLOUD_PROVIDER", "aws").lower()
+            
+            if self.CLOUD_PROVIDER == "aws":
+                  self.S3_MAIN_BUCKET_NAME = os.getenv("S3_MAIN_BUCKET_NAME")
+                  self.AWS_MAIN_REGION = os.getenv("AWS_MAIN_REGION")
+            elif self.CLOUD_PROVIDER == "azure":
+                  self.AZURE_STORAGE_CONTAINER_NAME = os.getenv("AZURE_STORAGE_CONTAINER_NAME")
+                  self.AZURE_STORAGE_ACCOUNT_NAME = os.getenv("AZURE_STORAGE_ACCOUNT_NAME")
+                  self.AZURE_STORAGE_ACCOUNT_KEY = os.getenv("AZURE_STORAGE_ACCOUNT_KEY")
+            else:
+                  raise ValueError(f"Unsupported CLOUD_PROVIDER: {self.CLOUD_PROVIDER}. Use 'aws' or 'azure'")
+>>>>>>> b7bda452db4592a7a86ce23afacd2835aa40031d
       # def _extract_firebase_variables(self):
       #       self.USING_FIREBASE_EMULATOR = os.getenv("USING_FIREBASE_EMULATOR")
       #       self.FB_AUTH_EMULATOR_HOST= os.getenv("FB_AUTH_EMULATOR_HOST")

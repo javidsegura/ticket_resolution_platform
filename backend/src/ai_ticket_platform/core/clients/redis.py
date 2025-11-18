@@ -1,7 +1,7 @@
 import redis.asyncio as r
 from redis.client import Redis
 
-from ai_ticket_platform.core.settings import initialize_settings
+from url_shortener.core.settings import initialize_settings
 
 import logging
 
@@ -20,7 +20,7 @@ class RedisClientConnector:
 				url=self.app_settings.REDIS_URL,
 				encoding="utf-8",
 				decode_responses=True,
-				max_connections=self.app_settings.REDIS_MAX_CONNECTIONS or 10,
+				max_connections=1,
 			)
 		logger.debug(f"REDIS CLIENT ID: {id(self._client)}")
 		return self._client

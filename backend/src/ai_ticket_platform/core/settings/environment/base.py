@@ -23,7 +23,7 @@ class BaseSettings(ABC):
       def validate_required_vars(self):
             missing_vars = []
             for var in self.required_vars:
-                  if not getattr(self, var, None):
+                  if not getattr(self, var):
                         missing_vars.append(var)
                   else:
                         print(f"VAR: {var} has {getattr(self, var)}")
