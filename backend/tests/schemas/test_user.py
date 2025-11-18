@@ -138,8 +138,7 @@ class TestUserRead:
         assert user.role == "support"
         assert user.slack_user_id == "U12345ABC"
         assert user.created_at == datetime(2024, 1, 1, 0, 0)
-        assert user.slack_user_id == "U12345ABC"
-
+        
     def test_id_required(self):
         """Test id is required"""
         with pytest.raises(ValidationError):

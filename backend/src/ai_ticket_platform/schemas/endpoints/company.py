@@ -8,7 +8,7 @@ def validate_domain(v: str | None) -> str | None:
         # Convert to lowercase for consistency and strip whitespace
         v = v.strip().lower()
         # Basic domain pattern validation
-        if not re.match(r'^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$', v):
+        if not re.match(r'^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$', v):
             raise ValueError('Invalid domain format')
         return v
     

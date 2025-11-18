@@ -44,7 +44,7 @@ class DevSettings(BaseSettings):
             self._extract_storage_variables()
 
             self._extract_app_logic_variables()
-            self._extract_slack_variables()
+            #self._extract_slack_variables()
             #self._extract_firebase_variables()
       def _extract_database_variables(self):
             self.REDIS_URL = os.getenv("REDIS_URL")

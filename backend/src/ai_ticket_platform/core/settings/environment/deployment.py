@@ -34,8 +34,8 @@ class DeploymentSettings(BaseSettings):
             self._extract_storage_variables()
 
             self._extract_app_logic_variables()
-            self._extract_slack_variables()
-      def _extract_secret_manger_databaseb_credentials(self):
+            #self._extract_slack_variables()
+      def _extract_secret_manager_databaseb_credentials(self):
             from url_shortener.services.storage.secretsmanager import SecretsManager 
             secret_key = os.getenv("SECRETS_MANAGER_DB_CREDENTIALS_KEY")
             if not secret_key:
