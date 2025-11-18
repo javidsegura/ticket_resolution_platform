@@ -9,36 +9,16 @@ class Base(DeclarativeBase):
 
 # THESE MODELS NEED TO BE UPDATED
 class User(Base):
-    __tablename__ = 'user'
+    __tablename__ = "users"
 
-    user_id: Mapped[str] = mapped_column(String(299), primary_key=True)
-    displayable_name: Mapped[str] = mapped_column(String(100), nullable=False)
-    email: Mapped[str] = mapped_column(String(255), nullable=False)
-    profile_pic_object_name: Mapped[str] = mapped_column(String(299), nullable=False)
-    country: Mapped[str] = mapped_column(String(299), nullable=False)
-    timeRegistered: Mapped[Optional[datetime.datetime]] = mapped_column(TIMESTAMP, server_default=text('CURRENT_TIMESTAMP'))
-    isAdmin: Mapped[Optional[int]] = mapped_column(TINYINT(1), server_default=text("'0'"))
-
-    link: Mapped[list['Link']] = relationship('Link', back_populates='creator', cascade="all, delete-orphan")
-
-
-class Link(Base):
-    __tablename__ = 'link'
-    __table_args__ = (
-        ForeignKeyConstraint(['creator_id'], ['user.user_id'], name='link_ibfk_1'),
-        Index('creator_id', 'creator_id')
-    )
-
-    link_id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    creator_id: Mapped[str] = mapped_column(String(299), nullable=False)
-    old_link: Mapped[str] = mapped_column(String(299), nullable=False)
-    new_link: Mapped[str] = mapped_column(String(299), nullable=False)
-    expires_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)
-    timeRegistered: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'))
-    click_count: Mapped[Optional[int]] = mapped_column(Integer, server_default=text("'0'"))
-
-    creator: Mapped['User'] = relationship('User', back_populates='link')
-
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True, index=True)
+    role: Mapped[str] = mapped_column(String(100), nullable=False)
+    area: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    slack_user_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), nullable=False)
+    updated_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), onupdate=text('CURRENT_TIMESTAMP'))
 
 class Article(Base):
     __tablename__ = "articles"
@@ -55,7 +35,6 @@ class Article(Base):
     updated_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), onupdate=text('CURRENT_TIMESTAMP'))
 
     intent = relationship("Intent", back_populates="articles") 
-
 
 class Category(Base): #TODO: Create a utility function that checks no circular dependencies exist
     __tablename__ = "categories"
