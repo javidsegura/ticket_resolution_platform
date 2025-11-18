@@ -19,6 +19,7 @@ class DevSettings(BaseSettings):
                   "REDIS_URL", "MYSQL_USER", "MYSQL_PASSWORD", "MYSQL_HOST",
                   "MYSQL_PORT", "MYSQL_DATABASE", "MYSQL_SYNC_DRIVER", 
                   "MYSQL_ASYNC_DRIVER", 
+
                   "CLOUD_PROVIDER",
 
                   #"USING_FIREBASE_EMULATOR", "FB_AUTH_EMULATOR_HOST", "FB_PROJECT_ID"
@@ -39,8 +40,9 @@ class DevSettings(BaseSettings):
 
       def extract_all_variables(self):
             self._extract_database_variables()
-            
+
             self._extract_storage_variables()
+
             self._extract_app_logic_variables()
             self._extract_slack_variables()
             #self._extract_firebase_variables()
@@ -66,8 +68,8 @@ class DevSettings(BaseSettings):
                   self.AZURE_STORAGE_ACCOUNT_KEY = os.getenv("AZURE_STORAGE_ACCOUNT_KEY")
             else:
                   raise ValueError(f"Unsupported CLOUD_PROVIDER: {self.CLOUD_PROVIDER}. Use 'aws' or 'azure'")
+
       # def _extract_firebase_variables(self):
       #       self.USING_FIREBASE_EMULATOR = os.getenv("USING_FIREBASE_EMULATOR")
       #       self.FB_AUTH_EMULATOR_HOST= os.getenv("FB_AUTH_EMULATOR_HOST")
       #       self.FB_PROJECT_ID = os.getenv("FB_PROJECT_ID")
-      

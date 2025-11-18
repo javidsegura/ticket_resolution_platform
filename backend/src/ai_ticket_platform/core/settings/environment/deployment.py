@@ -12,7 +12,6 @@ class DeploymentSettings(BaseSettings):
                   "REDIS_URL", "MYSQL_USER", "MYSQL_PASSWORD", "MYSQL_HOST",
                   "MYSQL_PORT", "MYSQL_DATABASE", "MYSQL_SYNC_DRIVER", 
                   "MYSQL_ASYNC_DRIVER", 
-
                   "CLOUD_PROVIDER"
             ]
             
@@ -33,6 +32,7 @@ class DeploymentSettings(BaseSettings):
             self._extract_database_variables()
 
             self._extract_storage_variables()
+
             self._extract_app_logic_variables()
             self._extract_slack_variables()
       def _extract_secret_manger_databaseb_credentials(self):
@@ -64,8 +64,4 @@ class DeploymentSettings(BaseSettings):
                   self.AZURE_STORAGE_ACCOUNT_KEY = os.getenv("AZURE_STORAGE_ACCOUNT_KEY")
             else:
                   raise ValueError(f"Unsupported CLOUD_PROVIDER: {self.CLOUD_PROVIDER}. Use 'aws' or 'azure'")
-
-      
-
-
 

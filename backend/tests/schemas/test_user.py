@@ -1,5 +1,6 @@
 """Tests for User schema validation"""
 import pytest
+from datetime import datetime
 from pydantic import ValidationError
 from ai_ticket_platform.schemas.endpoints.user import UserCreate, UserUpdate, UserRead
 
@@ -78,6 +79,7 @@ class TestUserCreate:
             slack_user_id="U98765XYZ"
         )
         assert user.name == "Jane Doe"
+        assert user.email == "jane@example.com"
         assert user.role == "admin"
         assert user.area == "Billing"
         assert user.slack_user_id == "U98765XYZ"
@@ -120,7 +122,6 @@ class TestUserUpdate:
 
 class TestUserRead:
     """Test UserRead validation"""
-
     def test_read_structure(self):
         """Test UserRead contains all fields"""
         user = UserRead(
@@ -135,6 +136,8 @@ class TestUserRead:
         assert user.name == "John Doe"
         assert user.email == "john@example.com"
         assert user.role == "support"
+        assert user.slack_user_id == "U12345ABC"
+        assert user.created_at == datetime(2024, 1, 1, 0, 0)
         assert user.slack_user_id == "U12345ABC"
 
     def test_id_required(self):
