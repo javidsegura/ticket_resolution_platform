@@ -10,7 +10,7 @@ RESET = \033[0m
 .DEFAULT_GOAL := help
 
 # Variables
-VENV = ../.venv
+VENV = .venv
 VENV_ACTIVATE = source $(VENV)/bin/activate
 APP_PATH = src.ai_ticket_platform.main:app
 PORT = 8000
@@ -61,9 +61,9 @@ lint-check: ## Run linting checks (CI)
 ## DB
 db-create-migration-files:
 	@if [ -z "$(MESSAGE)" ]; then echo "❌ Please provide MESSAGE='your description'"; exit 1; fi
-	
-	ENVIRONMENT=dev.local && $(VENV_ACTIVATE) && alembic revision --autogenerate -m "$(MESSAGE)"
 
+	ENVIRONMENT=dev $(VENV_ACTIVATE) && ENVIRONMENT=dev alembic revision --autogenerate -m "$(MESSAGE)"
+# ENVIRONMENT=dev.local && $(VENV_ACTIVATE) && alembic revision --autogenerate -m "$(MESSAGE)"
 
 db-test-migration: ## Dev
 	$(MAKE) db-create-migration-files

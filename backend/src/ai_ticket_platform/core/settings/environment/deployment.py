@@ -12,11 +12,7 @@ class DeploymentSettings(BaseSettings):
                   "REDIS_URL", "MYSQL_USER", "MYSQL_PASSWORD", "MYSQL_HOST",
                   "MYSQL_PORT", "MYSQL_DATABASE", "MYSQL_SYNC_DRIVER", 
                   "MYSQL_ASYNC_DRIVER", 
-<<<<<<< HEAD
-                  # "S3_MAIN_BUCKET_NAME", "AWS_MAIN_REGION"
-=======
                   "CLOUD_PROVIDER"
->>>>>>> b7bda452db4592a7a86ce23afacd2835aa40031d
             ]
             
             # Dynamically add cloud-specific required vars
@@ -34,14 +30,12 @@ class DeploymentSettings(BaseSettings):
 
       def extract_all_variables(self):
             self._extract_database_variables()
-<<<<<<< HEAD
-            # self._extract_aws_variables()  # Commented out - AWS variables are optional
-=======
+
             self._extract_storage_variables()
->>>>>>> b7bda452db4592a7a86ce23afacd2835aa40031d
+
             self._extract_app_logic_variables()
-            self._extract_slack_variables()
-      def _extract_secret_manger_databaseb_credentials(self):
+            #self._extract_slack_variables()
+      def _extract_secret_manager_databaseb_credentials(self):
             from url_shortener.services.storage.secretsmanager import SecretsManager 
             secret_key = os.getenv("SECRETS_MANAGER_DB_CREDENTIALS_KEY")
             if not secret_key:
@@ -57,15 +51,7 @@ class DeploymentSettings(BaseSettings):
             self.MYSQL_ASYNC_DRIVER = os.getenv("MYSQL_ASYNC_DRIVER")
             self.MYSQL_HOST = os.getenv("RDS_MYSQL_HOST")
             self._extract_secret_manger_databaseb_credentials()
-<<<<<<< HEAD
-      # def _extract_aws_variables(self):
-      #       self.S3_MAIN_BUCKET_NAME = os.getenv("S3_MAIN_BUCKET_NAME")
-      #       self.AWS_MAIN_REGION = os.getenv("AWS_MAIN_REGION")
-      def _extract_slack_variables(self):
-            self.SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")
-            self.SLACK_CHANNEL_ID = os.getenv("SLACK_CHANNEL_ID")
 
-=======
       def _extract_storage_variables(self):
             self.CLOUD_PROVIDER = os.getenv("CLOUD_PROVIDER", "aws").lower()
             
@@ -78,9 +64,4 @@ class DeploymentSettings(BaseSettings):
                   self.AZURE_STORAGE_ACCOUNT_KEY = os.getenv("AZURE_STORAGE_ACCOUNT_KEY")
             else:
                   raise ValueError(f"Unsupported CLOUD_PROVIDER: {self.CLOUD_PROVIDER}. Use 'aws' or 'azure'")
->>>>>>> b7bda452db4592a7a86ce23afacd2835aa40031d
-
-      
-
-
 
