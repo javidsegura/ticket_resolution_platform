@@ -39,10 +39,10 @@ MYSQL_ASYNC_DRIVER="mysql+aiomysql"
 
 
 # AWS => not needed yet
-AWS_ACCESS_KEY_ID=""
-AWS_SECRET_ACCESS_KEY="" 
-AWS_MAIN_REGION=""
-S3_MAIN_BUCKET_NAME=""
+AWS_ACCESS_KEY_ID="<your-aws-access-key-id>"
+AWS_SECRET_ACCESS_KEY="<your-aws-secret-access-key>" 
+AWS_MAIN_REGION="<your-aws-region>"
+S3_MAIN_BUCKET_NAME="<your-s3-bucket-name>"
 ```
 
 - Frontend:

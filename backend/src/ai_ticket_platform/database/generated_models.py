@@ -1,43 +1,102 @@
-
-from typing import Optional
+from typing import List, Optional
 import datetime
-
-from sqlalchemy import DateTime, ForeignKeyConstraint, Index, Integer, String, TIMESTAMP, text
+from sqlalchemy import Boolean, DateTime, ForeignKey, ForeignKeyConstraint, Index, Integer, String, Text, TIMESTAMP, text, CheckConstraint
 from sqlalchemy.dialects.mysql import TINYINT
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 class Base(DeclarativeBase):
     pass
 
-
 # THESE MODELS NEED TO BE UPDATED
 class User(Base):
-    __tablename__ = 'user'
+    __tablename__ = "users"
 
-    user_id: Mapped[str] = mapped_column(String(299), primary_key=True)
-    displayable_name: Mapped[str] = mapped_column(String(100), nullable=False)
-    email: Mapped[str] = mapped_column(String(100), nullable=False)
-    profile_pic_object_name: Mapped[str] = mapped_column(String(299), nullable=False)
-    country: Mapped[str] = mapped_column(String(299), nullable=False)
-    timeRegistered: Mapped[Optional[datetime.datetime]] = mapped_column(TIMESTAMP, server_default=text('CURRENT_TIMESTAMP'))
-    isAdmin: Mapped[Optional[int]] = mapped_column(TINYINT(1), server_default=text("'0'"))
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True, index=True)
+    role: Mapped[str] = mapped_column(String(100), nullable=False)
+    area: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    slack_user_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), nullable=False)
+    updated_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), onupdate=text('CURRENT_TIMESTAMP'))
 
-    link: Mapped[list['Link']] = relationship('Link', back_populates='creator', cascade="all, delete-orphan")
+class Article(Base):
+    __tablename__ = "articles"
+    __table_args__ = (CheckConstraint("status IN ('iteration', 'accepted', 'denied')",name="check_article_status"),)
 
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    intent_id: Mapped[int] = mapped_column(ForeignKey("intents.id"), nullable=False)
+    type: Mapped[str] = mapped_column(String(10), nullable=False)
+    blob_path: Mapped[str] = mapped_column(String(1000), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, server_default=text("'iteration'"))
+    version: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("1")) #TODO: autoincrement versions on update
+    feedback: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), nullable=False)
+    updated_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), onupdate=text('CURRENT_TIMESTAMP'))
 
-class Link(Base):
-    __tablename__ = 'link'
+    intent = relationship("Intent", back_populates="articles") 
+
+class Category(Base): #TODO: Create a utility function that checks no circular dependencies exist
+    __tablename__ = "categories"
     __table_args__ = (
-        ForeignKeyConstraint(['creator_id'], ['user.user_id'], name='link_ibfk_1'),
-        Index('creator_id', 'creator_id')
-    )
+        CheckConstraint('id != parent_id', name='check_no_self_reference'),
+        CheckConstraint('level BETWEEN 1 AND 3', name='check_level_range'),
+        CheckConstraint(
+            '(level = 1 AND parent_id IS NULL) OR (level > 1 AND parent_id IS NOT NULL)',
+            name='check_parent_by_level'
+        ),
+    ) #no self-reference
 
-    link_id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    creator_id: Mapped[str] = mapped_column(String(299), nullable=False)
-    old_link: Mapped[str] = mapped_column(String(299), nullable=False)
-    new_link: Mapped[str] = mapped_column(String(299), nullable=False)
-    expires_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)
-    timeRegistered: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'))
-    click_count: Mapped[Optional[int]] = mapped_column(Integer, server_default=text("'0'"))
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    level: Mapped[int] = mapped_column(Integer, nullable=False)
+    parent_id: Mapped[int | None] = mapped_column(ForeignKey("categories.id"), nullable=True)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), nullable=False)
+    updated_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), onupdate=text('CURRENT_TIMESTAMP'))
+    
 
-    creator: Mapped['User'] = relationship('User', back_populates='link')
+    parent: Mapped["Category | None"] = relationship("Category", remote_side=[id], back_populates="children")
+    children: Mapped[List["Category"]] = relationship("Category", back_populates="parent", cascade="all, delete-orphan")
+    
+
+class CompanyFile(Base):
+    __tablename__ = "company_files"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    area: Mapped[str | None] = mapped_column(String(255))
+    blob_path: Mapped[str] = mapped_column(String(1000), nullable=False)
+    original_filename: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), nullable=False)
+    updated_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), onupdate=text('CURRENT_TIMESTAMP'))
+
+class CompanyProfile(Base):
+    __tablename__ = "company_profile"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    domain: Mapped[str | None] = mapped_column(String(255))
+    industry: Mapped[str | None] = mapped_column(String(100))
+    support_email: Mapped[str | None] = mapped_column(String(255), unique=True)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), nullable=False)
+    updated_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), onupdate=text('CURRENT_TIMESTAMP'))
+
+class Intent(Base):
+    __tablename__ = "intents"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    category_level_1_id: Mapped[int | None] = mapped_column(ForeignKey("categories.id"), nullable=True)
+    category_level_2_id: Mapped[int | None] = mapped_column(ForeignKey("categories.id"), nullable=True)
+    category_level_3_id: Mapped[int | None] = mapped_column(ForeignKey("categories.id"), nullable=True)
+    area: Mapped[str | None] = mapped_column(String(255))
+    is_processed: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("FALSE"))
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), nullable=False)
+    updated_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), onupdate=text('CURRENT_TIMESTAMP'))
+
+    category_level_1 = relationship("Category", foreign_keys=[category_level_1_id], lazy="joined")
+    category_level_2 = relationship("Category", foreign_keys=[category_level_2_id], lazy="joined")
+    category_level_3 = relationship("Category", foreign_keys=[category_level_3_id], lazy="joined")
+    
+    articles: Mapped[List["Article"]] = relationship("Article", back_populates="intent", cascade="all, delete-orphan")
+
+

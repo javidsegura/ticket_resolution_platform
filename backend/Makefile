@@ -10,11 +10,11 @@ RESET = \033[0m
 .DEFAULT_GOAL := help
 
 # Variables
-VENV = ../.venv
+VENV = .venv
 VENV_ACTIVATE = source $(VENV)/bin/activate
 APP_PATH = src.ai_ticket_platform.main:app
 PORT = 8000
-BACKEND_ENV_FILE_SYNCED_PATH= ./backend/env_config/synced/.env.$(ENVIRONMENT)
+BACKEND_ENV_FILE_SYNCED_PATH= ../backend/env_config/synced/.env.$(ENVIRONMENT)
 PROJECT_NAME = url-shortener
 
 
@@ -61,9 +61,9 @@ lint-check: ## Run linting checks (CI)
 ## DB
 db-create-migration-files:
 	@if [ -z "$(MESSAGE)" ]; then echo "❌ Please provide MESSAGE='your description'"; exit 1; fi
-	
-	ENVIRONMENT=dev.local && $(VENV_ACTIVATE) && alembic revision --autogenerate -m "$(MESSAGE)"
 
+	ENVIRONMENT=dev $(VENV_ACTIVATE) && ENVIRONMENT=dev alembic revision --autogenerate -m "$(MESSAGE)"
+# ENVIRONMENT=dev.local && $(VENV_ACTIVATE) && alembic revision --autogenerate -m "$(MESSAGE)"
 
 db-test-migration: ## Dev
 	$(MAKE) db-create-migration-files
@@ -101,10 +101,10 @@ pytest-run:
 					--cov-report=term-missing \
 					test/integration/endpoints/
 test-docker-compose-start: ## Stats docker compose for integration tests of endpoints
-	BACKEND_ENV_FILE=$(BACKEND_ENV_FILE_SYNCED_PATH) docker compose -f ../docker-compose.yml -f ../docker-compose.test.yml -p $(PROJECT_NAME) up --build 
+	BACKEND_ENV_FILE=$(BACKEND_ENV_FILE_SYNCED_PATH) docker compose -f ../deployment/docker-compose.yml -f ../deployment/docker-compose.test.yml -p $(PROJECT_NAME) up --build 
 
 test-docker-compose-stop: ## Stops docker compose for integration tests of endpoints
-	BACKEND_ENV_FILE=$(BACKEND_ENV_FILE_SYNCED_PATH) docker compose -f ../docker-compose.yml -f ../docker-compose.test.yml -p $(PROJECT_NAME) down -v
+	BACKEND_ENV_FILE=$(BACKEND_ENV_FILE_SYNCED_PATH) docker compose -f ../deployment/docker-compose.yml -f ../deployment/docker-compose.test.yml -p $(PROJECT_NAME) down -v
 
 
 # 6) Miscellaneous

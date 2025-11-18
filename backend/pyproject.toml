@@ -2,11 +2,12 @@
 name = "ai_ticket_platform"
 version = "0.1.0"
 requires-python = ">=3.8"
-dependencies = [ 
+dependencies = [
       "fastapi",
       "uvicorn",
       "gunicorn",
       "pydantic",
+      "email-validator",
       "redis",
       "pydantic-settings",
       "sqlacodegen",
@@ -19,6 +20,8 @@ dependencies = [
       "boto3-stubs",
       "boto3-stubs[s3,secretsmanager]",
       "python-json-logger>=2.0.0",
+      "azure-storage-blob>=12.19.0",
+      "prometheus-fastapi-instrumentator==7.0.0"
 ]
 
 [project.optional-dependencies]
