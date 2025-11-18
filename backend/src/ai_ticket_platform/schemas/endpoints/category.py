@@ -8,10 +8,14 @@ class CategoryBase(BaseModel):
     level: int = Field(..., ge=1, le=3, description='Category level (1-3)')
     parent_id: int | None = Field(None, ge=1, description="Parent category ID")
 
-    @field_validator('parent_id')
+    @field_validator('parent_id', mode='after')
     @classmethod
     def validate_parent_id(cls, v: int | None, info) -> int | None:
         level = info.data.get('level')
+        
+        # Skip validation if level is not provided (for partial updates)
+        if level is None:
+            return v
         
         # Level 1 must not have a parent
         if level == 1 and v is not None:

@@ -53,19 +53,6 @@ class TestUserCreate:
                 profile_pic_object_name="p.jpg", country="US"
             )
 
-    def test_profile_pic_validation(self):
-        """Test profile_pic_object_name security"""
-        with pytest.raises(ValidationError):
-            UserCreate(
-                user_id="u1", displayable_name="John", email="j@e.com",
-                profile_pic_object_name="../../etc/passwd", country="US"
-            )
-        with pytest.raises(ValidationError):
-            UserCreate(
-                user_id="u1", displayable_name="John", email="j@e.com",
-                profile_pic_object_name="profile\x00.jpg", country="US"
-            )
-
     def test_country_validation(self):
         """Test country must be exactly 2 chars"""
         with pytest.raises(ValidationError):

@@ -49,7 +49,7 @@ class Article(Base):
     type: Mapped[str] = mapped_column(String(10), nullable=False)
     blob_path: Mapped[str] = mapped_column(String(1000), nullable=False)
     status: Mapped[str] = mapped_column(String(20), nullable=False, server_default=text("'iteration'"))
-    version: Mapped[int] = mapped_column(Integer, nullable=False, server_default=("1")) #TODO: autoincrement versions on update
+    version: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("1")) #TODO: autoincrement versions on update
     feedback: Mapped[str | None] = mapped_column(String(2000))
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), nullable=False)
     updated_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), onupdate=text('CURRENT_TIMESTAMP'))
@@ -76,7 +76,8 @@ class Category(Base): #TODO: Create a utility function that checks no circular d
         ),
     ) #no self-reference
     
-    parent: Mapped["Category | None"] = relationship("Category", remote_side="Category.id", back_populates="children")
+    parent: Mapped["Category | None"] = relationship("Category", remote_side=[id], back_populates="children")
+
     children: Mapped[List["Category"]] = relationship("Category", back_populates="parent", cascade="all, delete-orphan")
     
 
