@@ -39,12 +39,6 @@ class CategoryUpdate(BaseModel):
     level: int | None = Field(None, ge=1, le=3)
     parent_id: int | None = Field(None, ge=1)
 
-    @field_validator('parent_id', mode='after')
-    @classmethod
-    def validate_parent_id_field(cls, v: int | None, info) -> int | None:
-        level = info.data.get('level')
-        return validate_parent_id(v, level)
-
 class CategoryRead(CategoryBase):
     id: int
     created_at: datetime
