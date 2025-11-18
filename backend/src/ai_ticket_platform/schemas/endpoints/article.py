@@ -17,16 +17,7 @@ class ArticleCreate(ArticleBase):
 class ArticleUpdate(BaseModel):
     status: Literal["accepted", "iteration", "denied"] | None = None
     version: int | None = Field(None, ge=1)
-    blob_path: str | None = Field(None, min_length=1, max_length=1000)
     feedback: str | None = Field(None, max_length=2000)
-
-    @field_validator('blob_path')
-    @classmethod
-    def validate_blob_path(cls, v: str | None) -> str | None:
-        if v and '..' in v:
-            raise ValueError('Blob path contains invalid ".." sequence')
-        return v
-
 
 class ArticleRead(ArticleBase): 
     id: int

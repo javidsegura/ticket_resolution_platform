@@ -33,8 +33,8 @@ class UserUpdate(BaseModel):
     
 class UserRead(UserBase):
     user_id: str
-    time_registered: datetime | None = Field(None, alias="timeRegistered")
-    is_admin: bool | None = Field(None, alias="isAdmin")
+    timeRegistered: datetime | None = None
+    isAdmin: bool | None = None
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 # For admin status changes

@@ -17,8 +17,8 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), nullable=False)
     profile_pic_object_name: Mapped[str] = mapped_column(String(299), nullable=False)
     country: Mapped[str] = mapped_column(String(2), nullable=False)
-    time_registered: Mapped[Optional[datetime.datetime]] = mapped_column(TIMESTAMP, server_default=text('CURRENT_TIMESTAMP'))
-    is_admin: Mapped[Optional[int]] = mapped_column(TINYINT(1), server_default=text("'0'"))
+    timeRegistered: Mapped[Optional[datetime.datetime]] = mapped_column(TIMESTAMP, server_default=text('CURRENT_TIMESTAMP'))
+    isAdmin: Mapped[Optional[int]] = mapped_column(TINYINT(1), server_default=text("'0'"))
 
     link: Mapped[list['Link']] = relationship('Link', back_populates='creator', cascade="all, delete-orphan")
 
