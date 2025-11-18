@@ -22,7 +22,7 @@ class UserCreate(UserBase):
 
 class UserUpdate(BaseModel):
     displayable_name: str | None = Field(None, min_length=1, max_length=100)
-    email: EmailStr | None = Field(..., max_length=255)
+    email: EmailStr | None = Field(None, max_length=255)
     profile_pic_object_name: str | None = Field(None, min_length=1, max_length=299)
     country: str | None = Field(None, min_length=2, max_length=2)
 

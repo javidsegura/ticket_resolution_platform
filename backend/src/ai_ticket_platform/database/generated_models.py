@@ -48,7 +48,7 @@ class Article(Base):
     intent_id: Mapped[int] = mapped_column(ForeignKey("intents.id"), nullable=False)
     type: Mapped[str] = mapped_column(String(10), nullable=False)
     blob_path: Mapped[str] = mapped_column(String(1000), nullable=False)
-    status: Mapped[str] = mapped_column(String(20), nullable=False, server_default=text("iteration"))
+    status: Mapped[str] = mapped_column(String(20), nullable=False, server_default=text("'iteration'"))
     version: Mapped[int] = mapped_column(Integer, nullable=False, server_default=("1")) #TODO: autoincrement versions on update
     feedback: Mapped[str | None] = mapped_column(String(2000))
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), nullable=False)
