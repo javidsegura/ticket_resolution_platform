@@ -1,22 +1,33 @@
 import { useState, useEffect } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
-import type { User } from 'firebase/auth';
-import { auth } from "../../firebase"
+import { onAuthStateChanged, type User } from 'firebase/auth';
+import { auth, isMockMode, type MockUser } from "../../firebase"
+
+// Unified user type that works with both mock and real Firebase
+type AuthUser = User | MockUser | null;
 
 export const useAuth = () => {
-  // Shows user token and if its loading 
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      setLoading(false);
-    });
+    if (isMockMode) {
+      // Use mock auth
+      const unsubscribe = auth.onAuthStateChanged((mockUser: MockUser | null) => {
+        setUser(mockUser);
+        setLoading(false);
+      });
 
-    // Cleanup subscription on unmount
-    return () => unsubscribe();
+      return () => unsubscribe();
+    } else {
+      // Use real Firebase
+      const unsubscribe = onAuthStateChanged(auth as any, (firebaseUser: User | null) => {
+        setUser(firebaseUser);
+        setLoading(false);
+      });
+
+      return () => unsubscribe();
+    }
   }, []);
 
-  return [ user, loading ];
+  return [user, loading] as const;
 };

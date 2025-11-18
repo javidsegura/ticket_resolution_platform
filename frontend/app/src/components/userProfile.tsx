@@ -1,16 +1,24 @@
-import { signOut } from "firebase/auth"
-import { auth } from "../../firebase"
+import { useNavigate } from "react-router-dom"
+import { signOut } from "@/utils/auth"
+import { Button } from "@/components/ui/button"
+import { LogOut } from "lucide-react"
 
+export default function UserProfile() {
+  const navigate = useNavigate()
 
-export default function UserProfile(){
+  const handleUserSignOut = async () => {
+    try {
+      await signOut()
+      navigate("/login")
+    } catch (error) {
+      console.error("Error signing out:", error)
+    }
+  }
 
-      const handleUserSignOut = async () => {
-            await signOut(auth)
-      }
-      return ( 
-            <>
-            <button className="btn-secondary" onClick={handleUserSignOut}> Sign out </button>
-            
-            </>
-      )
+  return (
+    <Button variant="outline" size="sm" onClick={handleUserSignOut}>
+      <LogOut className="mr-2 h-4 w-4" />
+      Sign out
+    </Button>
+  )
 }
