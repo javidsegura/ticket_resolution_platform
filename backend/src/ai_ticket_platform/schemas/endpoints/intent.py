@@ -11,14 +11,6 @@ class IntentBase(BaseModel):
     area: str | None = Field(None, min_length=1, max_length=255)
     is_processed: bool = False
 
-class IntentBase(BaseModel):
-    name: str = Field(..., min_length=1, max_length=255)
-    category_level_1_id: int | None = Field(None, ge=1)
-    category_level_2_id: int | None = Field(None, ge=1)
-    category_level_3_id: int | None = Field(None, ge=1)
-    area: str | None = Field(None, min_length=1, max_length=255)
-    is_processed: bool = False
-
     @field_validator('category_level_1_id', 'category_level_2_id', 'category_level_3_id', mode='after')
     @classmethod
     def validate_category_levels(cls, v, info):
