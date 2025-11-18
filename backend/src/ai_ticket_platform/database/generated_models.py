@@ -42,6 +42,7 @@ class Link(Base):
 
 class Article(Base):
     __tablename__ = "articles"
+    __table_args__ = (CheckConstraint("status IN ('iteration', 'accepted', 'denied')",name="check_article_status"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     intent_id: Mapped[int] = mapped_column(ForeignKey("intents.id"), nullable=False)
@@ -58,14 +59,6 @@ class Article(Base):
 
 class Category(Base): #TODO: Create a utility function that checks no circular dependencies exist
     __tablename__ = "categories"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    name: Mapped[str] = mapped_column(String(255), nullable=False)
-    level: Mapped[int] = mapped_column(Integer, nullable=False)
-    parent_id: Mapped[int | None] = mapped_column(ForeignKey("categories.id"), nullable=True)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), nullable=False)
-    updated_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), onupdate=text('CURRENT_TIMESTAMP'))
-    
     __table_args__ = (
         CheckConstraint('id != parent_id', name='check_no_self_reference'),
         CheckConstraint('level BETWEEN 1 AND 3', name='check_level_range'),
@@ -74,9 +67,16 @@ class Category(Base): #TODO: Create a utility function that checks no circular d
             name='check_parent_by_level'
         ),
     ) #no self-reference
-    
-    parent: Mapped["Category | None"] = relationship("Category", remote_side=[id], back_populates="children")
 
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    level: Mapped[int] = mapped_column(Integer, nullable=False)
+    parent_id: Mapped[int | None] = mapped_column(ForeignKey("categories.id"), nullable=True)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), nullable=False)
+    updated_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), onupdate=text('CURRENT_TIMESTAMP'))
+    
+
+    parent: Mapped["Category | None"] = relationship("Category", remote_side=[id], back_populates="children")
     children: Mapped[List["Category"]] = relationship("Category", back_populates="parent", cascade="all, delete-orphan")
     
 
@@ -110,7 +110,7 @@ class Intent(Base):
     category_level_2_id: Mapped[int | None] = mapped_column(ForeignKey("categories.id"), nullable=True)
     category_level_3_id: Mapped[int | None] = mapped_column(ForeignKey("categories.id"), nullable=True)
     area: Mapped[str | None] = mapped_column(String(255))
-    is_processed: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text('false'))
+    is_processed: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("FALSE"))
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), nullable=False)
     updated_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), onupdate=text('CURRENT_TIMESTAMP'))
 
