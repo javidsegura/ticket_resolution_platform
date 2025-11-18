@@ -209,3 +209,9 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Firebase credentials and secrets
+**/secret.*.json
+**/secret.*.json.json
+**/*firebase*credentials*.json
+**/*firebase*adminsdk*.json

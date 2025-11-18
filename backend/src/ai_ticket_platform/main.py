@@ -9,6 +9,7 @@ import ai_ticket_platform.core.clients as clients
 import ai_ticket_platform.core.settings as settings
 from ai_ticket_platform.routers import (
 	health_router,
+    slack_router
 )
 import logging 
 logger = logging.getLogger(__name__)
@@ -44,7 +45,7 @@ app.add_middleware(
 )
 
 # Update the routers section, keep health
-routers = [health_router]
+routers = [health_router, slack_router]
 
 for router in routers:
 	app.include_router(router, prefix="/api")

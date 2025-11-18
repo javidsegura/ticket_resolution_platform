@@ -12,13 +12,14 @@ class DeploymentSettings(BaseSettings):
                   "REDIS_URL", "MYSQL_USER", "MYSQL_PASSWORD", "MYSQL_HOST",
                   "MYSQL_PORT", "MYSQL_DATABASE", "MYSQL_SYNC_DRIVER", 
                   "MYSQL_ASYNC_DRIVER", 
-                  "S3_MAIN_BUCKET_NAME", "AWS_MAIN_REGION"
+                  # "S3_MAIN_BUCKET_NAME", "AWS_MAIN_REGION"
             ]
 
       def extract_all_variables(self):
             self._extract_database_variables()
-            self._extract_aws_variables()
+            # self._extract_aws_variables()  # Commented out - AWS variables are optional
             self._extract_app_logic_variables()
+            self._extract_slack_variables()
       def _extract_secret_manger_databaseb_credentials(self):
             from ai_ticket_platform.services.infra.aws.secretsmanager import SecretsManager 
             secret_key = os.getenv("SECRETS_MANAGER_DB_CREDENTIALS_KEY")
@@ -35,9 +36,13 @@ class DeploymentSettings(BaseSettings):
             self.MYSQL_ASYNC_DRIVER = os.getenv("MYSQL_ASYNC_DRIVER")
             self.MYSQL_HOST = os.getenv("RDS_MYSQL_HOST")
             self._extract_secret_manger_databaseb_credentials()
-      def _extract_aws_variables(self):
-            self.S3_MAIN_BUCKET_NAME = os.getenv("S3_MAIN_BUCKET_NAME")
-            self.AWS_MAIN_REGION = os.getenv("AWS_MAIN_REGION")
+      # def _extract_aws_variables(self):
+      #       self.S3_MAIN_BUCKET_NAME = os.getenv("S3_MAIN_BUCKET_NAME")
+      #       self.AWS_MAIN_REGION = os.getenv("AWS_MAIN_REGION")
+      def _extract_slack_variables(self):
+            self.SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")
+            self.SLACK_CHANNEL_ID = os.getenv("SLACK_CHANNEL_ID")
+
 
       
 

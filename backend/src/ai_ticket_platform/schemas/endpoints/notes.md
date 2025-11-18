@@ -1,1 +1,0 @@
-Write here all the response and request models with Pydantic for each endpoint
