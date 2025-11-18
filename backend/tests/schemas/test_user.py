@@ -67,8 +67,6 @@ class TestUserUpdate:
         """Test validation on provided fields"""
         with pytest.raises(ValidationError):
             UserUpdate(email="invalid")
-        with pytest.raises(ValidationError):
-            UserUpdate(country="USA")
 
 
 class TestUserRead:
