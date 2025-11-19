@@ -1,1 +1,0 @@
-Here you write the correspond cloud SDK functions that you need to use in the backened (e.g., the ones to upload/download a file from object storage)
