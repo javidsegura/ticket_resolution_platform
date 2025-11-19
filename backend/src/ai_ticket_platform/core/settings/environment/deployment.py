@@ -18,7 +18,8 @@ class DeploymentSettings(BaseSettings):
             # Dynamically add cloud-specific required vars
             cloud_provider = os.getenv("CLOUD_PROVIDER", "aws").lower()
             if cloud_provider == "aws":
-                  base_vars.extend(["S3_MAIN_BUCKET_NAME", "AWS_MAIN_REGION"])
+                  base_vars.extend(["S3_MAIN_BUCKET_NAME", "AWS_MAIN_REGION",
+                  "OPENAI_API_KEY", ])
             elif cloud_provider == "azure":
                   base_vars.extend([
                         "AZURE_STORAGE_CONTAINER_NAME",
@@ -35,6 +36,7 @@ class DeploymentSettings(BaseSettings):
 
             self._extract_app_logic_variables()
             #self._extract_slack_variables()
+            self._extract_llm_variables()
       def _extract_secret_manager_databaseb_credentials(self):
             from url_shortener.services.storage.secretsmanager import SecretsManager 
             secret_key = os.getenv("SECRETS_MANAGER_DB_CREDENTIALS_KEY")
@@ -64,4 +66,12 @@ class DeploymentSettings(BaseSettings):
                   self.AZURE_STORAGE_ACCOUNT_KEY = os.getenv("AZURE_STORAGE_ACCOUNT_KEY")
             else:
                   raise ValueError(f"Unsupported CLOUD_PROVIDER: {self.CLOUD_PROVIDER}. Use 'aws' or 'azure'")
+      def _extract_aws_variables(self):
+            self.S3_MAIN_BUCKET_NAME = os.getenv("S3_MAIN_BUCKET_NAME")
+            self.AWS_MAIN_REGION = os.getenv("AWS_MAIN_REGION")
+      def _extract_llm_variables(self):
+            self.OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+            self.OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
+
+
 

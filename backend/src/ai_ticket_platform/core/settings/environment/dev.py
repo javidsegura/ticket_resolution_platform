@@ -22,6 +22,8 @@ class DevSettings(BaseSettings):
 
                   "CLOUD_PROVIDER",
 
+                  
+                  "OPENAI_API_KEY",  # Required for LLM clustering
                   #"USING_FIREBASE_EMULATOR", "FB_AUTH_EMULATOR_HOST", "FB_PROJECT_ID"
             ]
             
@@ -45,6 +47,7 @@ class DevSettings(BaseSettings):
 
             self._extract_app_logic_variables()
             #self._extract_slack_variables()
+            self._extract_llm_variables()
             #self._extract_firebase_variables()
       def _extract_database_variables(self):
             self.REDIS_URL = os.getenv("REDIS_URL")
@@ -69,6 +72,9 @@ class DevSettings(BaseSettings):
             else:
                   raise ValueError(f"Unsupported CLOUD_PROVIDER: {self.CLOUD_PROVIDER}. Use 'aws' or 'azure'")
 
+      def _extract_llm_variables(self):
+            self.OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+            self.OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
       # def _extract_firebase_variables(self):
       #       self.USING_FIREBASE_EMULATOR = os.getenv("USING_FIREBASE_EMULATOR")
       #       self.FB_AUTH_EMULATOR_HOST= os.getenv("FB_AUTH_EMULATOR_HOST")

@@ -215,3 +215,7 @@ __marimo__/
 **/secret.*.json.json
 **/*firebase*credentials*.json
 **/*firebase*adminsdk*.json
+
+# Data folder
+data/
+
