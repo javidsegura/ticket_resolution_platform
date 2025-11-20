@@ -40,6 +40,7 @@ def upgrade() -> None:
 
 
 
+
 def downgrade() -> None:
     op.execute(
         "ALTER TABLE tickets "
