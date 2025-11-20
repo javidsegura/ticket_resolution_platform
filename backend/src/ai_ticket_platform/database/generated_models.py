@@ -98,8 +98,7 @@ class Intent(Base):
     category_level_3 = relationship("Category", foreign_keys=[category_level_3_id], lazy="joined")
     
     articles: Mapped[List["Article"]] = relationship("Article", back_populates="intent", cascade="all, delete-orphan")
-    #revise
-    source_tickets: Mapped[List["Ticket"]] = relationship("Ticket", back_populates="intent", cascade="all, delete-orphan")
+    source_tickets: Mapped[List["Ticket"]] = relationship("Ticket", back_populates="intent")
 
 
 class Ticket(Base):

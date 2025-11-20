@@ -48,7 +48,7 @@ class TestParseCSVFile:
         result = parse_csv_file(valid_csv)
         ticket = result["tickets"][0]
         
-        assert ticket["Ticket Subject"] == "Subject1"
+        assert ticket["subject"] == "Subject1"
         assert ticket["body"] == "Body1"
         assert "id" in ticket
         assert "source_row" in ticket

@@ -1,4 +1,3 @@
-# csv_uploader.py
 import csv
 import logging
 from pathlib import Path
@@ -11,7 +10,6 @@ def parse_csv_file(file_path: str) -> Dict:
     Parse CSV file
     
     Expected CSV columns: id, created_at, subject, body
-    Maps 'subject' column to 'Ticket Subject' for clustering service.
     
     Args:
         file_path: Path to CSV file
@@ -26,9 +24,13 @@ def parse_csv_file(file_path: str) -> Dict:
                 "encoding": "utf-8"
             },
             "tickets": [
-                {"Ticket Subject": "Cannot reset password"},
-                {"Ticket Subject": "App crashes on startup"},
-                ...
+  +                {
++                    "subject": "Cannot reset password",
++                    "source_row": 2,
++                    "id": "123",
++                    "created_at": "2024-01-01",
++                    "body": "I cannot reset my password..."
++                },
             ],
             "errors": []
         }
@@ -88,7 +90,7 @@ def parse_csv_file(file_path: str) -> Dict:
                     
                     # Create ticket dict for clustering
                     ticket = {
-                        "Ticket Subject": subject,
+                        "subject": subject,
                         "source_row": row_num,
                         "id": row.get('id'),
                         "created_at": row.get('created_at'),

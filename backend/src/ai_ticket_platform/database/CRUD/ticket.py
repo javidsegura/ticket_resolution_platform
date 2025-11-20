@@ -20,15 +20,18 @@ async def create_tickets(db: AsyncSession, tickets_data: List[dict]) -> List[Tic
     
     for ticket_data in tickets_data:
         ticket = Ticket(
-            subject=ticket_data.get("Ticket Subject"),
+            subject=ticket_data.get("subject"),
             body=ticket_data.get("body"),
             created_at=ticket_data.get("created_at")
         )
         tickets.append(ticket)
     
-    db.add_all(tickets)
-    await db.commit()
-    
+    try:
+        db.add_all(tickets)
+        await db.commit()
+    except Exception as e:
+        await db.rollback()
+        raise RuntimeError(f"Failed to create tickets: {e}") from e
     # Refresh all to get generated IDs
     for ticket in tickets:
         await db.refresh(ticket)

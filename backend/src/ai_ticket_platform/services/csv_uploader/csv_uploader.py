@@ -15,7 +15,7 @@ async def save_tickets_to_db(db: AsyncSession,tickets_data: List[dict]) -> List[
     Args:
         db: Database session
         tickets_data: List of parsed ticket dicts from CSV parser
-                     Keys: Ticket Subject, id, created_at, body
+                     Keys: subject, id, created_at, body
     
     Returns:
         List of created Ticket objects with generated IDs

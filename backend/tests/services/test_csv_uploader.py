@@ -14,13 +14,13 @@ class TestSaveTicketsToDb:
         """Sample parsed ticket data from CSV parser"""
         return [
             {
-                "Ticket Subject": "Test Subject 1",
+                "subject": "Test Subject 1",
                 "body": "Test Body 1",
                 "id": "1",
                 "created_at": "2024-01-01"
             },
             {
-                "Ticket Subject": "Test Subject 2",
+                "subject": "Test Subject 2",
                 "body": "Test Body 2",
                 "id": "2",
                 "created_at": "2024-01-02"

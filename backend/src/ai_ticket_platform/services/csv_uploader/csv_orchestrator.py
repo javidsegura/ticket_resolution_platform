@@ -39,10 +39,6 @@ async def upload_csv_file(file: UploadFile, db: AsyncSession) -> dict:
     tmp_path = None
     
     try:
-        # Validate file type
-        if not file.filename.endswith('.csv'):
-            raise ValueError("File must be a CSV file")
-        
         logger.info(f"Processing CSV upload: {file.filename}")
         
         # Save uploaded file temporarily
@@ -78,7 +74,7 @@ async def upload_csv_file(file: UploadFile, db: AsyncSession) -> dict:
         raise  # Re-raise for router to handle
     
     finally:
-        # !Clean up temp file
+        # Clean up temp file
         if tmp_path and os.path.exists(tmp_path):
             try:
                 os.unlink(tmp_path)
