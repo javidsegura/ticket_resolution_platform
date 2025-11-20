@@ -9,11 +9,11 @@ import ai_ticket_platform.core.clients as clients
 import ai_ticket_platform.core.settings as settings
 from ai_ticket_platform.routers import (
 	health_router,
-    slack_router
+    slack_router,
+    documents_router,
 )
 import logging 
 from prometheus_fastapi_instrumentator import Instrumentator
-
 
 
 logger = logging.getLogger(__name__)

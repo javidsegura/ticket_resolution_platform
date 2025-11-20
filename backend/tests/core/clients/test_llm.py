@@ -130,8 +130,8 @@ class TestLLMClient:
 		assert llm_client.client.chat.completions.create.call_count == 2
 
 	def test_call_llm_structured_api_error_with_retry(self, llm_client):
-		"""Test LLM call retries on API error."""
-		# first call raises exception, second succeeds
+		"""Test LLM call retries on JSON decode error."""
+		# first call returns invalid JSON (triggers JSONDecodeError), second succeeds
 		mock_message = Mock()
 		mock_message.content = '{"status": "success"}'
 		mock_choice = Mock()
@@ -139,8 +139,16 @@ class TestLLMClient:
 		mock_response = Mock()
 		mock_response.choices = [mock_choice]
 
+		# First call returns invalid JSON
+		mock_message_bad = Mock()
+		mock_message_bad.content = 'invalid json'
+		mock_choice_bad = Mock()
+		mock_choice_bad.message = mock_message_bad
+		mock_response_bad = Mock()
+		mock_response_bad.choices = [mock_choice_bad]
+
 		llm_client.client.chat.completions.create = Mock(
-			side_effect=[Exception("API Error"), mock_response]
+			side_effect=[mock_response_bad, mock_response]
 		)
 
 		# execute
@@ -155,14 +163,22 @@ class TestLLMClient:
 		assert llm_client.client.chat.completions.create.call_count == 2
 
 	def test_call_llm_structured_api_error_exhausts_retries(self, llm_client):
-		"""Test LLM call raises error after exhausting retries on API error."""
-		# all calls raise exception
+		"""Test LLM call raises error after exhausting retries on JSON decode error."""
+		# all calls return invalid JSON
+		mock_message_bad = Mock()
+		mock_message_bad.content = 'invalid json that will fail'
+		mock_choice_bad = Mock()
+		mock_choice_bad.message = mock_message_bad
+		mock_response_bad = Mock()
+		mock_response_bad.choices = [mock_choice_bad]
+
 		llm_client.client.chat.completions.create = Mock(
-			side_effect=Exception("Persistent API Error")
+			return_value=mock_response_bad
 		)
 
 		# execute and verify exception
-		with pytest.raises(Exception, match="Persistent API Error"):
+		import json
+		with pytest.raises(json.JSONDecodeError):
 			llm_client.call_llm_structured(
 				prompt="Test",
 				output_schema={"type": "object"},
