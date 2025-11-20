@@ -25,9 +25,15 @@ async def upload_tickets_csv(file: UploadFile = File(...), db: AsyncSession = De
         raise HTTPException(status_code=400, detail="Invalid content type. Expected text/csv")
         
     # Validate file size (10MB limit)
-    content = await file.read()
-    if len(content) > 10 * 1024 * 1024:  # 10MB
-        raise HTTPException(status_code=400, detail="File size exceeds 10MB limit")
+    MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+    content = bytearray()
+    chunk_size = 1024 * 1024  # 1MB chunks
+    
+    while chunk := await file.read(chunk_size):
+        content.extend(chunk)
+        if len(content) > MAX_FILE_SIZE:
+            raise HTTPException(status_code=400, detail="File size exceeds 10MB limit")
+    
     await file.seek(0)  # Reset file pointer
     
     try:

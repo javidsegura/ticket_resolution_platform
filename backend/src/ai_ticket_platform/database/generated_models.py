@@ -109,7 +109,7 @@ class Ticket(Base):
     body: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), nullable=False)
     # Tickets start with intent_id=None when first created. After clustering is done, the orchestrator updates intent_id to correct value
-    intent_id: Mapped[int | None] = mapped_column(ForeignKey("intents.id"), nullable=True)
+    intent_id: Mapped[int | None] = mapped_column(ForeignKey("intents.id", ondelete='SET NULL'), nullable=True)
     updated_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), onupdate=text('CURRENT_TIMESTAMP'))
     
-    intent: Mapped["Intent | None"] = relationship("Intent", back_populates="source_tickets")
+    intent: Mapped["Intent | None"] = relationship("Intent", back_populates="source_tickets", passive_deletes=True)
