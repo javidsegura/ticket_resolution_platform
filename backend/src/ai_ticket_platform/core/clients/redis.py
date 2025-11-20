@@ -1,7 +1,7 @@
 import redis.asyncio as r
 from redis.client import Redis
 
-from url_shortener.core.settings import initialize_settings
+from ai_ticket_platform.core.settings import initialize_settings
 
 import logging
 
