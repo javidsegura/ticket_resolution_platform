@@ -15,7 +15,8 @@ class TicketCreate(TicketBase):
 # Clustering will update intent_id from None to corresponding (not optional anymore)
 class TicketUpdate(BaseModel):
     """Schema for updating a ticket"""
-    intent_id: int = Field(..., description="Linked intent ID")
+    intent_id: int = Field(..., ge=1, description="Linked intent ID")
+    model_config = {"strict": True} #reject "5", only int
     
 # Response after intent_id assigned
 class TicketResponse(TicketBase):
