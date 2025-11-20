@@ -1,11 +1,10 @@
 from sqlalchemy import select
-from sqlalchemy.orm import Session
 from typing import Optional, List
-
+from sqlalchemy.ext.asyncio import AsyncSession
 from ai_ticket_platform.database.generated_models import CompanyFile
 
 
-def create_company_file(db: Session, blob_path: str, original_filename: str, area: Optional[str] = None) -> CompanyFile:
+async def create_company_file(db: AsyncSession, blob_path: str, original_filename: str, area: Optional[str] = None) -> CompanyFile:
 	"""
 	Create a new company file record in the database.
 	"""
@@ -15,34 +14,33 @@ def create_company_file(db: Session, blob_path: str, original_filename: str, are
 		area=area,
 	)
 	db.add(db_file)
-	db.commit()
-	db.refresh(db_file)
+	await db.commit()
+	await db.refresh(db_file)
 	return db_file
 
 
-def get_company_file_by_id(db: Session, file_id: int) -> Optional[CompanyFile]:
+async def get_company_file_by_id(db: AsyncSession, file_id: int) -> Optional[CompanyFile]:
 	"""
 	Retrieve a company file by its ID.
 	"""
-	result = db.execute(select(CompanyFile).where(CompanyFile.id == file_id))
+	result = await db.execute(select(CompanyFile).where(CompanyFile.id == file_id))
 	return result.scalar_one_or_none()
 
 
-def get_all_company_files(db: Session) -> List[CompanyFile]:
+async def get_all_company_files(db: AsyncSession, skip: int = 0, limit: int = 100) -> List[CompanyFile]:
 	"""
 	Retrieve all company files.
 	"""
-	result = db.execute(select(CompanyFile))
+	result = await db.execute(select(CompanyFile).offset(skip).limit(limit))
 	return list(result.scalars().all())
 
-
-def delete_company_file(db: Session, file_id: int) -> bool:
+async def delete_company_file(db: AsyncSession, file_id: int) -> bool:
 	"""
 	Delete a company file record by ID.
 	"""
-	file = get_company_file_by_id(db, file_id)
+	file = await get_company_file_by_id(db, file_id)
 	if file:
-		db.delete(file)
-		db.commit()
+		await db.delete(file)
+		await db.commit()
 		return True
 	return False

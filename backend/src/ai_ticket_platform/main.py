@@ -49,7 +49,7 @@ app.add_middleware(
 )
 
 # Update the routers section, keep health
-routers = [health_router, slack_router]
+routers = [health_router, slack_router, documents_router]
 
 for router in routers:
 	app.include_router(router, prefix="/api")

@@ -56,11 +56,10 @@ def get_output_schema() -> dict:
 
 def get_task_config() -> dict:
     return {
-		"system_prompt": (
-			"You are a document classification expert. "
-			"Analyze company documents and identify the primary department or area they belong to. "
-			"This classification helps route support tickets to the correct professionals."
-			),
-		"schema_name": "document_department_classification"
-	}
-
+        "system_prompt": (
+            "You are a document classification expert. "
+            "Analyze company documents and identify the primary department or area they belong to. "
+            "This classification helps route support tickets to the correct professionals."
+            ),
+        "schema_name": "document_department_classification"
+    }

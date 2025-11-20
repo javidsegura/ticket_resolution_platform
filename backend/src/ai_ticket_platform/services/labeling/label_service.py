@@ -36,9 +36,17 @@ def label_document(document: Dict, llm_client: LLMClient) -> Dict:
 			temperature=0.3
 		)
 
+		# Validate result structure
+		if not isinstance(result, dict) or "department_area" not in result:
+			logger.error(f"LLM returned invalid structure for document {filename}")
+			return {
+				"filename": filename,
+				"department_area": "Unknown",
+				"error": "LLM returned invalid response structure"
+			}
+
 		result["filename"] = filename
 		return result
-
 	except Exception as e:
 		logger.error(f"Error labeling document {filename}: {str(e)}")
 		return {
