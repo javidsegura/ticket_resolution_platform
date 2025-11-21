@@ -1,6 +1,6 @@
 import pytest
-from unittest.mock import Mock, MagicMock
-from sqlalchemy.orm import Session
+from unittest.mock import Mock, AsyncMock
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ai_ticket_platform.database.CRUD.company_file import (
 	create_company_file,
@@ -17,10 +17,11 @@ class TestCreateCompanyFile:
 	@pytest.fixture
 	def mock_db(self):
 		"""Create mock database session."""
-		db = Mock(spec=Session)
+		db = AsyncMock(spec=AsyncSession)
 		return db
 
-	def test_create_company_file_with_area(self, mock_db):
+	@pytest.mark.asyncio
+	async def test_create_company_file_with_area(self, mock_db):
 		"""Test creating a company file with area specified."""
 		# setup
 		blob_path = "s3://bucket/path/to/file.pdf"
@@ -34,7 +35,7 @@ class TestCreateCompanyFile:
 		mock_db.add.side_effect = side_effect_add
 
 		# execute
-		result = create_company_file(
+		result = await create_company_file(
 			db=mock_db,
 			blob_path=blob_path,
 			original_filename=original_filename,
@@ -53,7 +54,8 @@ class TestCreateCompanyFile:
 		assert added_obj.original_filename == original_filename
 		assert added_obj.area == area
 
-	def test_create_company_file_without_area(self, mock_db):
+	@pytest.mark.asyncio
+	async def test_create_company_file_without_area(self, mock_db):
 		"""Test creating a company file without area (defaults to None)."""
 		# setup
 		blob_path = "s3://bucket/path/to/file.pdf"
@@ -66,7 +68,7 @@ class TestCreateCompanyFile:
 		mock_db.add.side_effect = side_effect_add
 
 		# execute
-		result = create_company_file(
+		result = await create_company_file(
 			db=mock_db,
 			blob_path=blob_path,
 			original_filename=original_filename
@@ -87,10 +89,11 @@ class TestGetCompanyFileById:
 	@pytest.fixture
 	def mock_db(self):
 		"""Create mock database session."""
-		db = Mock(spec=Session)
+		db = AsyncMock(spec=AsyncSession)
 		return db
 
-	def test_get_company_file_by_id_found(self, mock_db):
+	@pytest.mark.asyncio
+	async def test_get_company_file_by_id_found(self, mock_db):
 		"""Test retrieving an existing company file by ID."""
 		# setup
 		file_id = 1
@@ -106,7 +109,7 @@ class TestGetCompanyFileById:
 		mock_db.execute.return_value = mock_result
 
 		# execute
-		result = get_company_file_by_id(db=mock_db, file_id=file_id)
+		result = await get_company_file_by_id(db=mock_db, file_id=file_id)
 
 		# verify
 		assert result == mock_file
@@ -114,7 +117,8 @@ class TestGetCompanyFileById:
 		assert result.area == "Finance"
 		mock_db.execute.assert_called_once()
 
-	def test_get_company_file_by_id_not_found(self, mock_db):
+	@pytest.mark.asyncio
+	async def test_get_company_file_by_id_not_found(self, mock_db):
 		"""Test retrieving a non-existent company file returns None."""
 		# setup
 		file_id = 999
@@ -124,7 +128,7 @@ class TestGetCompanyFileById:
 		mock_db.execute.return_value = mock_result
 
 		# execute
-		result = get_company_file_by_id(db=mock_db, file_id=file_id)
+		result = await get_company_file_by_id(db=mock_db, file_id=file_id)
 
 		# verify
 		assert result is None
@@ -137,10 +141,11 @@ class TestGetAllCompanyFiles:
 	@pytest.fixture
 	def mock_db(self):
 		"""Create mock database session."""
-		db = Mock(spec=Session)
+		db = AsyncMock(spec=AsyncSession)
 		return db
 
-	def test_get_all_company_files_with_results(self, mock_db):
+	@pytest.mark.asyncio
+	async def test_get_all_company_files_with_results(self, mock_db):
 		"""Test retrieving all company files when files exist."""
 		# setup
 		mock_files = [
@@ -157,7 +162,7 @@ class TestGetAllCompanyFiles:
 		mock_db.execute.return_value = mock_result
 
 		# execute
-		result = get_all_company_files(db=mock_db)
+		result = await get_all_company_files(db=mock_db)
 
 		# verify
 		assert len(result) == 3
@@ -166,7 +171,8 @@ class TestGetAllCompanyFiles:
 		assert result[2].original_filename == "file3.pdf"
 		mock_db.execute.assert_called_once()
 
-	def test_get_all_company_files_empty(self, mock_db):
+	@pytest.mark.asyncio
+	async def test_get_all_company_files_empty(self, mock_db):
 		"""Test retrieving all company files when database is empty."""
 		# setup
 		mock_scalars = Mock()
@@ -177,7 +183,7 @@ class TestGetAllCompanyFiles:
 		mock_db.execute.return_value = mock_result
 
 		# execute
-		result = get_all_company_files(db=mock_db)
+		result = await get_all_company_files(db=mock_db)
 
 		# verify
 		assert result == []
@@ -190,10 +196,11 @@ class TestDeleteCompanyFile:
 	@pytest.fixture
 	def mock_db(self):
 		"""Create mock database session."""
-		db = Mock(spec=Session)
+		db = AsyncMock(spec=AsyncSession)
 		return db
 
-	def test_delete_company_file_success(self, mock_db):
+	@pytest.mark.asyncio
+	async def test_delete_company_file_success(self, mock_db):
 		"""Test successfully deleting an existing company file."""
 		# setup
 		file_id = 1
@@ -209,14 +216,15 @@ class TestDeleteCompanyFile:
 		mock_db.execute.return_value = mock_result
 
 		# execute
-		result = delete_company_file(db=mock_db, file_id=file_id)
+		result = await delete_company_file(db=mock_db, file_id=file_id)
 
 		# verify
 		assert result is True
 		mock_db.delete.assert_called_once_with(mock_file)
 		mock_db.commit.assert_called_once()
 
-	def test_delete_company_file_not_found(self, mock_db):
+	@pytest.mark.asyncio
+	async def test_delete_company_file_not_found(self, mock_db):
 		"""Test deleting a non-existent company file returns False."""
 		# setup
 		file_id = 999
@@ -226,7 +234,7 @@ class TestDeleteCompanyFile:
 		mock_db.execute.return_value = mock_result
 
 		# execute
-		result = delete_company_file(db=mock_db, file_id=file_id)
+		result = await delete_company_file(db=mock_db, file_id=file_id)
 
 		# verify
 		assert result is False

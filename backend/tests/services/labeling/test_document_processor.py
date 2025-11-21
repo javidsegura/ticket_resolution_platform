@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, AsyncMock, patch
 
 from ai_ticket_platform.services.labeling.document_processor import process_document
 from ai_ticket_platform.core.clients import LLMClient
@@ -17,10 +17,11 @@ class TestProcessDocument:
 	@pytest.fixture
 	def mock_db(self):
 		"""Create mock database session."""
-		db = Mock()
+		db = AsyncMock()
 		return db
 
-	def test_process_document_success(self, mock_llm_client, mock_db):
+	@pytest.mark.asyncio
+	async def test_process_document_success(self, mock_llm_client, mock_db):
 		"""Test successful document processing workflow."""
 		# setup
 		filename = "test_doc.pdf"
@@ -46,7 +47,7 @@ class TestProcessDocument:
 					mock_create.return_value = mock_db_file
 
 					# execute
-					result = process_document(
+					result = await process_document(
 						filename=filename,
 						content=content,
 						llm_client=mock_llm_client,
@@ -64,7 +65,8 @@ class TestProcessDocument:
 					mock_label.assert_called_once()
 					mock_create.assert_called_once()
 
-	def test_process_document_decode_failure(self, mock_llm_client, mock_db):
+	@pytest.mark.asyncio
+	async def test_process_document_decode_failure(self, mock_llm_client, mock_db):
 		"""Test handling of decode failure."""
 		# setup
 		filename = "bad_encoding.pdf"
@@ -78,7 +80,7 @@ class TestProcessDocument:
 			}
 
 			# execute
-			result = process_document(
+			result = await process_document(
 				filename=filename,
 				content=content,
 				llm_client=mock_llm_client,
@@ -91,7 +93,8 @@ class TestProcessDocument:
 			assert "error" in result
 			assert "encoding" in result["error"].lower()
 
-	def test_process_document_label_failure(self, mock_llm_client, mock_db):
+	@pytest.mark.asyncio
+	async def test_process_document_label_failure(self, mock_llm_client, mock_db):
 		"""Test handling of labeling failure."""
 		# setup
 		filename = "label_fail.pdf"
@@ -111,7 +114,7 @@ class TestProcessDocument:
 				}
 
 				# execute
-				result = process_document(
+				result = await process_document(
 					filename=filename,
 					content=content,
 					llm_client=mock_llm_client,
@@ -123,7 +126,8 @@ class TestProcessDocument:
 				assert result["filename"] == filename
 				assert "Labeling failed" in result["error"]
 
-	def test_process_document_database_failure(self, mock_llm_client, mock_db):
+	@pytest.mark.asyncio
+	async def test_process_document_database_failure(self, mock_llm_client, mock_db):
 		"""Test handling of database save failure."""
 		# setup
 		filename = "db_fail.pdf"
@@ -147,7 +151,7 @@ class TestProcessDocument:
 					mock_create.side_effect = Exception("Database connection error")
 
 					# execute
-					result = process_document(
+					result = await process_document(
 						filename=filename,
 						content=content,
 						llm_client=mock_llm_client,
@@ -159,7 +163,8 @@ class TestProcessDocument:
 					assert result["filename"] == filename
 					assert "Database error" in result["error"]
 
-	def test_process_document_unknown_area_default(self, mock_llm_client, mock_db):
+	@pytest.mark.asyncio
+	async def test_process_document_unknown_area_default(self, mock_llm_client, mock_db):
 		"""Test that missing department_area defaults to 'Unknown'."""
 		# setup
 		filename = "no_area.pdf"
@@ -183,7 +188,7 @@ class TestProcessDocument:
 					mock_create.return_value = mock_db_file
 
 					# execute
-					result = process_document(
+					result = await process_document(
 						filename=filename,
 						content=content,
 						llm_client=mock_llm_client,

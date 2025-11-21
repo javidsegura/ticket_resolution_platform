@@ -1,4 +1,3 @@
-import asyncio
 from typing import Annotated, List
 from fastapi import APIRouter, Depends, File, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,22 +20,22 @@ async def upload_company_documents(
 	db: Annotated[AsyncSession, Depends(get_db)] = None,
 ):
 	"""
-	Upload company PDF documents: label with LLM and save to database. Only PDF files are accepted (Right).
+	Upload company PDF documents: label with LLM and save to database. Only PDF files are accepted.
 	"""
 	llm_client = initialize_llm_client(settings)
 
-	async def _process_single_file(file: UploadFile) -> dict:
-		"""
-		Process a single file with validation.
-		"""
+	# Process files sequentially to avoid concurrent use of a single AsyncSession
+	results = []
+	for file in files:
 		# Validate PDF file type
 		if not file.filename.lower().endswith(".pdf"):
 			logger.warning(f"Rejected non-PDF file: {file.filename}")
-			return {
+			results.append({
 				"filename": file.filename,
 				"success": False,
 				"error": "Only PDF files are accepted"
-			}
+			})
+			continue
 
 		content = await file.read()
 
@@ -48,15 +47,16 @@ async def upload_company_documents(
 			db=db,
 		)
 
-		return result
-
-	# Process all files concurrently
-	tasks = [_process_single_file(file) for file in files]
-	results = await asyncio.gather(*tasks)
+		results.append(result)
 
 	# Count successes and failures
-	successful_count = sum(1 for r in results if r["success"])
-	failed_count = sum(1 for r in results if not r["success"])
+	successful_count = 0
+	failed_count = 0
+	for r in results:
+		if r["success"]:
+			successful_count += 1
+		else:
+			failed_count += 1
 
 	return {
 		"total_processed": len(files),

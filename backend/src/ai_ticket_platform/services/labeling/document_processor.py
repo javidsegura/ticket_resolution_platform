@@ -22,7 +22,7 @@ async def process_document(filename: str, content: bytes, llm_client: LLMClient,
 	"""
 	Process a single document: decode, label, and save to database.
 	"""
-	# decode content (CPU-bound operation - run in thread pool)
+	# decode content (CPU-bound operation)
 	decode_result = await asyncio.to_thread(decode_document, filename, content)
 	if not decode_result["success"]:
 		return {
@@ -31,7 +31,7 @@ async def process_document(filename: str, content: bytes, llm_client: LLMClient,
 			"error": decode_result["error"]
 		}
 
-	# label document (I/O-bound operation - run in thread pool)
+	# label document (I/O-bound operation)
 	document = {"filename": filename, "content": decode_result["content"]}
 	label_result = await asyncio.to_thread(label_document, document=document, llm_client=llm_client)
 
@@ -45,6 +45,7 @@ async def process_document(filename: str, content: bytes, llm_client: LLMClient,
 	area = label_result.get("department_area", "Unknown")
 
 	# save to database
+	# TODO: upload content to blob storage and persist its path
 	try:
 		db_file = await create_company_file(db=db, blob_path="", original_filename=filename, area=area)
 
