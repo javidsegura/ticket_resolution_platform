@@ -17,25 +17,26 @@ async def create_tickets(db: AsyncSession, tickets_data: List[dict]) -> List[Tic
         List of created Ticket objects
     """
     tickets = []
-    
+
     for ticket_data in tickets_data:
-        ticket = Ticket(
-            subject=ticket_data.get("subject"),
-            body=ticket_data.get("body"),
-            created_at=ticket_data.get("created_at")
-        )
+        # Build ticket params, excluding created_at if None to allow database default
+        ticket_params = {
+            "subject": ticket_data.get("subject"),
+            "body": ticket_data.get("body"),
+        }
+        if ticket_data.get("created_at") is not None:
+            ticket_params["created_at"] = ticket_data.get("created_at")
+
+        ticket = Ticket(**ticket_params)
         tickets.append(ticket)
-    
+
     try:
         db.add_all(tickets)
         await db.commit()
     except Exception as e:
         await db.rollback()
         raise RuntimeError(f"Failed to create tickets: {e}") from e
-    # Refresh all to get generated IDs
-    for ticket in tickets:
-        await db.refresh(ticket)
-    
+
     return tickets
 
 

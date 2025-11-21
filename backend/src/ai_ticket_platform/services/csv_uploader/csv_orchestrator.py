@@ -41,10 +41,10 @@ async def upload_csv_file(file: UploadFile, db: AsyncSession) -> dict:
     try:
         logger.info(f"Processing CSV upload: {file.filename}")
         
-        # Save uploaded file temporarily
+        # Save uploaded file temporarily (stream in chunks to avoid high memory usage)
         with tempfile.NamedTemporaryFile(delete=False, suffix='.csv') as tmp:
-            content = await file.read()
-            tmp.write(content)
+            while chunk := await file.read(1024 * 1024):  # 1MB chunks
+                tmp.write(chunk)
             tmp_path = tmp.name
         
         logger.debug(f"Saved temp file to: {tmp_path}")

@@ -1,5 +1,6 @@
 import csv
 import logging
+from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Tuple
 
@@ -88,12 +89,22 @@ def parse_csv_file(file_path: str) -> Dict:
                         logger.debug(f"Skipping row {row_num}: {reason}")
                         continue
                     
+                    # Parse created_at if present, otherwise None to allow database default
+                    created_at_val = None
+                    if created_at_str := row.get('created_at'):
+                        try:
+                            # Handle YYYY-MM-DD or YYYY-MM-DD HH:MM:SS formats
+                            created_at_val = datetime.fromisoformat(created_at_str.strip())
+                        except (ValueError, TypeError):
+                            errors.append(f"Error parsing 'created_at' on row {row_num}: '{created_at_str}'")
+                            continue
+
                     # Create ticket dict for clustering
                     ticket = {
                         "subject": subject,
                         "source_row": row_num,
                         "id": row.get('id'),
-                        "created_at": row.get('created_at'),
+                        "created_at": created_at_val,
                         "body": body,
                     }
                     
@@ -146,7 +157,7 @@ def _detect_encoding(file_path: Path) -> str:
     Returns:
         Detected encoding string
     """
-    encodings = ['utf-8', 'latin-1', 'cp1252', 'iso-8859-1']
+    encodings = ['utf-8-sig', 'utf-8', 'latin-1', 'cp1252', 'iso-8859-1']
     
     for encoding in encodings:
         try:
