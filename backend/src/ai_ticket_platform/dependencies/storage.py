@@ -1,6 +1,6 @@
 from typing import Annotated
 from fastapi import Depends
-from url_shortener.services.storage.storage import StorageService, get_storage_service
+from ai_ticket_platform.services.storage.storage import StorageService, get_storage_service
 
 
 def get_storage_service_dependency() -> StorageService:

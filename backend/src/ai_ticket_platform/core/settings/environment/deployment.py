@@ -38,7 +38,7 @@ class DeploymentSettings(BaseSettings):
             #self._extract_slack_variables()
             self._extract_llm_variables()
       def _extract_secret_manager_databaseb_credentials(self):
-            from url_shortener.services.storage.secretsmanager import SecretsManager 
+            from ai_ticket_platform.services.storage.secretsmanager import SecretsManager 
             secret_key = os.getenv("SECRETS_MANAGER_DB_CREDENTIALS_KEY")
             if not secret_key:
                   raise ValueError("RDS db credentials key is needed!")

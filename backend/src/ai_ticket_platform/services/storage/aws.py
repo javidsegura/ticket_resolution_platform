@@ -17,7 +17,7 @@ class AWSS3Storage(StorageService):
     """AWS S3 storage implementation."""
     
     def __init__(self, bucket_name: str):
-        from url_shortener.core.clients.aws import initialize_aws_s3_client
+        from ai_ticket_platform.core.clients.aws import initialize_aws_s3_client
         self.bucket_name = bucket_name
         self._s3_client = initialize_aws_s3_client()
     
