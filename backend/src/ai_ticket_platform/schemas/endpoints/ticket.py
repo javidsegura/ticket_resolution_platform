@@ -1,6 +1,5 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import Optional
 
 
 class FileInfo(BaseModel):
@@ -15,19 +14,22 @@ class FileInfo(BaseModel):
 class TicketBase(BaseModel):
     """Base ticket schema with common fields"""
     subject: str = Field(..., min_length=1, max_length=500, description="Ticket subject/title")
-    body: str = Field(..., description="Ticket description/body")
+    body: str = Field(..., min_length=1, max_length=10000, description="Ticket description/body")
 
 class TicketCreate(TicketBase):
     """Schema for creating a ticket"""
     pass
 
-# Clustering will update intent_id from None to corresponding (not optional anymore)
-class TicketUpdate(BaseModel):
-    """Schema for updating a ticket"""
+# Schema for assigning intent_id to a ticket after clustering analysis
+class TicketIntentAssignment(BaseModel):
+    """Schema for assigning intent ID to a ticket after clustering"""
     intent_id: int = Field(..., ge=1, description="Linked intent ID")
-    model_config = {"strict": True} #reject "5", only int
+    model_config = {"strict": True}  # Enforce strict integer type validation
+
+# Backward compatibility alias for TicketIntentAssignment
+TicketUpdate = TicketIntentAssignment
     
-# Response after intent_id assigned
+# Response schema for tickets (intent_id is None until clustering assigns it)
 class TicketResponse(TicketBase):
     """Schema for ticket responses"""
     id: int = Field(..., description="Ticket ID")
