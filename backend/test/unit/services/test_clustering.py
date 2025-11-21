@@ -253,12 +253,14 @@ class TestLLMClusterer:
 		mock_llm_client,
 		sample_ticket_texts
 	):
-		"""Test handling of LLM response with no clusters."""
+		"""Test handling of LLM response with no clusters raises ValueError."""
+		# When LLM returns empty clusters, validation should fail
+		# because not all tickets are assigned
 		mock_llm_client.call_llm_structured.return_value = {"clusters": []}
 
-		result = cluster_tickets(mock_llm_client, sample_ticket_texts)
-
-		assert result == {"clusters": []}
+		# Should raise ValueError about unassigned tickets
+		with pytest.raises(ValueError, match="Ticket assignment mismatch"):
+			cluster_tickets(mock_llm_client, sample_ticket_texts)
 
 	def test_cluster_tickets_single_ticket(self, mock_llm_client):
 		"""Test clustering with single ticket."""

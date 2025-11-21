@@ -17,11 +17,14 @@ dependencies = [
       "firebase-admin",
       "boto3",
       "alembic",
-      "boto3-stubs",
       "boto3-stubs[s3,secretsmanager]",
+      "openai",
+      "requests",
+      "python-multipart",
       "python-json-logger>=2.0.0",
       "azure-storage-blob>=12.19.0",
-      "prometheus-fastapi-instrumentator==7.0.0"
+      "prometheus-fastapi-instrumentator==7.0.0",
+      "pdfplumber>=0.10.0"
 ]
 
 [project.optional-dependencies]
