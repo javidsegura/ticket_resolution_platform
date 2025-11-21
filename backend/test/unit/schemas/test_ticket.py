@@ -76,14 +76,14 @@ class TestTicketResponse:
         assert response.id == 1
         assert response.intent_id == 5
 
-    def test_intent_id_required(self):
-        """Test intent_id is required in response"""
+    def test_intent_id_optional(self):
+        """Test intent_id is optional in response"""
         now = datetime.now()
-        with pytest.raises(ValidationError):
-            TicketResponse(
-                id=1, subject="Test", body="Body",
-                created_at=now, updated_at=now
-            )
+        response = TicketResponse(
+            id=1, subject="Test", body="Body",
+            created_at=now, updated_at=now
+        )
+        assert response.intent_id is None
 
 
 class TestCSVUploadResponse:
@@ -93,7 +93,13 @@ class TestCSVUploadResponse:
         """Test valid CSV upload response"""
         response = CSVUploadResponse(
             success=True,
-            file_info={"filename": "test.csv"},
+            file_info={
+                "filename": "test.csv",
+                "rows_processed": 50,
+                "rows_skipped": 0,
+                "tickets_extracted": 50,
+                "encoding": "utf-8"
+            },
             tickets_created=50
         )
         assert response.success is True

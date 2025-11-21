@@ -5,7 +5,7 @@ from sqlalchemy.future import select  # Important for async queries
 
 from ai_ticket_platform.core.clients.redis import initialize_redis_client
 from ai_ticket_platform.dependencies import get_db
-from ai_ticket_platform.database import User
+from ai_ticket_platform.database.generated_models import User
 
 # Redis
 async def test_redis_connection() -> bool:

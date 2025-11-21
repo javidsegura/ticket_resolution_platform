@@ -1,4 +1,0 @@
-﻿id,created_at,subject,body
-1,2024-01-15,Cannot reset password,User unable to reset via email
-2,2024-01-15,App crashes on startup,Mobile app crashes immediately
-3,2024-01-15,Login timeout issues,Session expires too quickly
