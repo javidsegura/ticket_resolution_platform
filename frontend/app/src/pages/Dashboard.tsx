@@ -534,8 +534,6 @@ export default function Dashboard() {
                   setTicketsExpandedModal(true)
                   // Reset modal filters when opening
                   setTicketModalSearch("")
-                  setTicketModalPriorityFilter("all")
-                  setTicketModalStatusFilter("all")
                 }}
                 className="flex items-center gap-1 h-7 text-xs"
                 title="Expand with filters"

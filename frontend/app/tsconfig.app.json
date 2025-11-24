@@ -30,5 +30,5 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["src", "src/components/forms/optionsField.tsx"]
+  "include": ["src", "src/components/forms/optionsField.tsx", "firebase.ts", "env.d.ts"]
 }
