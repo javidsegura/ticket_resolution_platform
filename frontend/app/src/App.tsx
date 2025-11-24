@@ -6,6 +6,7 @@ import ProtectedRoute from "./components/ProtectedRoute"
 import Landing from "./pages/Landing"
 import Dashboard from "./pages/Dashboard"
 import TicketDetail from "./pages/TicketDetail"
+import ClusterDetail from "./pages/ClusterDetail"
 import Login from "./pages/Login"
 import Signup from "./pages/Signup"
 
@@ -32,6 +33,14 @@ function App(){
           element={
             <ProtectedRoute>
               <TicketDetail />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/cluster/:id" 
+          element={
+            <ProtectedRoute>
+              <ClusterDetail />
             </ProtectedRoute>
           } 
         />
