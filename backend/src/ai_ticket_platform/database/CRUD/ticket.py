@@ -20,9 +20,8 @@ async def create_tickets(db: AsyncSession, tickets_data: List[dict]) -> List[Tic
     tickets = []
 
     for ticket_data in tickets_data:
-        # Build ticket params, excluding created_at and intent_id if None to allow database defaults
+        # Build ticket params - don't set id, let database auto-increment
         ticket_params = {
-            "id": str(uuid.uuid4()),
             "subject": ticket_data.get("subject"),
             "body": ticket_data.get("body"),
         }

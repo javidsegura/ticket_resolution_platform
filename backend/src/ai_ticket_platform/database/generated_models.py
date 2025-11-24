@@ -104,9 +104,9 @@ class Intent(Base):
 class Ticket(Base):
     __tablename__ = "tickets"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, index=True, name="ticket_id")
-    subject: Mapped[str] = mapped_column(String(500), nullable=False, name="title")
-    body: Mapped[str] = mapped_column(String(5000), nullable=False, name="content")
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
+    subject: Mapped[str] = mapped_column(String(500), nullable=False)
+    body: Mapped[str] = mapped_column(String(5000), nullable=False)
     intent_id: Mapped[int | None] = mapped_column(ForeignKey("intents.id"), nullable=True)
     status: Mapped[str] = mapped_column(String(20), nullable=False, server_default="UPLOADED")
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), nullable=False)
