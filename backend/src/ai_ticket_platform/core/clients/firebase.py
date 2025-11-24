@@ -19,6 +19,7 @@ def initialize_firebase():
 			)
 	else:
 		logger.info("Using Real Firebase Auth")
+
 		credentials_path = os.getenv("FIREBASE_CREDENTIALS_PATH")
 		if not credentials_path:
 			raise ValueError(
