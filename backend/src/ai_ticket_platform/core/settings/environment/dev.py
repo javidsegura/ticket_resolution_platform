@@ -42,15 +42,14 @@ class DevSettings(BaseSettings):
 
       def extract_all_variables(self):
             self._extract_database_variables()
-
             self._extract_storage_variables()
-
             self._extract_app_logic_variables()
-            #self._extract_slack_variables()
+            self._extract_slack_variables()
             self._extract_llm_variables()
             #self._extract_firebase_variables()
       def _extract_database_variables(self):
             self.REDIS_URL = os.getenv("REDIS_URL")
+            self.REDIS_MAX_CONNECTIONS = int(os.getenv("REDIS_MAX_CONNECTIONS", "10"))
             self.MYSQL_USER = os.getenv("MYSQL_USER")
             self.MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD")
             self.MYSQL_ASYNC_DRIVER = os.getenv("MYSQL_ASYNC_DRIVER")
@@ -71,6 +70,10 @@ class DevSettings(BaseSettings):
                   self.AZURE_STORAGE_ACCOUNT_KEY = os.getenv("AZURE_STORAGE_ACCOUNT_KEY")
             else:
                   raise ValueError(f"Unsupported CLOUD_PROVIDER: {self.CLOUD_PROVIDER}. Use 'aws' or 'azure'")
+
+      def _extract_slack_variables(self):
+            self.SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")
+            self.SLACK_CHANNEL_ID = os.getenv("SLACK_CHANNEL_ID")
 
       def _extract_llm_variables(self):
             self.OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")

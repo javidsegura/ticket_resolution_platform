@@ -31,11 +31,9 @@ class DeploymentSettings(BaseSettings):
 
       def extract_all_variables(self):
             self._extract_database_variables()
-
             self._extract_storage_variables()
-
             self._extract_app_logic_variables()
-            #self._extract_slack_variables()
+            self._extract_slack_variables()
             self._extract_llm_variables()
       def _extract_secret_manager_databaseb_credentials(self):
             from ai_ticket_platform.services.storage.secretsmanager import SecretsManager 
@@ -47,6 +45,7 @@ class DeploymentSettings(BaseSettings):
             self.MYSQL_PASSWORD = db_credentials["password"]
       def _extract_database_variables(self):
             self.REDIS_URL = os.getenv("REDIS_URL")
+            self.REDIS_MAX_CONNECTIONS = int(os.getenv("REDIS_MAX_CONNECTIONS", "10"))
             self.MYSQL_PORT = os.getenv("MYSQL_PORT")
             self.MYSQL_DATABASE = os.getenv("MYSQL_DATABASE")
             self.MYSQL_SYNC_DRIVER = os.getenv("MYSQL_SYNC_DRIVER")
@@ -69,6 +68,11 @@ class DeploymentSettings(BaseSettings):
       def _extract_aws_variables(self):
             self.S3_MAIN_BUCKET_NAME = os.getenv("S3_MAIN_BUCKET_NAME")
             self.AWS_MAIN_REGION = os.getenv("AWS_MAIN_REGION")
+
+      def _extract_slack_variables(self):
+            self.SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")
+            self.SLACK_CHANNEL_ID = os.getenv("SLACK_CHANNEL_ID")
+
       def _extract_llm_variables(self):
             self.OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
             self.OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")

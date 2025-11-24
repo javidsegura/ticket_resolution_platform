@@ -62,33 +62,38 @@ def parse_csv_file(file_path: str) -> Dict:
         with open(file_path, 'r', encoding=encoding) as csvfile:
             reader = csv.DictReader(csvfile)
             
-            # Validate required column exists
-            required_columns = ['subject', 'body']
+            # Validate required columns exist
+            # Accept either (subject, body) or (title, content) column names
             if reader.fieldnames is None:
                 raise ValueError("CSV file is empty or invalid")
 
-            missing_columns = [col for col in required_columns if col not in reader.fieldnames]
-            if missing_columns:
+            has_subject_body = 'subject' in reader.fieldnames and 'body' in reader.fieldnames
+            has_title_content = 'title' in reader.fieldnames and 'content' in reader.fieldnames
+
+            if not (has_subject_body or has_title_content):
                 raise ValueError(
-                    f"CSV must contain {required_columns} columns. "
-                    f"Missing: {missing_columns}. "
+                    f"CSV must contain either ['subject', 'body'] or ['title', 'content'] columns. "
                     f"Found columns: {reader.fieldnames}"
                 )
             
             for row_num, row in enumerate(reader, start=2):  # start=2 because row 1 is header
                 rows_processed += 1
-                
+
                 try:
-                    subject = row.get('subject', '').strip()
-                    body = row.get('body', '').strip()
-                    
+                    # Support both column naming conventions
+                    subject = row.get('subject') or row.get('title')
+                    body = row.get('body') or row.get('content')
+
+                    subject = (subject or '').strip()
+                    body = (body or '').strip()
+
                     # Skip rows with empty subject or body
                     if not subject or not body:
                         rows_skipped += 1
-                        reason = "empty subject" if not subject else "empty body"
+                        reason = "empty subject/title" if not subject else "empty body/content"
                         logger.debug(f"Skipping row {row_num}: {reason}")
                         continue
-                    
+
                     # Parse created_at if present, otherwise None to allow database default
                     created_at_val = None
                     if created_at_str := row.get('created_at'):
@@ -107,7 +112,7 @@ def parse_csv_file(file_path: str) -> Dict:
                         "created_at": created_at_val,
                         "body": body,
                     }
-                    
+
                     tickets.append(ticket)
                     
                 except Exception as e:

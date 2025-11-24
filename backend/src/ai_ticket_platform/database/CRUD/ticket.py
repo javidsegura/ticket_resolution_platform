@@ -1,4 +1,5 @@
 # database/CRUD/ticket.py
+import uuid
 from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -8,24 +9,27 @@ from ai_ticket_platform.database.generated_models import Ticket
 async def create_tickets(db: AsyncSession, tickets_data: List[dict]) -> List[Ticket]:
     """
     Bulk insert tickets from CSV data.
-    
+
     Args:
         db: Database session
         tickets_data: List of dicts with keys: subject, body, created_at
-        
+
     Returns:
         List of created Ticket objects
     """
     tickets = []
 
     for ticket_data in tickets_data:
-        # Build ticket params, excluding created_at if None to allow database default
+        # Build ticket params, excluding created_at and intent_id if None to allow database defaults
         ticket_params = {
+            "id": str(uuid.uuid4()),
             "subject": ticket_data.get("subject"),
             "body": ticket_data.get("body"),
         }
         if ticket_data.get("created_at") is not None:
             ticket_params["created_at"] = ticket_data.get("created_at")
+        if ticket_data.get("intent_id") is not None:
+            ticket_params["intent_id"] = ticket_data.get("intent_id")
 
         ticket = Ticket(**ticket_params)
         tickets.append(ticket)

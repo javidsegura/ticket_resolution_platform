@@ -26,7 +26,7 @@ help: ## Show this help message
 
 # 0) Set-up
 install: ## Install backend dependencies
-	python3.11 -m venv $(VENV)
+	python3 -m venv $(VENV)
 	$(VENV_ACTIVATE) && pip3 install -e ".[dev, tests]"
 	$(VENV_ACTIVATE) && alembic init migrations || echo "alembic init already started"
 
@@ -100,12 +100,45 @@ pytest-run:
 					--cov=ai_ticket_platform \
 					--cov-report=term-missing \
 					test/integration/endpoints/
-test-docker-compose-start: ## Stats docker compose for integration tests of endpoints
-	BACKEND_ENV_FILE=$(BACKEND_ENV_FILE_SYNCED_PATH) docker compose -f ../deployment/docker-compose.yml -f ../deployment/docker-compose.test.yml -p $(PROJECT_NAME) up --build 
+test-docker-compose-start: ## Start docker compose for integration tests (MySQL, Redis, Firebase)
+	@echo "$(YELLOW)Starting Docker containers for integration testing...$(RESET)"
+	BACKEND_ENV_FILE=$(BACKEND_ENV_FILE_SYNCED_PATH) docker compose -f ../deployment/docker-compose.yml -f ../deployment/docker-compose.test.yml -p $(PROJECT_NAME) up --build -d
+	@echo "$(BLUE)Waiting for services to be healthy...$(RESET)"
+	sleep 15
 
-test-docker-compose-stop: ## Stops docker compose for integration tests of endpoints
+test-docker-compose-stop: ## Stop docker compose for integration tests
+	@echo "$(YELLOW)Stopping Docker containers...$(RESET)"
 	BACKEND_ENV_FILE=$(BACKEND_ENV_FILE_SYNCED_PATH) docker compose -f ../deployment/docker-compose.yml -f ../deployment/docker-compose.test.yml -p $(PROJECT_NAME) down -v
 
+test-integration: ## Run all integration tests (CSV → Draft → Approval → Publish)
+	@echo "$(YELLOW)Running integration tests...$(RESET)"
+	$(VENV_ACTIVATE) && pytest -s -vv --cov=ai_ticket_platform --cov-report=term-missing tests/integration/
+
+test-integration-docker: ## Run integration tests with Docker (full E2E with MySQL, Redis, Firebase)
+	@echo "$(YELLOW)Starting Docker-based integration test suite...$(RESET)"
+	ENVIRONMENT=dev $(MAKE) test-docker-compose-start
+	@echo "$(BLUE)Running tests against Docker services...$(RESET)"
+	$(VENV_ACTIVATE) && ENVIRONMENT=dev pytest -s -vv --cov=ai_ticket_platform --cov-report=term-missing tests/integration/ || TEST_FAILED=1
+	@echo "$(YELLOW)Cleaning up Docker containers...$(RESET)"
+	ENVIRONMENT=dev $(MAKE) test-docker-compose-stop
+	@if [ "$$TEST_FAILED" = "1" ]; then echo "$(RED)Tests failed$(RESET)"; exit 1; fi
+	@echo "$(GREEN)All integration tests passed!$(RESET)"
+
+test-integration-csv: ## Run CSV→Draft pipeline tests
+	@echo "$(YELLOW)Running CSV→Draft pipeline tests...$(RESET)"
+	$(VENV_ACTIVATE) && pytest -s -vv tests/integration/test_csv_draft_pipeline.py
+
+test-integration-approval: ## Run Slack approval flow tests
+	@echo "$(YELLOW)Running Slack approval flow tests...$(RESET)"
+	$(VENV_ACTIVATE) && pytest -s -vv tests/integration/test_approval_flow.py
+
+test-integration-publish: ## Run publish→microsite flow tests
+	@echo "$(YELLOW)Running publish flow tests...$(RESET)"
+	$(VENV_ACTIVATE) && pytest -s -vv tests/integration/test_publish_flow.py
+
+test-integration-widget: ## Run JS widget rendering tests
+	@echo "$(YELLOW)Running widget tests...$(RESET)"
+	$(VENV_ACTIVATE) && pytest -s -vv tests/integration/test_js_widget.py
 
 # 6) Miscellaneous
 check_enviroment_variables:

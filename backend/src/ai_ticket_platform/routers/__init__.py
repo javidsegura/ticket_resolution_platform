@@ -3,5 +3,6 @@ from .slack import router as slack_router
 from .documents import router as documents_router
 from .tickets import router as tickets_router
 
-routers = [health_router, slack_router, tickets_router, documents_router]
+routers = [health_router, slack_router, documents_router, tickets_router]
+# widget router removed - requires PublishedArticle model not yet implemented
 
