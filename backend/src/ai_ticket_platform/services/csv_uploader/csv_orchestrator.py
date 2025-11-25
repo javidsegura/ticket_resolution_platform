@@ -12,28 +12,24 @@ logger = logging.getLogger(__name__)
 
 async def upload_csv_file(file: UploadFile, db: AsyncSession) -> dict:
     """
-    Orchestrate complete CSV upload workflow:
-    1. Save uploaded file temporarily
-    2. Parse CSV
-    3. Save tickets to database
-    4. Clean up temp file
-    5. Return results
+    Orchestrates the CSV upload workflow and returns a summary of processing results.
     
-    Args:
-        file: Uploaded file from FastAPI
-        db: Database session
-        
+    Parameters:
+        file (UploadFile): The uploaded CSV file to process.
+        db (AsyncSession): Database session used to persist parsed tickets.
+    
     Returns:
-        {
-            "success": True,
-            "file_info": {...},
-            "tickets_created": 150,
-            "errors": []
-        }
-        
+        dict: Summary of the upload containing:
+            - success (bool): True when processing completed without unhandled errors.
+            - file_info (dict): Metadata about the uploaded file and parse results.
+            - tickets_created (int): Number of tickets saved to the database.
+            - clustering (dict):
+                - clusters_created (int): Number of clusters created during clustering.
+                - total_tickets_clustered (int): Total tickets considered for clustering.
+            - errors (list): Any validation or parsing errors encountered.
+    
     Raises:
-        ValueError: If CSV is invalid
-        HTTPException: For other errors (caught by router)
+        ValueError: If the CSV content is invalid or fails validation during parsing.
     """
     
     tmp_path = None

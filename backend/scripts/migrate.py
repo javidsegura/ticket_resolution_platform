@@ -13,7 +13,11 @@ class Migrator():
         self._create_database()
         self._run_migrations()
     def _create_database(self):
-        """Create the database if it doesn't exist."""
+        """
+        Create the configured MySQL database if it does not already exist.
+        
+        Connects to MySQL using settings from self.app_settings and issues a CREATE DATABASE IF NOT EXISTS for the configured database name. On failure, prints an error message and exits the process with status 1.
+        """
         print(f"Creating database '{self.app_settings.MYSQL_DATABASE}' if not exists...")
 
         try:
@@ -42,7 +46,11 @@ class Migrator():
             sys.exit(1)
 
     def _run_migrations(self):
-        """Run Alembic migrations."""
+        """
+        Run Alembic migrations and display their output.
+        
+        Executes `alembic upgrade head` followed by `alembic current`, prints each command's stdout and stderr, and exits the process with status 1 if a migration command fails.
+        """
         print("Running Alembic migrations...")
         try:
             result = subprocess.run(["alembic", "upgrade", "head"], check=True, capture_output=True, text=True)

@@ -8,37 +8,31 @@ logger = logging.getLogger(__name__)
 
 def parse_csv_file(file_path: str) -> Dict:
     """
-    Parse CSV file
+    Parse a CSV file of tickets and return structured ticket records with parsing metadata.
     
-    Expected CSV columns: id, created_at, subject, body
+    Expects CSV to contain at least the columns `subject` and `body`. Rows with empty `subject` or `body` are skipped. If a `created_at` value is present it is parsed as an ISO-formatted date/time; rows with invalid `created_at` are skipped and an error entry is recorded. The function also detects the file encoding before reading.
     
-    Args:
-        file_path: Path to CSV file
-        
     Returns:
-        {
-            "success": True,
-            "file_info": {
-                "filename": "tickets.csv",
-                "rows_processed": 150,
-                "rows_skipped": 2,
-                "encoding": "utf-8"
-            },
-            "tickets": [
-  +                {
-+                    "subject": "Cannot reset password",
-+                    "source_row": 2,
-+                    "id": "123",
-+                    "created_at": "2024-01-01",
-+                    "body": "I cannot reset my password..."
-+                },
-            ],
-            "errors": []
-        }
-        
+        dict: A result dictionary with keys:
+            - `success` (bool): Always True on successful return.
+            - `file_info` (dict): Metadata including:
+                - `filename` (str): The input file name.
+                - `rows_processed` (int): Number of CSV data rows read.
+                - `rows_skipped` (int): Number of rows skipped due to validation (empty subject/body or invalid created_at).
+                - `tickets_extracted` (int): Number of tickets parsed and returned.
+                - `encoding` (str): Detected file encoding.
+            - `tickets` (list): List of ticket dicts. Each ticket contains:
+                - `subject` (str)
+                - `source_row` (int): Original CSV row number (1-based header + data rows).
+                - `id` (str|None)
+                - `created_at` (datetime|None)
+                - `body` (str)
+            - `errors` (list): List of error messages encountered while parsing rows.
+    
     Raises:
-        FileNotFoundError: If file doesn't exist
-        ValueError: If required columns (subject, body) are missing or no valid tickets found
+        FileNotFoundError: If the given file path does not exist.
+        ValueError: If required columns (`subject`, `body`) are missing or no valid tickets are found.
+        RuntimeError: If an unexpected error occurs while reading or parsing the CSV file.
     """
     
     file_path = Path(file_path)
@@ -171,5 +165,4 @@ def _detect_encoding(file_path: Path) -> str:
     # Default to utf-8 if all fail
     logger.warning("Could not detect encoding, defaulting to utf-8")
     return 'utf-8'
-
 

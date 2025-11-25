@@ -41,8 +41,9 @@ class TestCSVUploadSuccess:
     @pytest.mark.asyncio
     async def test_csv_upload_accepts_application_csv_content_type(self, async_client):
         """
-        Test: CSV file with application/csv content-type is accepted
-        Expected: 200 OK response with proper schema
+        Verify that uploading a CSV file with the `application/csv` content type is accepted and returns the expected response schema.
+        
+        Asserts that the HTTP status code is 200 and that the JSON response contains at least the `success` and `file_info` keys.
         """
         csv_content = b"subject,body\nBug,Description\nIssue,Another problem\nFeature,Something cool"
         response = await async_client.post(
@@ -58,8 +59,9 @@ class TestCSVUploadSuccess:
     @pytest.mark.asyncio
     async def test_csv_upload_response_has_correct_schema(self, async_client):
         """
-        Test: Successful CSV upload returns proper response schema
-        Expected: Response contains all required fields with correct structure
+        Verify that uploading a valid CSV returns a JSON response matching the expected schema.
+        
+        The response JSON must include top-level keys `success`, `file_info`, `tickets_created`, `clustering`, and `errors`. `file_info` must contain `filename`, `rows_processed`, `rows_skipped`, `tickets_extracted`, and `encoding`. `clustering` must contain `clusters_created` and `total_tickets_clustered`. The HTTP response Content-Type must be `application/json`.
         """
         csv_content = b"subject,body\nTest,Description\nAnother,More content here\nThird,Yet another ticket"
         response = await async_client.post(

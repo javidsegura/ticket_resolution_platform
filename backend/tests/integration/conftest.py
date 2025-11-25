@@ -14,8 +14,10 @@ from ai_ticket_platform.main import app
 @pytest_asyncio.fixture
 async def async_client():
     """
-    Provide an async HTTP client to the running backend server.
-    Uses ASGI transport for testing without real HTTP server.
+    Provide an HTTP client configured to send requests to the application via an ASGI transport for integration tests.
+    
+    Yields:
+        An `AsyncClient` configured with an `ASGITransport` using the application instance and a test base URL.
     """
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:

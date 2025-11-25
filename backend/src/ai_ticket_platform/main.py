@@ -32,9 +32,9 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
-    Context manager to handle application startup and shutdown events.
-    This is the recommended way to manage resources that need to be
-    available for the entire application lifecycle.
+    Manage application startup and shutdown resources for the FastAPI application.
+    
+    Initializes the application logger, loads application settings, creates a Redis client and a CacheManager backed by that Redis instance before the application starts, then yields control to run the app. After the application stops, performs shutdown logging.
     """
     #initialize_firebase()
     initialize_logger() 
@@ -75,4 +75,3 @@ for router in routers:
 	app.include_router(router, prefix="/api")
 
 Instrumentator().instrument(app).expose(app)
-

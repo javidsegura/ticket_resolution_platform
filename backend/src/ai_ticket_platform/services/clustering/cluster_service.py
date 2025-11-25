@@ -12,13 +12,13 @@ logger = logging.getLogger(__name__)
 
 def _compute_clustering_hash(ticket_texts: List[str]) -> str:
     """
-    Compute SHA256 hash of sorted ticket titles for deduplication.
-
-    Args:
-        ticket_texts: List of ticket subject strings
-
+    Compute a deterministic SHA256 hex digest for a list of ticket texts to detect duplicate batches.
+    
+    Parameters:
+        ticket_texts (List[str]): Ticket subject strings to include in the hash; order-insensitive.
+    
     Returns:
-        SHA256 hash hex string
+        str: Hexadecimal SHA256 digest of the JSON-encoded, sorted ticket texts.
     """
     sorted_texts = sorted(ticket_texts)
     combined = json.dumps(sorted_texts, sort_keys=True)
@@ -27,35 +27,32 @@ def _compute_clustering_hash(ticket_texts: List[str]) -> str:
 
 async def cluster_and_categorize_tickets(tickets: List[Dict],llm_client: LLMClient) -> Dict:
     """
-    Main entry point for ticket clustering.
-
-    Orchestrates the complete workflow:
-    1. Extract ticket texts from 'Ticket Subject' column
-    2. Call LLM clusterer
-    3. Transform results for storage
-    TODO: 4. Save to database
-
-    Args:
-        tickets: List of ticket dicts with 'Ticket Subject' field
-        llm_client: Initialized LLM client instance for making API calls
-
+    Cluster and categorize a batch of tickets into topic-based clusters.
+    
+    Parameters:
+        tickets (List[Dict]): List of ticket dictionaries. The function will extract a subject/title from the first available of 'subject', 'title', or 'Ticket Subject' for each ticket.
+        llm_client (LLMClient): Initialized LLM client used to perform clustering; if not provided or falsy, the function returns a result counting tickets with zero clusters.
+    
     Returns:
-        Dict with clustering results:
-        {
-            "total_tickets": 150,
-            "clusters_created": 7,
-            "clusters": [
-                {
-                    "topic_name": "Password Reset Issues",
-                    "product_category": "Account Management",
-                    "product_subcategory": "Authentication",
-                    "ticket_count": 35,
-                    "example_tickets": ["How to reset...", ...],
-                    "summary": "Users unable to reset passwords"
-                },
-                ...
-            ]
-        }
+        Dict: Clustering result with the following structure:
+            {
+                "total_tickets": int,
+                "clusters_created": int,
+                "clusters": [
+                    {
+                        "topic_name": str,
+                        "product_category": str,
+                        "product_subcategory": str,
+                        "ticket_count": int,
+                        "example_tickets": List[str],
+                        "summary": str
+                    },
+                    ...
+                ]
+            }
+    
+    Raises:
+        RuntimeError: If clustering fails due to an unexpected error.
     """
 
     # preprocess ticket data
@@ -115,13 +112,15 @@ async def cluster_and_categorize_tickets(tickets: List[Dict],llm_client: LLMClie
 
 def _extract_ticket_texts(tickets: List[Dict]) -> List[str]:
     """
-    Extract ticket subject/title field from ticket dictionaries.
-    Supports multiple field names: 'subject', 'title', 'Ticket Subject'
-
-    Args:
-        tickets: List of ticket dicts with subject/title field
-
-    Returns: List of ticket subject strings
+    Extracts subject/title strings from a list of ticket dictionaries.
+    
+    Attempts to read subject text from each ticket using the following keys (in order): 'subject', 'title', 'Ticket Subject'. Skips tickets with no present or non-empty subject after trimming whitespace.
+    
+    Parameters:
+        tickets (List[Dict]): List of ticket dictionaries to extract subjects from.
+    
+    Returns:
+        List[str]: Extracted subject strings in the same order as their source tickets (omitting tickets with no valid subject).
     """
     ticket_texts = []
 

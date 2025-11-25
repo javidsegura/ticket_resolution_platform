@@ -7,14 +7,18 @@ from ai_ticket_platform.database.generated_models import Ticket
 
 async def create_tickets(db: AsyncSession, tickets_data: List[dict]) -> List[Ticket]:
     """
-    Bulk insert tickets from CSV data.
-
-    Args:
-        db: Database session
-        tickets_data: List of dicts with keys: subject, body, created_at
-
+    Create Ticket objects from CSV-derived dictionaries and persist them in bulk.
+    
+    If a ticket dict includes `created_at`, that timestamp is set on the created Ticket; otherwise the database default timestamp is used.
+    
+    Parameters:
+        tickets_data (List[dict]): List of dictionaries with keys `subject`, `body`, and optional `created_at`.
+    
     Returns:
-        List of created Ticket objects
+        List[Ticket]: The created Ticket objects (not reloaded from the DB after commit).
+    
+    Raises:
+        RuntimeError: If committing the new tickets to the database fails.
     """
     tickets = []
 

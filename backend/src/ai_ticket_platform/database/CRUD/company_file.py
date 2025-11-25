@@ -36,7 +36,10 @@ async def get_all_company_files(db: AsyncSession, skip: int = 0, limit: int = 10
 
 async def delete_company_file(db: AsyncSession, file_id: int) -> bool:
 	"""
-	Delete a company file record by ID.
+	Delete the CompanyFile with the given ID from the database.
+	
+	Returns:
+	    True if a record matching `file_id` was found and deleted, `False` otherwise.
 	"""
 	file = await get_company_file_by_id(db, file_id)
 	if file:

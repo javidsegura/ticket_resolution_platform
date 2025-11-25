@@ -41,6 +41,11 @@ class DevSettings(BaseSettings):
             return base_vars
 
       def extract_all_variables(self):
+            """
+            Populate the DevSettings instance by running each environment-variable extractor.
+            
+            Calls the internal extraction helpers to read and assign configuration from environment variables: database, storage, application logic, Slack, and LLM settings (the Firebase extractor is present but commented out).
+            """
             self._extract_database_variables()
             self._extract_storage_variables()
             self._extract_app_logic_variables()
@@ -48,6 +53,20 @@ class DevSettings(BaseSettings):
             self._extract_llm_variables()
             #self._extract_firebase_variables()
       def _extract_database_variables(self):
+            """
+            Populate instance attributes for database and Redis configuration from environment variables.
+            
+            Sets the following attributes from their corresponding environment variables:
+            - REDIS_URL: Redis connection URL.
+            - REDIS_MAX_CONNECTIONS: Maximum Redis connections (defaults to 10 if unset).
+            - MYSQL_USER: MySQL username.
+            - MYSQL_PASSWORD: MySQL password.
+            - MYSQL_ASYNC_DRIVER: MySQL async driver identifier.
+            - MYSQL_PORT: MySQL port.
+            - MYSQL_DATABASE: MySQL database name.
+            - MYSQL_SYNC_DRIVER: MySQL sync driver identifier.
+            - MYSQL_HOST: MySQL host.
+            """
             self.REDIS_URL = os.getenv("REDIS_URL")
             self.REDIS_MAX_CONNECTIONS = int(os.getenv("REDIS_MAX_CONNECTIONS", "10"))
             self.MYSQL_USER = os.getenv("MYSQL_USER")
@@ -59,6 +78,16 @@ class DevSettings(BaseSettings):
             self.MYSQL_HOST = os.getenv("MYSQL_HOST")
 
       def _extract_storage_variables(self):
+            """
+            Populate storage-related settings from environment variables based on the selected cloud provider.
+            
+            Reads CLOUD_PROVIDER (default "aws") and sets corresponding attributes:
+            - For "aws": sets `S3_MAIN_BUCKET_NAME` and `AWS_MAIN_REGION`.
+            - For "azure": sets `AZURE_STORAGE_CONTAINER_NAME`, `AZURE_STORAGE_ACCOUNT_NAME`, and `AZURE_STORAGE_ACCOUNT_KEY`.
+            
+            Raises:
+                ValueError: If CLOUD_PROVIDER is not "aws" or "azure".
+            """
             self.CLOUD_PROVIDER = os.getenv("CLOUD_PROVIDER", "aws").lower()
             
             if self.CLOUD_PROVIDER == "aws":
@@ -72,10 +101,22 @@ class DevSettings(BaseSettings):
                   raise ValueError(f"Unsupported CLOUD_PROVIDER: {self.CLOUD_PROVIDER}. Use 'aws' or 'azure'")
 
       def _extract_slack_variables(self):
+            """
+            Populate the instance with Slack configuration values from environment variables.
+            
+            Sets the instance attributes:
+            - `SLACK_BOT_TOKEN`: value of the `SLACK_BOT_TOKEN` environment variable or `None` if unset.
+            - `SLACK_CHANNEL_ID`: value of the `SLACK_CHANNEL_ID` environment variable or `None` if unset.
+            """
             self.SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")
             self.SLACK_CHANNEL_ID = os.getenv("SLACK_CHANNEL_ID")
 
       def _extract_llm_variables(self):
+            """
+            Populate LLM-related settings from environment variables.
+            
+            Sets self.OPENAI_API_KEY from OPENAI_API_KEY (or None if unset) and sets self.OPENAI_MODEL from OPENAI_MODEL with a default of "gpt-4o".
+            """
             self.OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
             self.OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
       # def _extract_firebase_variables(self):

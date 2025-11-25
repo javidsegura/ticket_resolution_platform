@@ -51,8 +51,9 @@ class TestMVPE2E:
     @pytest.mark.asyncio
     async def test_csv_upload_invalid_file(self, async_client, tmp_path):
         """
-        Test: Non-CSV file is rejected
-        Expected: 400 error
+        Checks that uploading a non-CSV file to the CSV upload endpoint is rejected.
+        
+        Asserts the endpoint returns HTTP 400 and the response detail message references "CSV".
         """
         # Create a non-CSV file
         bad_file = tmp_path / "notcsv.txt"
@@ -71,8 +72,9 @@ class TestMVPE2E:
     @pytest.mark.asyncio
     async def test_health_check(self, async_client):
         """
-        Test: Health check endpoint responds
-        Expected: {"response": "pong"}
+        Verify the health check endpoint returns the expected pong response.
+        
+        Asserts that GET /api/health/ping responds with HTTP 200 and JSON {"response": "pong"}.
         """
         response = await async_client.get("/api/health/ping")
         assert response.status_code == 200
@@ -95,8 +97,9 @@ class TestCachingIntegration:
     @pytest.mark.asyncio
     async def test_caching_enabled(self, async_client):
         """
-        Test: Cache infrastructure is initialized
-        Expected: Cache manager loaded without errors
+        Verify the application's cache infrastructure initializes successfully.
+        
+        Performs a health-check request to /api/health/ping and asserts an HTTP 200 response, indicating the cache manager loaded without errors.
         """
         # Health check should work if cache is properly initialized
         response = await async_client.get("/api/health/ping")
@@ -132,8 +135,9 @@ class TestErrorHandling:
     @pytest.mark.asyncio
     async def test_malformed_csv_missing_columns(self, async_client, tmp_path):
         """
-        Test: CSV missing required columns is rejected
-        Expected: 400 error
+        Verify that uploading a CSV missing required ticket columns is rejected.
+        
+        Asserts the endpoint responds with HTTP 400 and the error detail mentions one of: "subject", "title", "body", or "content".
         """
         bad_csv = tmp_path / "bad.csv"
         bad_csv.write_text("name,email\nJohn,john@test.com\n")
@@ -183,8 +187,9 @@ class TestFileValidation:
     @pytest.mark.asyncio
     async def test_file_without_extension_rejected(self, async_client, tmp_path):
         """
-        Test: Files without .csv extension are rejected
-        Expected: 400 error
+        Verify that uploading a file without a `.csv` extension is rejected.
+        
+        Asserts the upload endpoint returns HTTP 400 and the response detail references "csv".
         """
         no_ext = tmp_path / "noextension"
         no_ext.write_text("subject,body\ntest,content\n")
@@ -201,8 +206,9 @@ class TestFileValidation:
     @pytest.mark.asyncio
     async def test_csv_with_wrong_content_type(self, async_client, tmp_path):
         """
-        Test: CSV with wrong content-type is rejected
-        Expected: 400 error
+        Verify that uploading a .csv file with an incorrect Content-Type header is rejected.
+        
+        Asserts the endpoint responds with HTTP 400 and that the response detail mentions "csv".
         """
         csv_file = tmp_path / "test.csv"
         csv_file.write_text("subject,body\ntest,content\n")
@@ -215,4 +221,3 @@ class TestFileValidation:
 
         assert response.status_code == 400
         assert "csv" in response.json()["detail"].lower()
-

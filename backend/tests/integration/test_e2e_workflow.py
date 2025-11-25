@@ -20,8 +20,9 @@ class TestCompleteCSVWorkflow:
     @pytest.mark.asyncio
     async def test_workflow_health_check_then_csv_upload(self, async_client):
         """
-        Test: Health check → CSV upload workflow
-        Expected: Both succeed in sequence
+        Execute a health ping followed by a CSV file upload and assert both operations succeed.
+        
+        Verifies that GET /api/health/ping returns status 200 with JSON {"response": "pong"}, then posts a CSV to /api/upload-csv and asserts the upload returns status 200.
         """
         # Step 1: Verify backend is healthy
         health_response = await async_client.get("/api/health/ping")
@@ -41,8 +42,9 @@ class TestCompleteCSVWorkflow:
     @pytest.mark.asyncio
     async def test_workflow_health_dependencies_then_csv_upload(self, async_client):
         """
-        Test: Check dependencies → CSV upload workflow
-        Expected: Both succeed in sequence
+        Verify the /api/health/dependencies endpoint reports a "services" field and that a CSV file can be uploaded successfully.
+        
+        Performs a GET to /api/health/dependencies and asserts status 200 and presence of "services" in the JSON, then POSTs a CSV to /api/upload-csv and asserts status 200.
         """
         # Step 1: Check health dependencies
         deps_response = await async_client.get("/api/health/dependencies")
@@ -84,8 +86,9 @@ class TestCompleteCSVWorkflow:
     @pytest.mark.asyncio
     async def test_workflow_csv_upload_and_slack_notification(self, async_client):
         """
-        Test: CSV upload → Slack notification workflow
-        Expected: Both succeed
+        Validate end-to-end workflow: upload a CSV file, then send a Slack notification.
+        
+        Uploads a CSV to /api/upload-csv and then posts a message to /api/slack/send-message. Asserts the CSV upload returns status 200 and the Slack request returns a status in [200, 400, 500].
         """
         # Step 1: Upload CSV
         csv_content = b"subject,body\nBug Report,System issue\nFeature Request,New capability\nFeedback,User comment"
@@ -109,8 +112,9 @@ class TestConcurrentWorkflows:
     @pytest.mark.asyncio
     async def test_concurrent_health_checks(self, async_client):
         """
-        Test: Multiple concurrent health checks
-        Expected: All succeed
+        Run ten concurrent health-check requests and verify each response is healthy.
+        
+        Verifies that all concurrent GET requests to /api/health/ping return HTTP 200 and JSON exactly equal to {"response": "pong"}.
         """
         tasks = [
             async_client.get("/api/health/ping")
@@ -124,8 +128,9 @@ class TestConcurrentWorkflows:
     @pytest.mark.asyncio
     async def test_concurrent_csv_uploads(self, async_client):
         """
-        Test: Multiple concurrent CSV uploads
-        Expected: All complete without crashes
+        Run three concurrent CSV upload requests and assert each response completes with an expected status.
+        
+        Performs three parallel POSTs to `/api/upload-csv` with distinct filenames and asserts that three responses are received and each has a status code in [200, 400, 422, 500].
         """
         csv_content = b"subject,body\nBug Report,System issue\nFeature Request,New capability\nFeedback,User comment"
 
@@ -147,8 +152,9 @@ class TestConcurrentWorkflows:
     @pytest.mark.asyncio
     async def test_concurrent_mixed_endpoints(self, async_client):
         """
-        Test: Concurrent requests to different endpoints
-        Expected: All complete without interference
+        Run concurrent requests across a mix of endpoints to verify they complete without interfering with each other.
+        
+        Issues concurrent requests to /api/health/ping, /api/health/dependencies, /api/upload-csv, /api/documents/upload, and /api/slack/send-message, then asserts that five responses are returned and each response status code is one of 200, 400, 422, or 500.
         """
         csv_content = b"subject,body\nBug Report,System issue\nFeature Request,New capability\nFeedback,User comment"
         pdf_content = b"%PDF-1.4\n%fake"
@@ -176,4 +182,3 @@ class TestConcurrentWorkflows:
         assert len(responses) == 5
         for response in responses:
             assert response.status_code in [200, 400, 422, 500]
-
