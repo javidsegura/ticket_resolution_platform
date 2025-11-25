@@ -22,21 +22,19 @@ class TestCSVParserValidation:
         assert result["tickets"][0]["body"] == "Cannot login"
 
     def test_parse_csv_with_title_content_columns(self, tmp_path):
-        """Test parsing CSV with title,content columns (legacy support)."""
+        """Test that CSV with title,content columns (legacy) fails."""
         csv_file = tmp_path / "test.csv"
         csv_file.write_text("title,content\nBug,Description here")
 
-        result = parse_csv_file(str(csv_file))
-
-        assert result["success"]
-        assert len(result["tickets"]) == 1
+        with pytest.raises(ValueError, match="must contain"):
+            parse_csv_file(str(csv_file))
 
     def test_parse_csv_missing_required_columns(self, tmp_path):
-        """Test that CSV without subject/body or title/content fails."""
+        """Test that CSV without subject/body columns fails."""
         csv_file = tmp_path / "test.csv"
         csv_file.write_text("name,value\nTest,Data")
 
-        with pytest.raises(ValueError, match="must contain either"):
+        with pytest.raises(ValueError, match="must contain"):
             parse_csv_file(str(csv_file))
 
     def test_parse_csv_file_not_found(self):

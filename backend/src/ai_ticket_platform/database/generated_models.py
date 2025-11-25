@@ -104,12 +104,12 @@ class Intent(Base):
 class Ticket(Base):
     __tablename__ = "tickets"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, index=True, name="ticket_id")
-    subject: Mapped[str] = mapped_column(String(500), nullable=False, name="title")
-    body: Mapped[str] = mapped_column(String(5000), nullable=False, name="content")
-    intent_id: Mapped[int | None] = mapped_column(ForeignKey("intents.id"), nullable=True)
-    status: Mapped[str] = mapped_column(String(20), nullable=False, server_default="UPLOADED")
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    subject: Mapped[str] = mapped_column(String(500), nullable=False)
+    body: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), nullable=False)
+    # Tickets start with intent_id=None when first created. After clustering is done, the orchestrator updates intent_id to correct value
+    intent_id: Mapped[int | None] = mapped_column(ForeignKey("intents.id", ondelete='SET NULL'), nullable=True)
     updated_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), onupdate=text('CURRENT_TIMESTAMP'))
 
-    intent = relationship("Intent", back_populates="source_tickets")
+    intent: Mapped["Intent | None"] = relationship("Intent", back_populates="source_tickets", passive_deletes=True)

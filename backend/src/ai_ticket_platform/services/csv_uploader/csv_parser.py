@@ -61,36 +61,31 @@ def parse_csv_file(file_path: str) -> Dict:
     try:
         with open(file_path, 'r', encoding=encoding) as csvfile:
             reader = csv.DictReader(csvfile)
-            
+
             # Validate required columns exist
-            # Accept either (subject, body) or (title, content) column names
+            required_columns = ['subject', 'body']
             if reader.fieldnames is None:
                 raise ValueError("CSV file is empty or invalid")
 
-            has_subject_body = 'subject' in reader.fieldnames and 'body' in reader.fieldnames
-            has_title_content = 'title' in reader.fieldnames and 'content' in reader.fieldnames
-
-            if not (has_subject_body or has_title_content):
+            missing_columns = [col for col in required_columns if col not in reader.fieldnames]
+            if missing_columns:
                 raise ValueError(
-                    f"CSV must contain either ['subject', 'body'] or ['title', 'content'] columns. "
+                    f"CSV must contain {required_columns} columns. "
+                    f"Missing: {missing_columns}. "
                     f"Found columns: {reader.fieldnames}"
                 )
-            
+
             for row_num, row in enumerate(reader, start=2):  # start=2 because row 1 is header
                 rows_processed += 1
 
                 try:
-                    # Support both column naming conventions
-                    subject = row.get('subject') or row.get('title')
-                    body = row.get('body') or row.get('content')
-
-                    subject = (subject or '').strip()
-                    body = (body or '').strip()
+                    subject = row.get('subject', '').strip()
+                    body = row.get('body', '').strip()
 
                     # Skip rows with empty subject or body
                     if not subject or not body:
                         rows_skipped += 1
-                        reason = "empty subject/title" if not subject else "empty body/content"
+                        reason = "empty subject" if not subject else "empty body"
                         logger.debug(f"Skipping row {row_num}: {reason}")
                         continue
 
