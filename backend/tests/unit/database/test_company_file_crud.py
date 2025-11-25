@@ -325,6 +325,7 @@ class TestDeleteCompanyFile:
 		"""Test deletion of non-existent company file."""
 		# Mock database session
 		mock_db = MagicMock(spec=AsyncSession)
+		mock_db.delete = MagicMock()
 
 		# Mock get_company_file_by_id to return None
 		with patch("ai_ticket_platform.database.CRUD.company_file.get_company_file_by_id") as mock_get:

@@ -32,7 +32,7 @@ class TestUploadCompanyDocuments:
 		}
 
 		with patch("ai_ticket_platform.routers.documents.initialize_llm_client") as mock_init_llm:
-			with patch("ai_ticket_platform.routers.documents.process_document") as mock_process:
+			with patch("ai_ticket_platform.routers.documents.process_document", new_callable=AsyncMock) as mock_process:
 				mock_init_llm.return_value = mock_llm_client
 				mock_process.return_value = process_result
 
@@ -70,7 +70,7 @@ class TestUploadCompanyDocuments:
 		]
 
 		with patch("ai_ticket_platform.routers.documents.initialize_llm_client") as mock_init_llm:
-			with patch("ai_ticket_platform.routers.documents.process_document") as mock_process:
+			with patch("ai_ticket_platform.routers.documents.process_document", new_callable=AsyncMock) as mock_process:
 				mock_init_llm.return_value = mock_llm_client
 				mock_process.side_effect = process_results
 
@@ -133,7 +133,7 @@ class TestUploadCompanyDocuments:
 		}
 
 		with patch("ai_ticket_platform.routers.documents.initialize_llm_client") as mock_init_llm:
-			with patch("ai_ticket_platform.routers.documents.process_document") as mock_process:
+			with patch("ai_ticket_platform.routers.documents.process_document", new_callable=AsyncMock) as mock_process:
 				mock_init_llm.return_value = mock_llm_client
 				mock_process.return_value = process_result
 
@@ -168,7 +168,7 @@ class TestUploadCompanyDocuments:
 		}
 
 		with patch("ai_ticket_platform.routers.documents.initialize_llm_client") as mock_init_llm:
-			with patch("ai_ticket_platform.routers.documents.process_document") as mock_process:
+			with patch("ai_ticket_platform.routers.documents.process_document", new_callable=AsyncMock) as mock_process:
 				mock_init_llm.return_value = mock_llm_client
 				mock_process.return_value = process_result
 
@@ -204,7 +204,7 @@ class TestUploadCompanyDocuments:
 		}
 
 		with patch("ai_ticket_platform.routers.documents.initialize_llm_client") as mock_init_llm:
-			with patch("ai_ticket_platform.routers.documents.process_document") as mock_process:
+			with patch("ai_ticket_platform.routers.documents.process_document", new_callable=AsyncMock) as mock_process:
 				mock_init_llm.return_value = mock_llm_client
 				mock_process.return_value = process_result
 
@@ -242,7 +242,7 @@ class TestUploadCompanyDocuments:
 		}
 
 		with patch("ai_ticket_platform.routers.documents.initialize_llm_client") as mock_init_llm:
-			with patch("ai_ticket_platform.routers.documents.process_document") as mock_process:
+			with patch("ai_ticket_platform.routers.documents.process_document", new_callable=AsyncMock) as mock_process:
 				mock_init_llm.return_value = mock_llm_client
 				mock_process.return_value = process_result
 
@@ -277,7 +277,7 @@ class TestUploadCompanyDocuments:
 		]
 
 		with patch("ai_ticket_platform.routers.documents.initialize_llm_client") as mock_init_llm:
-			with patch("ai_ticket_platform.routers.documents.process_document") as mock_process:
+			with patch("ai_ticket_platform.routers.documents.process_document", new_callable=AsyncMock) as mock_process:
 				mock_init_llm.return_value = mock_llm_client
 				mock_process.side_effect = process_results
 
@@ -339,7 +339,7 @@ class TestUploadCompanyDocuments:
 		]
 
 		with patch("ai_ticket_platform.routers.documents.initialize_llm_client") as mock_init_llm:
-			with patch("ai_ticket_platform.routers.documents.process_document") as mock_process:
+			with patch("ai_ticket_platform.routers.documents.process_document", new_callable=AsyncMock) as mock_process:
 				mock_init_llm.return_value = mock_llm_client
 				mock_process.side_effect = process_results
 
@@ -372,7 +372,7 @@ class TestUploadCompanyDocuments:
 		}
 
 		with patch("ai_ticket_platform.routers.documents.initialize_llm_client") as mock_init_llm:
-			with patch("ai_ticket_platform.routers.documents.process_document") as mock_process:
+			with patch("ai_ticket_platform.routers.documents.process_document", new_callable=AsyncMock) as mock_process:
 				mock_init_llm.return_value = mock_llm_client
 				mock_process.return_value = process_result
 

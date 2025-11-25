@@ -55,8 +55,8 @@ class TestUploadCSVFile:
         mock_tickets = [MagicMock(id=i) for i in range(1, 4)]
 
         with patch("ai_ticket_platform.services.csv_uploader.csv_orchestrator.parse_csv_file") as mock_parse:
-            with patch("ai_ticket_platform.services.csv_uploader.csv_orchestrator.cluster_tickets_with_cache") as mock_cluster:
-                with patch("ai_ticket_platform.services.csv_uploader.csv_orchestrator.save_tickets_to_db") as mock_save:
+            with patch("ai_ticket_platform.services.csv_uploader.csv_orchestrator.cluster_tickets_with_cache", new_callable=AsyncMock) as mock_cluster:
+                with patch("ai_ticket_platform.services.csv_uploader.csv_orchestrator.save_tickets_to_db", new_callable=AsyncMock) as mock_save:
                     with patch("ai_ticket_platform.services.csv_uploader.csv_orchestrator.tempfile.NamedTemporaryFile") as mock_temp:
                         mock_parse.return_value = mock_parse_result
                         mock_cluster.return_value = mock_clustering_result
@@ -146,8 +146,8 @@ class TestUploadCSVFile:
         mock_clustering_result = {"total_tickets": 1, "clusters_created": 0, "clusters": []}
 
         with patch("ai_ticket_platform.services.csv_uploader.csv_orchestrator.parse_csv_file") as mock_parse:
-            with patch("ai_ticket_platform.services.csv_uploader.csv_orchestrator.cluster_tickets_with_cache") as mock_cluster:
-                with patch("ai_ticket_platform.services.csv_uploader.csv_orchestrator.save_tickets_to_db") as mock_save:
+            with patch("ai_ticket_platform.services.csv_uploader.csv_orchestrator.cluster_tickets_with_cache", new_callable=AsyncMock) as mock_cluster:
+                with patch("ai_ticket_platform.services.csv_uploader.csv_orchestrator.save_tickets_to_db", new_callable=AsyncMock) as mock_save:
                     with patch("ai_ticket_platform.services.csv_uploader.csv_orchestrator.tempfile.NamedTemporaryFile") as mock_temp:
                         mock_parse.return_value = mock_parse_result
                         mock_cluster.return_value = mock_clustering_result
@@ -181,8 +181,8 @@ class TestUploadCSVFile:
         mock_tickets = [MagicMock(id=1)]
 
         with patch("ai_ticket_platform.services.csv_uploader.csv_orchestrator.parse_csv_file") as mock_parse:
-            with patch("ai_ticket_platform.services.csv_uploader.csv_orchestrator.cluster_tickets_with_cache") as mock_cluster:
-                with patch("ai_ticket_platform.services.csv_uploader.csv_orchestrator.save_tickets_to_db") as mock_save:
+            with patch("ai_ticket_platform.services.csv_uploader.csv_orchestrator.cluster_tickets_with_cache", new_callable=AsyncMock) as mock_cluster:
+                with patch("ai_ticket_platform.services.csv_uploader.csv_orchestrator.save_tickets_to_db", new_callable=AsyncMock) as mock_save:
                     with patch("ai_ticket_platform.services.csv_uploader.csv_orchestrator.tempfile.NamedTemporaryFile") as mock_temp:
                         with patch("ai_ticket_platform.services.csv_uploader.csv_orchestrator.os.unlink") as mock_unlink:
                             with patch("ai_ticket_platform.services.csv_uploader.csv_orchestrator.os.path.exists") as mock_exists:
@@ -248,8 +248,8 @@ class TestUploadCSVFile:
         mock_tickets = [MagicMock(id=1)]
 
         with patch("ai_ticket_platform.services.csv_uploader.csv_orchestrator.parse_csv_file") as mock_parse:
-            with patch("ai_ticket_platform.services.csv_uploader.csv_orchestrator.cluster_tickets_with_cache") as mock_cluster:
-                with patch("ai_ticket_platform.services.csv_uploader.csv_orchestrator.save_tickets_to_db") as mock_save:
+            with patch("ai_ticket_platform.services.csv_uploader.csv_orchestrator.cluster_tickets_with_cache", new_callable=AsyncMock) as mock_cluster:
+                with patch("ai_ticket_platform.services.csv_uploader.csv_orchestrator.save_tickets_to_db", new_callable=AsyncMock) as mock_save:
                     with patch("ai_ticket_platform.services.csv_uploader.csv_orchestrator.tempfile.NamedTemporaryFile") as mock_temp:
                         with patch("ai_ticket_platform.services.csv_uploader.csv_orchestrator.os.unlink") as mock_unlink:
                             with patch("ai_ticket_platform.services.csv_uploader.csv_orchestrator.os.path.exists") as mock_exists:

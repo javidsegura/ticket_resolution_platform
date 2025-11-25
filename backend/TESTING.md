@@ -28,7 +28,7 @@ This project includes comprehensive unit tests for three feature branches:
 
 ```bash
 # Navigate to backend directory
-cd /Users/alex/ticket_resolution_platform/backend
+cd backend
 
 # Run all feature branch tests
 python3 -m pytest tests/unit/ -v

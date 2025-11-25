@@ -1,9 +1,12 @@
 """Redis cache manager with core caching logic and helpers."""
 
 import json
+import logging
 from typing import Any, Awaitable, Callable, Optional
 
 from redis.asyncio import Redis
+
+logger = logging.getLogger(__name__)
 
 
 class CacheManager:
@@ -36,7 +39,7 @@ class CacheManager:
 			return json.loads(value)
 		except Exception as e:
 			# Log error but don't fail - cache misses should be recoverable
-			print(f"Cache get error for key {key}: {e}")
+			logger.warning(f"Cache get error for key {key}: {e}")
 			return None
 
 	async def set(self, key: str, value: dict[str, Any], ttl: int) -> bool:
@@ -58,7 +61,7 @@ class CacheManager:
 			return True
 		except Exception as e:
 			# Log error but don't fail - cache write failures shouldn't break app
-			print(f"Cache set error for key {key}: {e}")
+			logger.warning(f"Cache set error for key {key}: {e}")
 			return False
 
 	async def delete(self, key: str) -> bool:
@@ -78,7 +81,7 @@ class CacheManager:
 			return True
 		except Exception as e:
 			# Log error but don't fail
-			print(f"Cache delete error for key {key}: {e}")
+			logger.warning(f"Cache delete error for key {key}: {e}")
 			return False
 
 	async def get_or_fetch(
@@ -145,5 +148,5 @@ class CacheManager:
 		try:
 			return await self.redis.exists(key) > 0
 		except Exception as e:
-			print(f"Cache exists error for key {key}: {e}")
+			logger.warning(f"Cache exists error for key {key}: {e}")
 			return False

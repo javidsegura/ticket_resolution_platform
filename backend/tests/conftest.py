@@ -41,15 +41,7 @@ os.environ.setdefault("SLACK_CHANNEL_ID", "C123456789")
 TEST_DATABASE_URL = "mysql+aiomysql://root:rootpassword@localhost:3307/ai_ticket_platform"
 
 
-@pytest.fixture(scope="session")
-def event_loop():
-    """Create event loop for async tests"""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
-
-
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture(scope="session", loop_scope="session")
 async def setup_test_db():
     """
     Set up test database before running all tests.
@@ -71,7 +63,7 @@ async def setup_test_db():
         await engine.dispose()
 
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture(loop_scope="function")
 async def db_session(setup_test_db):
     """
     Provide a fresh database session for each test.
@@ -113,7 +105,7 @@ def test_settings():
 # FastAPI Test Client Setup
 # ============================================================================
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture(loop_scope="function")
 async def async_client(db_session, test_settings):
     """
     Provide an async test client for making requests to the app.
