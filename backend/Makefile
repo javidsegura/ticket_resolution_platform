@@ -104,7 +104,17 @@ test-docker-compose-start: ## Start docker compose for integration tests (MySQL,
 	@echo "$(YELLOW)Starting Docker containers for integration testing...$(RESET)"
 	BACKEND_ENV_FILE=$(BACKEND_ENV_FILE_SYNCED_PATH) docker compose -f ../deployment/docker-compose.yml -f ../deployment/docker-compose.test.yml -p $(PROJECT_NAME) up --build -d
 	@echo "$(BLUE)Waiting for services to be healthy...$(RESET)"
-	sleep 15
+	@for i in 1 2 3 4 5 6 7 8 9 10; do \
+		if docker inspect $$(docker compose -p $(PROJECT_NAME) ps -q db-migration 2>/dev/null) 2>/dev/null | grep -q '"Status": "exited"'; then \
+			echo "✅ Database migration completed"; \
+			break; \
+		fi; \
+		if [ $$i -eq 10 ]; then \
+			echo "⚠️  Database migration did not complete within timeout"; \
+		fi; \
+		echo "Waiting for services... ($$i/10)"; \
+		sleep 1; \
+	done
 
 test-docker-compose-stop: ## Stop docker compose for integration tests
 	@echo "$(YELLOW)Stopping Docker containers...$(RESET)"

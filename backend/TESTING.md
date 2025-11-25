@@ -303,7 +303,7 @@ python3 -m pytest tests/unit/ \
 ### Issue: "No module named 'ai_ticket_platform'"
 **Solution:** Make sure you're in the backend directory and have installed dependencies:
 ```bash
-cd /Users/alex/ticket_resolution_platform/backend
+cd backend
 pip install -e .
 ```
 

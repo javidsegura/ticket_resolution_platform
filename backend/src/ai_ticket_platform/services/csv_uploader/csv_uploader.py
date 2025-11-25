@@ -37,7 +37,7 @@ async def cluster_tickets_with_cache(tickets_data: List[dict]) -> Dict:
         logger.info(f"Clustering completed: {clustering_result.get('clusters_created', 0)} clusters created")
         return clustering_result
     except Exception as e:
-        logger.error(f"Error during clustering: {str(e)}")
+        logger.error(f"Error during clustering: {str(e)}", exc_info=True)
         raise RuntimeError(f"Failed to cluster tickets: {str(e)}") from e
 
 

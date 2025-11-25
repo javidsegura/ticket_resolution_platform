@@ -75,7 +75,11 @@ if elapsed2 > 0:
 print("\n" + "="*60)
 print("REDIS CACHE VERIFICATION")
 print("="*60)
-redis_container = os.getenv('REDIS_CONTAINER_NAME', 'ticket_resolution_platform-redis-1')
+redis_container = os.getenv('REDIS_CONTAINER_NAME')
+if not redis_container:
+    print("ERROR: REDIS_CONTAINER_NAME environment variable must be set.")
+    sys.exit(1)
+
 try:
     result = subprocess.run(
         ['docker', 'exec', redis_container, 'redis-cli', 'keys', 'clustering:batch:*'],
@@ -101,6 +105,10 @@ try:
             print(f"ERROR: Failed to parse cached value: {e}")
 except subprocess.TimeoutExpired:
     print(f"ERROR: Docker command timed out for container {redis_container}")
+except subprocess.CalledProcessError as e:
+    print(f"ERROR: Docker command failed for container {redis_container}: {e.stderr}")
+except FileNotFoundError:
+    print("ERROR: Docker command not found. Make sure Docker is installed and in PATH.")
 except Exception as e:
     print(f"ERROR: Failed to check Redis cache: {e}")
 

@@ -39,7 +39,7 @@ class CacheManager:
 			return json.loads(value)
 		except Exception as e:
 			# Log error but don't fail - cache misses should be recoverable
-			logger.warning(f"Cache get error for key {key}: {e}")
+			logger.warning(f"Cache get error for key {key}: {e}", exc_info=True)
 			return None
 
 	async def set(self, key: str, value: dict[str, Any], ttl: int) -> bool:
@@ -61,7 +61,7 @@ class CacheManager:
 			return True
 		except Exception as e:
 			# Log error but don't fail - cache write failures shouldn't break app
-			logger.warning(f"Cache set error for key {key}: {e}")
+			logger.warning(f"Cache set error for key {key}: {e}", exc_info=True)
 			return False
 
 	async def delete(self, key: str) -> bool:
@@ -81,7 +81,7 @@ class CacheManager:
 			return True
 		except Exception as e:
 			# Log error but don't fail
-			logger.warning(f"Cache delete error for key {key}: {e}")
+			logger.warning(f"Cache delete error for key {key}: {e}", exc_info=True)
 			return False
 
 	async def get_or_fetch(
@@ -148,5 +148,5 @@ class CacheManager:
 		try:
 			return await self.redis.exists(key) > 0
 		except Exception as e:
-			logger.warning(f"Cache exists error for key {key}: {e}")
+			logger.warning(f"Cache exists error for key {key}: {e}", exc_info=True)
 			return False
