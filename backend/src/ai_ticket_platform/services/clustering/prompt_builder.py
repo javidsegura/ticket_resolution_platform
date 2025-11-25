@@ -1,126 +1,154 @@
-from typing import List
+# services/clustering/prompt_builder.py
+from typing import List, Dict
+from ai_ticket_platform.database.generated_models import Ticket
 
 
-def build_clustering_prompt(ticket_texts: List[str]) -> str:
-    """
-    Build optimized prompt for clustering.
+def build_batch_clustering_prompt(tickets: List[Ticket], existing_intents: List[Dict]) -> str:
+	"""
+	Build prompt for batch clustering decision.
+	"""
+	# Format existing intents
+	if existing_intents:
+		intent_list = "\n".join([
+			f"ID: {intent['intent_id']} | "
+			f"{intent['category_l1_name']} > {intent['category_l2_name']} > {intent['category_l3_name']}"
+			for intent in existing_intents
+		])
+		intent_section = f"""
+EXISTING INTENTS:
+{intent_list}
 
-    Args:
-        ticket_texts: List of ticket text strings
+You can assign tickets to these existing intents ONLY if they match the specific issue very closely.
+Otherwise, create NEW highly specific intents with all 3 category levels.
+"""
+	else:
+		intent_section = """
+There are NO existing intents in the system yet.
+You MUST create NEW intents with all 3 category levels for each ticket.
+"""
 
-    Returns:
-        Formatted prompt string for LLM
-    """
+	# Format tickets
+	ticket_list = "\n".join([
+		f"[{i}] Subject: {ticket.subject}\n    Body: {ticket.body[:200]}{'...' if len(ticket.body) > 200 else ''}"
+		for i, ticket in enumerate(tickets)
+	])
 
-    # format tickets with indices
-    ticket_list = "\n".join([
-        f"{i}. {text}"
-        for i, text in enumerate(ticket_texts)
-    ])
+	prompt = f"""
+You are a support ticket categorization expert. Your task is to assign each ticket to an existing highly specific intent OR create new ones.
 
-    prompt = f"""
-                Analyze the following {len(ticket_texts)} support tickets and cluster them into GRANULAR, SPECIFIC groups based on a hierarchical Product->Category->Subcategory structure.
+{intent_section}
 
-                TICKETS:
-                {ticket_list}
+TICKETS TO CATEGORIZE:
+{ticket_list}
 
-                HIERARCHICAL CLASSIFICATION:
-                You MUST classify each cluster using this 3-level hierarchy:
+CLUSTERING GUIDELINES:
 
-                1. PRODUCT (Top Level) - The specific product, service, or feature area
-                   Examples: "Mobile App", "Web Dashboard", "Payment Gateway", "Email Service", "Shopping Cart", "User Account System"
+1. **Intents must be VERY SPECIFIC** - each intent represents ONE specific user question/issue
+   - Good: "Password Reset via Email", "Unable to Download Invoice PDF", "API Rate Limit Exceeded"
+   - Bad: "Password Issues", "Billing Problems", "API Issues"
 
-                2. CATEGORY (Middle Level) - The functional area within that product
-                   Examples: "Authentication", "Notifications", "Performance", "UI/UX", "Data Sync", "Checkout Flow"
+2. **3-Tier Category Structure**:
+   - Level 1 (Broad): Top-level product area (e.g., "Authentication", "Billing", "API Access")
+   - Level 2 (Medium): Functional subcategory (e.g., "Password Management", "Invoices", "Rate Limiting")
+   - Level 3 (Specific): Detailed issue type (e.g., "Email Reset", "PDF Download", "Quota Exceeded")
 
-                3. SUBCATEGORY (Bottom Level) - The specific issue type or feature
-                   Examples: "Password Reset", "Push Notifications", "Loading Speed", "Button Layout", "Cloud Backup", "Payment Processing"
+3. **Matching vs Creating**:
+   - MATCH: Only if ticket describes the EXACT SAME specific issue as an existing intent
+   - CREATE: If ticket is about a different specific issue, even if in same general area
+   - When in doubt, CREATE a new intent to maintain specificity
 
-                CLUSTERING INSTRUCTIONS:
-                1. Create SPECIFIC, NARROW clusters - avoid broad groupings
-                2. Each cluster should represent a very specific issue or topic
-                3. Split broad themes into multiple granular clusters based on the Product → Category → Subcategory hierarchy
-                4. Group tickets by their specific product/feature first, then by issue type
-                5. Each ticket belongs to exactly ONE cluster
-                6. Aim for 15-30 clusters for 100 tickets (more granular than before)
-                7. Each cluster should have a clear, specific topic name
+4. **Category Naming**:
+   - Use clear, concise names (2-4 words max per level)
+   - Be consistent with existing category names when possible
+   - New categories can reuse existing L1/L2 categories with a new L3
 
-                EXAMPLES OF GOOD CLUSTERING:
-                - Product: "Mobile App" | Category: "Authentication" | Subcategory: "Biometric Login" | Topic: "Face ID not working on iOS"
-                - Product: "Shopping Cart" | Category: "Checkout" | Subcategory: "Payment Methods" | Topic: "Cannot add PayPal as payment option"
-                - Product: "Email Service" | Category: "Delivery" | Subcategory: "Spam Filter" | Topic: "Legitimate emails going to spam"
+5. **Batch Processing**:
+   - Process all {len(tickets)} tickets in this batch
+   - If multiple tickets have the same specific issue, assign them to the SAME intent
+   - Return one decision per ticket, using the ticket index [0], [1], [2], etc.
 
-                EXAMPLES OF TOO BROAD (AVOID):
-                - Category: "Orders" | Subcategory: "Delivery" - TOO BROAD, split by specific products and delivery issues
-                - Category: "Technical Support" | Subcategory: "Bugs" - TOO VAGUE, specify the product and exact bug type
+DECISION REQUIRED FOR EACH TICKET:
+For each ticket, choose ONE option:
+- Option A: Assign to existing intent (provide intent_id)
+- Option B: Create new intent (provide all 3 category level names AND a descriptive intent_name)
 
-                IMPORTANT RULES:
-                - Every ticket must be assigned to exactly one cluster
-                - Use ticket indices (0, 1, 2, ...) to reference tickets
-                - Create descriptive topic names that clearly identify the specific issue
-                - The Product field should identify the actual product/service/feature being discussed
-                - Categories should be functional areas, not vague labels
-                - Subcategories should pinpoint the exact type of issue
-                - Prioritize granularity over simplicity - more specific clusters are better
-            """
+The intent_name should be a brief, specific phrase describing the core issue:
+- Good examples: "Login credentials rejected on mobile", "Payment declined - invalid card", "Password reset email not received"
+- Bad examples: "Login problem", "Payment issue", "Password problem"
 
-    return prompt
+Return decisions for ALL {len(tickets)} tickets.
+"""
+	return prompt
 
 
-def get_output_schema() -> dict:
-    """
-    Get the JSON schema for LLM structured output.
-    """
+def get_batch_clustering_schema() -> dict:
+	"""
+	Get the JSON schema for batch clustering output.
+	"""
+	return {
+		"type": "object",
+		"properties": {
+			"assignments": {
+				"type": "array",
+				"description": "List of clustering decisions, one per ticket",
+				"items": {
+					"type": "object",
+					"properties": {
+						"ticket_index": {
+							"type": "integer",
+							"description": "Index of the ticket in the batch (0, 1, 2, ...)"
+						},
+						"decision": {
+							"type": "string",
+							"enum": ["match_existing", "create_new"],
+							"description": "Whether to match existing intent or create new"
+						},
+						"intent_id": {
+							"type": "integer",
+							"description": "ID of existing intent (required if decision is match_existing)"
+						},
+						"category_l1_name": {
+							"type": "string",
+							"description": "Level 1 category name (required if creating new)"
+						},
+						"category_l2_name": {
+							"type": "string",
+							"description": "Level 2 category name (required if creating new)"
+						},
+						"category_l3_name": {
+							"type": "string",
+							"description": "Level 3 category name (required if creating new)"
+						},
+						"intent_name": {
+							"type": "string",
+							"description": "Descriptive name for the intent (required if creating new) - should be a specific phrase describing the core issue"
+						},
+						"confidence": {
+							"type": "number",
+							"description": "Confidence score 0-1",
+							"minimum": 0,
+							"maximum": 1
+						},
+						"reasoning": {
+							"type": "string",
+							"description": "Brief explanation of the decision"
+						}
+					},
+					"required": ["ticket_index", "decision", "intent_id", "category_l1_name", "category_l2_name", "category_l3_name", "intent_name", "confidence", "reasoning"],
+					"additionalProperties": False
+				}
+			}
+		},
+		"required": ["assignments"],
+		"additionalProperties": False
+	}
 
-    return {
-        "type": "object",
-        "properties": {
-            "clusters": {
-                "type": "array",
-                "description": "List of granular ticket clusters with hierarchical classification",
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "topic_name": {
-                            "type": "string",
-                            "description": "Clear, specific name for this cluster topic (e.g., 'Cannot reset password via email')"
-                        },
-                        "product": {
-                            "type": "string",
-                            "description": "The specific product, service, or feature area (e.g., 'Mobile App', 'Payment Gateway', 'Shopping Cart')"
-                        },
-                        "category": {
-                            "type": "string",
-                            "description": "Functional area within the product (e.g., 'Authentication', 'Checkout Flow', 'Notifications')"
-                        },
-                        "subcategory": {
-                            "type": "string",
-                            "description": "Specific issue type or feature (e.g., 'Password Reset', 'Payment Processing', 'Push Notifications')"
-                        },
-                        "ticket_indices": {
-                            "type": "array",
-                            "description": "Array of ticket indices (integers) belonging to this cluster",
-                            "items": {
-                                "type": "integer"
-                            }
-                        },
-                        "summary": {
-                            "type": "string",
-                            "description": "Brief summary of the specific issue in this cluster"
-                        }
-                    },
-                    "required": [
-                        "topic_name",
-                        "product",
-                        "category",
-                        "subcategory",
-                        "ticket_indices",
-                        "summary"
-                    ],
-                    "additionalProperties": False
-                }
-            }
-        },
-        "required": ["clusters"],
-        "additionalProperties": False
-    }
+
+def get_task_config() -> dict:
+	"""
+	Get the task configuration for LLM call.
+	"""
+	return {
+		"system_prompt": "You are an expert at categorizing support tickets into highly specific intents. Each intent should represent one specific user question or issue.",
+		"schema_name": "batch_clustering"
+	}
