@@ -1,0 +1,44 @@
+title,content
+Missing Content Field,
+Empty Title,Some content here
+Both Empty,
+Title with "Quotes" inside,"Content with ""escaped quotes"" and commas, here"
+Title with Newline in Content,"This content has
+a newline in the middle"
+Title with Tabs,"Content	with	tabs	inside"
+Title with Unicode Emoji,User reports bug with emoji 🚀 🐛 in database. Shows as question marks instead of emoji symbols.
+Title with Accents,"Café résumé naïve, special French characters displaying correctly"
+Title with Numbers,"Content with numbers: 12345 £€¥ and symbols @#$%^&*()"
+Title with Backslashes,"Content with backslashes \\ and forward slashes / and URLs"
+Really Long Title 1234567890 1234567890 1234567890 1234567890 1234567890 1234567890 1234567890 1234567890 1234567890,"Short content"
+Title,Very very very very very very very very very very very very very very very very very very very very very very very very very long content that goes on and on and on and exceeds reasonable limits and probably should be truncated by the system before storage to avoid issues with display and database constraints that might cause problems with the application
+Title with HTML Tags,"<script>alert('xss')</script> - This should be escaped not executed"
+Title with SQL Injection,"'; DROP TABLE users; -- This should not execute"
+Title with Multiple Commas,"Content, with, multiple, commas, that, might, confuse, parser"
+Title with Leading Spaces,"   Content with leading spaces that might cause parsing issues"
+Title with Trailing Spaces,"Content with trailing spaces that might cause parsing issues   "
+Title with Only Spaces,"   "
+Title with Control Characters,"Content with control characters  and tabs	here"
+Duplicate Title Number 1,First occurrence of duplicate
+Duplicate Title Number 1,Second occurrence of same title - should not overwrite first
+Duplicate Title Number 2,Duplicate content 1
+Duplicate Title Number 2,Duplicate content 2
+Title with Null Bytes,"Content with null\x00 bytes that might cause issues"
+Title with Very Long String,"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+Title with Leading Numbers,123 Content that starts with numbers
+Title with Only Numbers,999
+Content Longer Than Title,"x","This is a much longer content field that contains more detailed information about the issue described in the title which was kept very short"
+Title with Japanese Characters,日本語のタイトル - Japanese title with mixed content
+Title with Arabic Characters,عنوان باللغة العربية - Arabic title with mixed content
+Title with Russian Characters,Название на русском - Russian title with mixed content
+Title with Chinese Characters,中文标题 - Chinese title mixed with English
+Title with Korean Characters,한국어 제목 - Korean title with content
+Title with Greek Characters,Τίτλος στα ελληνικά - Greek title with content
+Title with Special Symbols,"!@#$%^&*()_+-=[]{}|;:',.<>?/"
+Title with Repeated Characters,aaaaaaaaaaaaaaaaaaaaa repeated a content
+Title with Mixed Case UPPER lower MiXeD,Content with MiXeD CaSe ThAt ShOuLd Be HaNdLeD
+Title with Trailing Punctuation!!!???;;;,Content here
+Title with Leading Punctuation...---___,Content after symbols
+Title with Spaces at Edges,"   Spaces inside quotes   "
+Title with Tab Separator,"	This has tab before"
+Title with Windows Line Ending,"Content with windows CRLF line ending styles"

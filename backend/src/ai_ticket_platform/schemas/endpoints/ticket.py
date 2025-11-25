@@ -46,9 +46,16 @@ class TicketListResponse(BaseModel):
     limit: int = Field(..., ge=1, description="Limit applied")
     tickets: list[TicketResponse] = Field(..., description="List of tickets")
 
+class ClusteringInfo(BaseModel):
+    """Schema for clustering results"""
+    clusters_created: int = Field(..., ge=0, description="Number of clusters created")
+    total_tickets_clustered: int = Field(..., ge=0, description="Total tickets processed in clustering")
+
+
 class CSVUploadResponse(BaseModel):
     """Schema for CSV upload response"""
     success: bool = Field(..., description="Whether upload succeeded")
     file_info: FileInfo = Field(..., description="File metadata including filename, rows processed, etc")
     tickets_created: int = Field(..., ge=0, description="Number of tickets created in DB")
+    clustering: ClusteringInfo = Field(..., description="Clustering results and cache info")
     errors: list[str] = Field(default_factory=list, description="Any parsing errors encountered")

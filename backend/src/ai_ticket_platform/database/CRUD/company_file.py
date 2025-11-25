@@ -40,7 +40,7 @@ async def delete_company_file(db: AsyncSession, file_id: int) -> bool:
 	"""
 	file = await get_company_file_by_id(db, file_id)
 	if file:
-		await db.delete(file)
+		db.delete(file)
 		await db.commit()
 		return True
 	return False

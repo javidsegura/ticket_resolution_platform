@@ -1,4 +1,12 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Load .env from root directory
+root_dir = Path(__file__).resolve().parent.parent.parent.parent
+env_file = root_dir / ".env"
+if env_file.exists():
+	load_dotenv(env_file)
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,11 +15,14 @@ from ai_ticket_platform.core.clients.firebase import initialize_firebase
 from ai_ticket_platform.core.logger.logger import initialize_logger
 import ai_ticket_platform.core.clients as clients
 import ai_ticket_platform.core.settings as settings
+from ai_ticket_platform.services.caching import CacheManager
 from ai_ticket_platform.routers import (
 	health_router,
     slack_router,
     documents_router,
+    tickets_router,
 )
+# Removed: drafts, publishing, widget routers - not needed with frontend's Article model
 import logging 
 from prometheus_fastapi_instrumentator import Instrumentator
 
@@ -32,6 +43,10 @@ async def lifespan(app: FastAPI):
     #clients.secrets_manager_client = clients.initialize_aws_secrets_manager_client()
     clients.redis = clients.initialize_redis_client()
 
+    # Initialize Redis client and cache manager
+    redis_instance = await clients.redis.get_client()
+    clients.cache_manager = CacheManager(redis_instance)
+
     yield
 
     # --- Shutdown ---
@@ -48,8 +63,13 @@ app.add_middleware(
 	allow_credentials=True,
 )
 
-# Update the routers section, keep health
-routers = [health_router, slack_router, documents_router]
+# Include routers - frontend + caching
+routers = [
+	health_router,
+	slack_router,
+	documents_router,
+	tickets_router
+]
 
 for router in routers:
 	app.include_router(router, prefix="/api")

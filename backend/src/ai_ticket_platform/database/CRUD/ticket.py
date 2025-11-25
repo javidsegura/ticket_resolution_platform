@@ -8,11 +8,11 @@ from ai_ticket_platform.database.generated_models import Ticket
 async def create_tickets(db: AsyncSession, tickets_data: List[dict]) -> List[Ticket]:
     """
     Bulk insert tickets from CSV data.
-    
+
     Args:
         db: Database session
         tickets_data: List of dicts with keys: subject, body, created_at
-        
+
     Returns:
         List of created Ticket objects
     """

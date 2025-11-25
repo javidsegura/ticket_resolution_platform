@@ -45,14 +45,19 @@ class Migrator():
         """Run Alembic migrations."""
         print("Running Alembic migrations...")
         try:
-            subprocess.run(["alembic", "upgrade", "head"], check=True)
+            result = subprocess.run(["alembic", "upgrade", "head"], check=True, capture_output=True, text=True)
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
             print("✅ Migrations completed")
-            
-            subprocess.run(["alembic", "current"], check=True)
+
+            result = subprocess.run(["alembic", "current"], check=True, capture_output=True, text=True)
+            print("Current migration:", result.stdout)
             print("✅ Current migration status shown")
-            
+
         except subprocess.CalledProcessError as e:
             print(f"❌ Migration failed: {e}")
+            print(f"STDOUT: {e.stdout}")
+            print(f"STDERR: {e.stderr}")
             sys.exit(1)
 
 if __name__ == "__main__":
