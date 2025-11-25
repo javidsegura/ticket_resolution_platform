@@ -1,16 +1,9 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
-from dotenv import load_dotenv
-
-# Load .env from root directory
-root_dir = Path(__file__).resolve().parent.parent.parent.parent
-env_file = root_dir / ".env"
-if env_file.exists():
-	load_dotenv(env_file)
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
- 
+from fastapi.staticfiles import StaticFiles
 from ai_ticket_platform.core.clients.firebase import initialize_firebase
 from ai_ticket_platform.core.logger.logger import initialize_logger
 import ai_ticket_platform.core.clients as clients
@@ -20,6 +13,7 @@ from ai_ticket_platform.routers import (
 	health_router,
     slack_router,
     documents_router,
+    external_router,
     tickets_router,
 )
 # Removed: drafts, publishing, widget routers - not needed with frontend's Article model
@@ -69,7 +63,11 @@ routers = [
 	slack_router,
 	documents_router,
 	tickets_router
-]
+, external_router]
+
+# Serve widget folder
+widget_dir = Path(__file__).parent / "widget"
+app.mount("/widget", StaticFiles(directory=str(widget_dir)), name="widget")
 
 for router in routers:
 	app.include_router(router, prefix="/api")

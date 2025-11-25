@@ -90,6 +90,10 @@ class Intent(Base):
     category_level_3_id: Mapped[int | None] = mapped_column(ForeignKey("categories.id"), nullable=True)
     area: Mapped[str | None] = mapped_column(String(255))
     is_processed: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("FALSE"))
+    variant_a_impressions: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    variant_b_impressions: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    variant_a_resolutions: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    variant_b_resolutions: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), nullable=False)
     updated_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), onupdate=text('CURRENT_TIMESTAMP'))
 

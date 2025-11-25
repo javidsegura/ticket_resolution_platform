@@ -10,6 +10,10 @@ class IntentBase(BaseModel):
     category_level_3_id: int | None = Field(None, ge=1)
     area: str | None = Field(None, min_length=1, max_length=255)
     is_processed: bool = False
+    variant_a_impressions: int = Field(0, ge=0)
+    variant_b_impressions: int = Field(0, ge=0)
+    variant_a_resolutions: int = Field(0, ge=0)
+    variant_b_resolutions: int = Field(0, ge=0)
 
     @field_validator('category_level_1_id', 'category_level_2_id', 'category_level_3_id', mode='after')
     @classmethod
@@ -55,6 +59,10 @@ class IntentUpdate(IntentBase):
     category_level_3_id: int | None = Field(None, ge=1)
     area: str | None = Field(None, min_length=1, max_length=255)
     is_processed: bool | None = None
+    variant_a_impressions: int | None = Field(None, ge=0)
+    variant_b_impressions: int | None = Field(None, ge=0)
+    variant_a_resolutions: int | None = Field(None, ge=0)
+    variant_b_resolutions: int | None = Field(None, ge=0)
 
 
 class IntentRead(IntentBase):
