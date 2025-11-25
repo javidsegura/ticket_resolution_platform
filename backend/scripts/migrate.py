@@ -2,11 +2,8 @@
 
 import subprocess
 import sys
-import logging
 import pymysql
 from ai_ticket_platform.core.settings import initialize_settings
-
-logger = logging.getLogger(__name__)
 
 class Migrator():
     def __init__(self) -> None:
@@ -17,15 +14,15 @@ class Migrator():
         self._run_migrations()
     def _create_database(self):
         """Create the database if it doesn't exist."""
-        logger.info(f"Creating database '{self.app_settings.MYSQL_DATABASE}' if not exists...")
+        print(f"Creating database '{self.app_settings.MYSQL_DATABASE}' if not exists...")
 
         try:
-            logger.info("Connecting to MySQL with the following settings:")
-            logger.info(f"  Host: {self.app_settings.MYSQL_HOST}")
-            logger.info(f"  Port: {self.app_settings.MYSQL_PORT}")
-            logger.info(f"  User: {self.app_settings.MYSQL_USER}")
-            logger.debug(f"  Password: {self.app_settings.MYSQL_PASSWORD}")
-            logger.info(f"  Database: {self.app_settings.MYSQL_DATABASE}")
+            print("Connecting to MySQL with the following settings:")
+            print(f"  Host: {self.app_settings.MYSQL_HOST}")
+            print(f"  Port: {self.app_settings.MYSQL_PORT}")
+            print(f"  User: {self.app_settings.MYSQL_USER}")
+            print(f"  Password: {self.app_settings.MYSQL_PASSWORD}")
+            print(f"  Database: {self.app_settings.MYSQL_DATABASE}")
             connection = pymysql.connect(
                 host=self.app_settings.MYSQL_HOST,
                 port=int(self.app_settings.MYSQL_PORT),
@@ -35,32 +32,32 @@ class Migrator():
 
             with connection.cursor() as cursor:
                 cursor.execute(f"CREATE DATABASE IF NOT EXISTS {self.app_settings.MYSQL_DATABASE}")
-                logger.info(f"✅ Database ready")
+                print(f"✅ Database ready")
 
             connection.commit()
             connection.close()
 
         except Exception as e:
-            logger.error(f"❌ Error creating database: {e}", exc_info=True)
+            print(f"❌ Error creating database: {e}")
             sys.exit(1)
 
     def _run_migrations(self):
         """Run Alembic migrations."""
-        logger.info("Running Alembic migrations...")
+        print("Running Alembic migrations...")
         try:
             result = subprocess.run(["alembic", "upgrade", "head"], check=True, capture_output=True, text=True)
-            logger.info("STDOUT:", result.stdout)
-            logger.info("STDERR:", result.stderr)
-            logger.info("✅ Migrations completed")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+            print("✅ Migrations completed")
 
             result = subprocess.run(["alembic", "current"], check=True, capture_output=True, text=True)
-            logger.info("Current migration:", result.stdout)
-            logger.info("✅ Current migration status shown")
+            print("Current migration:", result.stdout)
+            print("✅ Current migration status shown")
 
         except subprocess.CalledProcessError as e:
-            logger.error(f"❌ Migration failed: {e}", exc_info=True)
-            logger.error(f"STDOUT: {e.stdout}")
-            logger.error(f"STDERR: {e.stderr}")
+            print(f"❌ Migration failed: {e}")
+            print(f"STDOUT: {e.stdout}")
+            print(f"STDERR: {e.stderr}")
             sys.exit(1)
 
 if __name__ == "__main__":
