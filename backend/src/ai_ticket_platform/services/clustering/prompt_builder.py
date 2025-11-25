@@ -10,8 +10,8 @@ def build_batch_clustering_prompt(tickets: List[Ticket], existing_intents: List[
 	# Format existing intents
 	if existing_intents:
 		intent_list = "\n".join([
-			f"ID: {intent['intent_id']} | "
-			f"{intent['category_l1_name']} > {intent['category_l2_name']} > {intent['category_l3_name']}"
+			f"ID: {intent['intent_id']} | {intent['intent_name']} | "
+			f"({intent['category_l1_name']} > {intent['category_l2_name']} > {intent['category_l3_name']})"
 			for intent in existing_intents
 		])
 		intent_section = f"""

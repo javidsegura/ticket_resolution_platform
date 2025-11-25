@@ -1,10 +1,8 @@
 import pytest
 from unittest.mock import Mock, AsyncMock, patch
-from datetime import datetime, timezone, timedelta
 from ai_ticket_platform.services.clustering.intent_matcher import (
 	process_match_decision,
 	process_create_decision,
-	_is_newly_created,
 )
 
 
@@ -109,29 +107,23 @@ class TestIntentMatcher:
 			"ai_ticket_platform.services.clustering.intent_matcher.intent_crud.get_or_create_intent"
 		) as mock_get_intent, patch(
 			"ai_ticket_platform.services.clustering.intent_matcher.intent_crud.update_ticket_intent"
-		) as mock_update, patch(
-			"ai_ticket_platform.services.clustering.intent_matcher._is_newly_created"
-		) as mock_is_new:
+		) as mock_update:
 			# Mock newly created categories and intent
 			mock_l1 = Mock()
 			mock_l1.id = 1
-			mock_l1.created_at = datetime.now(timezone.utc)
 
 			mock_l2 = Mock()
 			mock_l2.id = 2
-			mock_l2.created_at = datetime.now(timezone.utc)
 
 			mock_l3 = Mock()
 			mock_l3.id = 3
-			mock_l3.created_at = datetime.now(timezone.utc)
 
 			mock_intent = Mock()
 			mock_intent.id = 100
-			mock_intent.created_at = datetime.now(timezone.utc)
 
-			mock_get_category.side_effect = [mock_l1, mock_l2, mock_l3]
-			mock_get_intent.return_value = mock_intent
-			mock_is_new.return_value = True
+			# Return tuples of (object, created) where created=True means newly created
+			mock_get_category.side_effect = [(mock_l1, True), (mock_l2, True), (mock_l3, True)]
+			mock_get_intent.return_value = (mock_intent, True)
 
 			result = await process_create_decision(mock_db, sample_ticket, llm_result, stats)
 
@@ -177,26 +169,3 @@ class TestIntentMatcher:
 
 		with pytest.raises(ValueError, match="didn't provide intent_name"):
 			await process_create_decision(mock_db, sample_ticket, llm_result, stats)
-
-	@pytest.mark.asyncio
-	async def test_is_newly_created_true(self):
-		"""Test _is_newly_created returns True for recent objects."""
-		obj = Mock()
-		obj.created_at = datetime.now(timezone.utc)
-
-		assert await _is_newly_created(obj) is True
-
-	@pytest.mark.asyncio
-	async def test_is_newly_created_false(self):
-		"""Test _is_newly_created returns False for old objects."""
-		obj = Mock()
-		obj.created_at = datetime.now(timezone.utc) - timedelta(seconds=10)
-
-		assert await _is_newly_created(obj) is False
-
-	@pytest.mark.asyncio
-	async def test_is_newly_created_no_attribute(self):
-		"""Test _is_newly_created returns False for objects without created_at."""
-		obj = Mock(spec=[])
-
-		assert await _is_newly_created(obj) is False

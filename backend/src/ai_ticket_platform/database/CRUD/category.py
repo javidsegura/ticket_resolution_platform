@@ -71,11 +71,14 @@ async def get_or_create_category(
 	name: str,
 	level: int,
 	parent_id: Optional[int] = None
-) -> Category:
+) -> tuple[Category, bool]:
 	"""
 	Get existing category or create if it doesn't exist.
 
 	This function handles potential race conditions by using database constraints.
+
+	Returns:
+		Tuple of (Category, created) where created is True if newly created
 	"""
 	try:
 		# Try to find existing category
@@ -94,11 +97,12 @@ async def get_or_create_category(
 
 		if category:
 			logger.debug(f"Found existing category: {name} (id={category.id})")
-			return category
+			return category, False
 
 		# Create new category if it doesn't exist
 		logger.debug(f"Creating new category: {name} (level {level})")
-		return await create_category(db, name, level, parent_id)
+		new_category = await create_category(db, name, level, parent_id)
+		return new_category, True
 	except Exception as e:
 		await db.rollback()
 		logger.error(f"Error in get_or_create_category for '{name}': {str(e)}")

@@ -34,12 +34,14 @@ class TestPromptBuilder:
 		return [
 			{
 				"intent_id": 1,
+				"intent_name": "Password reset via email",
 				"category_l1_name": "Authentication",
 				"category_l2_name": "Password",
 				"category_l3_name": "Reset",
 			},
 			{
 				"intent_id": 2,
+				"intent_name": "Unable to download invoice PDF",
 				"category_l1_name": "Billing",
 				"category_l2_name": "Invoices",
 				"category_l3_name": "Download",
@@ -52,10 +54,12 @@ class TestPromptBuilder:
 		"""Test prompt building with existing intents."""
 		prompt = build_batch_clustering_prompt(sample_tickets, sample_existing_intents)
 
-		# Verify existing intents are included
+		# Verify existing intents are included with intent_name
 		assert "ID: 1" in prompt
-		assert "Authentication > Password > Reset" in prompt
-		assert "Billing > Invoices > Download" in prompt
+		assert "Password reset via email" in prompt
+		assert "(Authentication > Password > Reset)" in prompt
+		assert "Unable to download invoice PDF" in prompt
+		assert "(Billing > Invoices > Download)" in prompt
 
 		# Verify tickets are formatted with indices
 		assert "[0]" in prompt

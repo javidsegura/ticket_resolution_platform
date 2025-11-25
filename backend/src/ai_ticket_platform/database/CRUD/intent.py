@@ -67,12 +67,15 @@ async def get_or_create_intent(
 	category_level_2_id: int,
 	category_level_3_id: int,
 	area: Optional[str] = None
-) -> Intent:
+) -> tuple[Intent, bool]:
 	"""
 	Get existing intent or create if it doesn't exist.
 
 	Matches based on category path, not name. If an intent exists with the same
 	category path but different name, returns the existing intent.
+
+	Returns:
+		Tuple of (Intent, created) where created is True if newly created
 	"""
 	try:
 		# Try to find existing intent by category path
@@ -85,11 +88,11 @@ async def get_or_create_intent(
 
 		if intent:
 			logger.debug(f"Found existing intent: {intent.name} (id={intent.id})")
-			return intent
+			return intent, False
 
 		# Create new intent if it doesn't exist
 		logger.debug(f"Creating new intent: {name}")
-		return await create_intent(
+		new_intent = await create_intent(
 			db,
 			name,
 			category_level_1_id,
@@ -97,6 +100,7 @@ async def get_or_create_intent(
 			category_level_3_id,
 			area
 		)
+		return new_intent, True
 	except Exception as e:
 		await db.rollback()
 		logger.error(f"Error in get_or_create_intent for '{name}': {str(e)}")

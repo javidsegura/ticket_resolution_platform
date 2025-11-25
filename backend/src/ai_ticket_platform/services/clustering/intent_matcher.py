@@ -1,7 +1,6 @@
 # services/clustering/intent_matcher.py
 from typing import Dict, List
 from sqlalchemy.ext.asyncio import AsyncSession
-from datetime import datetime, timezone, timedelta
 import logging
 
 from ai_ticket_platform.database.generated_models import Ticket
@@ -104,37 +103,31 @@ async def process_create_decision(
 		)
 
 	# Create or get Level 1 category
-	is_l1_new = False
-	category_l1 = await category_crud.get_or_create_category(
+	category_l1, is_l1_new = await category_crud.get_or_create_category(
 		db, name=cat_l1_name, level=1, parent_id=None
 	)
-	if await _is_newly_created(category_l1):
-		is_l1_new = True
+	if is_l1_new:
 		stats["categories_created"]["l1"] += 1
 		logger.info(f"Created new L1 category: {cat_l1_name}")
 
 	# Create or get Level 2 category
-	is_l2_new = False
-	category_l2 = await category_crud.get_or_create_category(
+	category_l2, is_l2_new = await category_crud.get_or_create_category(
 		db, name=cat_l2_name, level=2, parent_id=category_l1.id
 	)
-	if await _is_newly_created(category_l2):
-		is_l2_new = True
+	if is_l2_new:
 		stats["categories_created"]["l2"] += 1
 		logger.info(f"Created new L2 category: {cat_l2_name} under {cat_l1_name}")
 
 	# Create or get Level 3 category
-	is_l3_new = False
-	category_l3 = await category_crud.get_or_create_category(
+	category_l3, is_l3_new = await category_crud.get_or_create_category(
 		db, name=cat_l3_name, level=3, parent_id=category_l2.id
 	)
-	if await _is_newly_created(category_l3):
-		is_l3_new = True
+	if is_l3_new:
 		stats["categories_created"]["l3"] += 1
 		logger.info(f"Created new L3 category: {cat_l3_name} under {cat_l1_name} > {cat_l2_name}")
 
 	# Create intent using the semantic name from LLM
-	intent = await intent_crud.get_or_create_intent(
+	intent, is_new_intent = await intent_crud.get_or_create_intent(
 		db,
 		name=intent_name_from_llm,
 		category_level_1_id=category_l1.id,
@@ -143,8 +136,7 @@ async def process_create_decision(
 		area=None
 	)
 
-	# Check if intent was just created
-	is_new_intent = await _is_newly_created(intent)
+	# Update statistics based on whether intent was newly created
 	if is_new_intent:
 		stats["intents_created"] += 1
 		logger.info(f"Created new intent: {intent_name_from_llm}")
@@ -175,27 +167,3 @@ async def process_create_decision(
 		"confidence": llm_result.get("confidence"),
 		"reasoning": llm_result.get("reasoning")
 	}
-
-
-async def _is_newly_created(obj) -> bool:
-	"""
-	Check if an object was just created (within the last few seconds).
-
-	Args:
-		obj: Database object with created_at attribute
-
-	Returns:
-		True if object was just created
-	"""
-	if not hasattr(obj, 'created_at'):
-		return False
-
-	# Consider an object newly created if it was created in the last 5 seconds
-	now = datetime.now(timezone.utc)
-	created = obj.created_at
-
-	# Make created timezone-aware if it isn't
-	if created.tzinfo is None:
-		created = created.replace(tzinfo=timezone.utc)
-
-	return (now - created) < timedelta(seconds=5)
