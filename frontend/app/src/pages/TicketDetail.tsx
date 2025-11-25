@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Download, Check, Edit, X, ArrowLeft } from "lucide-react"
+import { Download, ArrowLeft } from "lucide-react"
 
 // Dummy data - will be replaced with API call
 const dummyTicketData: Record<string, {
@@ -120,64 +120,55 @@ const formatDate = (dateString: string) => {
   })
 }
 
-const getStatusBadge = (status: string) => {
-  const styles = {
-    pending: "bg-yellow-100 text-yellow-800",
-    resolved: "bg-green-100 text-green-800",
-    in_review: "bg-blue-100 text-blue-800",
-    declined: "bg-red-100 text-red-800"
-  }
-  return (
-    <span className={`px-3 py-1 rounded-full text-sm font-medium ${styles[status as keyof typeof styles] || "bg-gray-100 text-gray-800"}`}>
-      {status.replace("_", " ")}
-    </span>
-  )
+// Download handlers
+const handleDownloadMarkdown = (ticket: typeof dummyTicketData[string]) => {
+  const markdown = `# ${ticket.title}\n\n## Ticket Information\n- **ID:** ${ticket.id}\n- **Customer:** ${ticket.customer}\n- **Created:** ${formatDate(ticket.createdAt)}\n\n## Customer Question\n\n${ticket.question}`
+  
+  const blob = new Blob([markdown], { type: 'text/markdown' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `ticket-${ticket.id}.md`
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
-const getPriorityBadge = (priority: string) => {
-  const styles = {
-    high: "text-red-600 font-semibold",
-    medium: "text-yellow-600 font-semibold",
-    low: "text-green-600 font-semibold"
-  }
-  return (
-    <span className={`text-lg ${styles[priority as keyof typeof styles] || "text-gray-600"}`}>
-      {priority.toUpperCase()}
-    </span>
-  )
-}
-
-// Dummy API call handlers
-const handleApprove = (ticketId: string) => {
-  console.log("API Call: Approve ticket", ticketId)
-  // TODO: Replace with actual API call
-  alert(`Ticket ${ticketId} approved (dummy action)`)
-}
-
-const handleEdit = (ticketId: string) => {
-  console.log("API Call: Edit ticket", ticketId)
-  // TODO: Replace with actual API call
-  alert(`Edit ticket ${ticketId} (dummy action)`)
-}
-
-const handleDecline = (ticketId: string) => {
-  console.log("API Call: Decline/Delete ticket", ticketId)
-  // TODO: Replace with actual API call
-  if (confirm(`Are you sure you want to decline/delete ticket ${ticketId}?`)) {
-    alert(`Ticket ${ticketId} declined/deleted (dummy action)`)
-  }
-}
-
-const handleDownloadMarkdown = (ticketId: string) => {
-  console.log("Download as Markdown:", ticketId)
-  // TODO: Implement markdown download
-  alert("Markdown download (not implemented yet)")
-}
-
-const handleDownloadHTML = (ticketId: string) => {
-  console.log("Download as HTML:", ticketId)
-  // TODO: Implement HTML download
-  alert("HTML download (not implemented yet)")
+const handleDownloadHTML = (ticket: typeof dummyTicketData[string]) => {
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <title>${ticket.title}</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; line-height: 1.6; }
+    h1 { color: #333; border-bottom: 2px solid #333; padding-bottom: 10px; }
+    h2 { color: #555; margin-top: 30px; }
+    .info { background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0; }
+    .info p { margin: 5px 0; }
+    .question { margin: 20px 0; padding: 15px; background: #fafafa; border-left: 4px solid #4a90e2; }
+  </style>
+</head>
+<body>
+  <h1>${ticket.title}</h1>
+  <div class="info">
+    <h2>Ticket Information</h2>
+    <p><strong>ID:</strong> ${ticket.id}</p>
+    <p><strong>Customer:</strong> ${ticket.customer}</p>
+    <p><strong>Created:</strong> ${formatDate(ticket.createdAt)}</p>
+  </div>
+  <div class="question">
+    <h2>Customer Question</h2>
+    <p>${ticket.question}</p>
+  </div>
+</body>
+</html>`
+  
+  const blob = new Blob([html], { type: 'text/html' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `ticket-${ticket.id}.html`
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 export default function TicketDetail() {
@@ -226,14 +217,6 @@ export default function TicketDetail() {
               <p className="text-sm text-muted-foreground">Created</p>
               <p className="font-medium">{formatDate(ticket.createdAt)}</p>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Status</p>
-              <div className="mt-1">{getStatusBadge(ticket.status)}</div>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Priority</p>
-              <div className="mt-1">{getPriorityBadge(ticket.priority)}</div>
-            </div>
           </div>
         </CardContent>
       </Card>
@@ -253,72 +236,24 @@ export default function TicketDetail() {
         </CardContent>
       </Card>
 
-      {/* Resolution */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Resolution & Recommendations</CardTitle>
-          <CardDescription>AI-generated recommendations for website/FAQ improvements</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="prose max-w-none">
-            <p className="text-gray-700 leading-relaxed whitespace-pre-line">
-              {ticket.resolution}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Actions</CardTitle>
-          <CardDescription>Manage this ticket</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-4">
-            <Button 
-              onClick={() => handleApprove(ticket.id)}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              <Check className="mr-2 h-4 w-4" />
-              Approve
-            </Button>
-            <Button 
-              variant="outline"
-              onClick={() => handleEdit(ticket.id)}
-            >
-              <Edit className="mr-2 h-4 w-4" />
-              Edit
-            </Button>
-            <Button 
-              variant="destructive"
-              onClick={() => handleDecline(ticket.id)}
-            >
-              <X className="mr-2 h-4 w-4" />
-              Decline/Delete
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Downloads */}
       <Card>
         <CardHeader>
-          <CardTitle>Download Resolution</CardTitle>
-          <CardDescription>Export the resolution in different formats</CardDescription>
+          <CardTitle>Download Ticket</CardTitle>
+          <CardDescription>Export the ticket information and resolution in different formats</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-4">
             <Button 
               variant="outline"
-              onClick={() => handleDownloadMarkdown(ticket.id)}
+              onClick={() => handleDownloadMarkdown(ticket)}
             >
               <Download className="mr-2 h-4 w-4" />
               Download as Markdown
             </Button>
             <Button 
               variant="outline"
-              onClick={() => handleDownloadHTML(ticket.id)}
+              onClick={() => handleDownloadHTML(ticket)}
             >
               <Download className="mr-2 h-4 w-4" />
               Download as HTML
