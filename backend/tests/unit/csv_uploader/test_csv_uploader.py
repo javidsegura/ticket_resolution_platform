@@ -4,7 +4,7 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ai_ticket_platform.services.csv_uploader.csv_uploader import (
+from src.ai_ticket_platform.services.csv_uploader.csv_uploader import (
     cluster_tickets_with_cache,
     save_tickets_to_db
 )
