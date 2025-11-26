@@ -2,6 +2,7 @@
 from typing import List, Dict
 from sqlalchemy.ext.asyncio import AsyncSession
 import logging
+import asyncio
 
 from ai_ticket_platform.core.clients import LLMClient
 from ai_ticket_platform.database.generated_models import Ticket
@@ -36,9 +37,10 @@ async def process_batch(
 	schema = prompt_builder.get_batch_clustering_schema()
 	task_config = prompt_builder.get_task_config()
 
-	# Call LLM once for entire batch
+	# Call LLM once for entire batch (wrapped in thread pool to avoid blocking)
 	logger.debug(f"Calling LLM for batch of {len(tickets)} tickets")
-	llm_result = llm_client.call_llm_structured(
+	llm_result = await asyncio.to_thread(
+		llm_client.call_llm_structured,
 		prompt=prompt,
 		output_schema=schema,
 		task_config=task_config,
@@ -54,20 +56,24 @@ async def process_batch(
 
 	# Process each assignment
 	batch_assignments = []
+	processed_indices = set()
 	for llm_assignment in llm_assignments:
 		ticket_index = llm_assignment["ticket_index"]
 
 		if ticket_index < 0 or ticket_index >= len(tickets):
 			raise ValueError(f"Invalid ticket_index {ticket_index} from LLM")
 
+		if ticket_index in processed_indices:
+			raise ValueError(f"Duplicate ticket_index {ticket_index} from LLM")
+		processed_indices.add(ticket_index)
+
 		ticket = tickets[ticket_index]
 		decision = llm_assignment["decision"]
 
 		if decision == "match_existing":
 			assignment = await intent_matcher.process_match_decision(
-				db, ticket, llm_assignment, existing_intents
+				db, ticket, llm_assignment, existing_intents, stats
 			)
-			stats["intents_matched"] += 1
 
 		elif decision == "create_new":
 			assignment = await intent_matcher.process_create_decision(

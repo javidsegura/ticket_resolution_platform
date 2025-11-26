@@ -88,20 +88,79 @@ class TestClusterService:
 			"ai_ticket_platform.services.clustering.cluster_service.batch_processor.process_batch"
 		) as mock_process_batch:
 			mock_get_intents.return_value = []
-			mock_process_batch.return_value = [
-				{
-					"ticket_id": 1,
-					"decision": "create_new",
-					"is_new_intent": True,
-					"intent_id": 1,
-					"intent_name": "Test Intent",
-					"category_l1_id": 1,
-					"category_l1_name": "L1",
-					"category_l2_id": 2,
-					"category_l2_name": "L2",
-					"category_l3_id": 3,
-					"category_l3_name": "L3",
-				}
+			# Return correct number of assignments per batch (2, 2, 1)
+			mock_process_batch.side_effect = [
+				[
+					{
+						"ticket_id": 1,
+						"decision": "create_new",
+						"is_new_intent": True,
+						"intent_id": 1,
+						"intent_name": "Test Intent 1",
+						"category_l1_id": 1,
+						"category_l1_name": "L1",
+						"category_l2_id": 2,
+						"category_l2_name": "L2",
+						"category_l3_id": 3,
+						"category_l3_name": "L3",
+					},
+					{
+						"ticket_id": 2,
+						"decision": "create_new",
+						"is_new_intent": True,
+						"intent_id": 2,
+						"intent_name": "Test Intent 2",
+						"category_l1_id": 1,
+						"category_l1_name": "L1",
+						"category_l2_id": 2,
+						"category_l2_name": "L2",
+						"category_l3_id": 3,
+						"category_l3_name": "L3",
+					}
+				],
+				[
+					{
+						"ticket_id": 3,
+						"decision": "create_new",
+						"is_new_intent": True,
+						"intent_id": 3,
+						"intent_name": "Test Intent 3",
+						"category_l1_id": 1,
+						"category_l1_name": "L1",
+						"category_l2_id": 2,
+						"category_l2_name": "L2",
+						"category_l3_id": 3,
+						"category_l3_name": "L3",
+					},
+					{
+						"ticket_id": 4,
+						"decision": "create_new",
+						"is_new_intent": True,
+						"intent_id": 4,
+						"intent_name": "Test Intent 4",
+						"category_l1_id": 1,
+						"category_l1_name": "L1",
+						"category_l2_id": 2,
+						"category_l2_name": "L2",
+						"category_l3_id": 3,
+						"category_l3_name": "L3",
+					}
+				],
+				[
+					{
+						"ticket_id": 5,
+						"decision": "create_new",
+						"is_new_intent": True,
+						"intent_id": 5,
+						"intent_name": "Test Intent 5",
+						"category_l1_id": 1,
+						"category_l1_name": "L1",
+						"category_l2_id": 2,
+						"category_l2_name": "L2",
+						"category_l3_id": 3,
+						"category_l3_name": "L3",
+					}
+				]
 			]
 
 			# Process 5 tickets with batch_size=2 should result in 3 batches
@@ -110,7 +169,7 @@ class TestClusterService:
 			)
 
 			assert mock_process_batch.call_count == 3
-			assert result["total_tickets"] == 3  # 3 batches * 1 assignment each
+			assert result["total_tickets"] == 5
 
 	@pytest.mark.asyncio
 	async def test_cluster_tickets_updates_existing_intents(

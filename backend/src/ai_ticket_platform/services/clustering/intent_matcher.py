@@ -6,6 +6,7 @@ import logging
 from ai_ticket_platform.database.generated_models import Ticket
 from ai_ticket_platform.database.CRUD import intent as intent_crud
 from ai_ticket_platform.database.CRUD import category as category_crud
+from ai_ticket_platform.database.CRUD import ticket as ticket_crud
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +15,8 @@ async def process_match_decision(
 	db: AsyncSession,
 	ticket: Ticket,
 	llm_result: Dict,
-	existing_intents: List[Dict]
+	existing_intents: List[Dict],
+	stats: Dict
 ) -> Dict:
 	"""
 	Process LLM decision to match ticket to existing intent.
@@ -24,6 +26,7 @@ async def process_match_decision(
 		ticket: Original ticket object
 		llm_result: Structured output from LLM
 		existing_intents: List of existing intents
+		stats: Statistics dict to update
 
 	Returns:
 		Assignment dict with ticket and intent information
@@ -43,7 +46,10 @@ async def process_match_decision(
 		raise ValueError(f"LLM referenced non-existent intent ID: {intent_id}")
 
 	# Update ticket with intent
-	await intent_crud.update_ticket_intent(db, ticket.id, intent_id)
+	await ticket_crud.update_ticket_intent(db, ticket.id, intent_id)
+
+	# Update statistics
+	stats["intents_matched"] += 1
 
 	logger.info(
 		f"Ticket {ticket.id} matched to existing intent: "
@@ -145,7 +151,7 @@ async def process_create_decision(
 		logger.info(f"Matched to existing intent: {intent_name_from_llm}")
 
 	# Update ticket with intent
-	await intent_crud.update_ticket_intent(db, ticket.id, intent.id)
+	await ticket_crud.update_ticket_intent(db, ticket.id, intent.id)
 
 	return {
 		"ticket_id": ticket.id,

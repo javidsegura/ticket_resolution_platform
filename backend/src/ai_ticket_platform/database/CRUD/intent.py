@@ -1,7 +1,8 @@
 # database/CRUD/intent.py
-from typing import List, Optional, Tuple, Dict
+from typing import List, Optional, Dict
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 from ai_ticket_platform.database.generated_models import Intent, Ticket, Category
 import logging
@@ -77,61 +78,47 @@ async def get_or_create_intent(
 	Returns:
 		Tuple of (Intent, created) where created is True if newly created
 	"""
+	# Try to find existing intent by category path
+	intent = await get_intent_by_category_path(
+		db,
+		category_level_1_id,
+		category_level_2_id,
+		category_level_3_id
+	)
+
+	if intent:
+		logger.debug(f"Found existing intent: {intent.name} (id={intent.id})")
+		return intent, False
+
+	# Try to create new intent, handling race condition with IntegrityError
 	try:
-		# Try to find existing intent by category path
+		logger.debug(f"Creating new intent: {name}")
+		intent = Intent(
+			name=name,
+			category_level_1_id=category_level_1_id,
+			category_level_2_id=category_level_2_id,
+			category_level_3_id=category_level_3_id,
+			area=area,
+			is_processed=False
+		)
+		db.add(intent)
+		await db.commit()
+		await db.refresh(intent)
+		logger.info(f"Created intent: {name} (id={intent.id}, l1={category_level_1_id}, l2={category_level_2_id}, l3={category_level_3_id})")
+		return intent, True
+	except IntegrityError:
+		await db.rollback()
+		logger.warning(f"Race condition handled for intent. Fetching existing.")
 		intent = await get_intent_by_category_path(
 			db,
 			category_level_1_id,
 			category_level_2_id,
 			category_level_3_id
 		)
-
-		if intent:
-			logger.debug(f"Found existing intent: {intent.name} (id={intent.id})")
-			return intent, False
-
-		# Create new intent if it doesn't exist
-		logger.debug(f"Creating new intent: {name}")
-		new_intent = await create_intent(
-			db,
-			name,
-			category_level_1_id,
-			category_level_2_id,
-			category_level_3_id,
-			area
-		)
-		return new_intent, True
+		return intent, False
 	except Exception as e:
 		await db.rollback()
 		logger.error(f"Error in get_or_create_intent for '{name}': {str(e)}")
-		raise
-
-async def update_ticket_intent(
-	db: AsyncSession,
-	ticket_id: int,
-	intent_id: int
-) -> Ticket:
-	"""
-	Update a single ticket's intent_id.
-	"""
-	try:
-		result = await db.execute(
-			select(Ticket).where(Ticket.id == ticket_id)
-		)
-		ticket = result.scalar_one_or_none()
-
-		if not ticket:
-			raise ValueError(f"Ticket with id {ticket_id} not found")
-
-		ticket.intent_id = intent_id
-		await db.commit()
-		await db.refresh(ticket)
-
-		logger.info(f"Updated ticket {ticket_id} with intent {intent_id}")
-		return ticket
-	except Exception as e:
-		await db.rollback()
-		logger.error(f"Error updating ticket {ticket_id} intent: {str(e)}")
 		raise
 
 async def get_all_intents_with_categories(db: AsyncSession) -> List[Dict]:

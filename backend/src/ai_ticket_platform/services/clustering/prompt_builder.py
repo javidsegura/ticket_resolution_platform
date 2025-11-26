@@ -104,23 +104,23 @@ def get_batch_clustering_schema() -> dict:
 							"description": "Whether to match existing intent or create new"
 						},
 						"intent_id": {
-							"type": "integer",
+							"type": ["integer", "null"],
 							"description": "ID of existing intent (required if decision is match_existing)"
 						},
 						"category_l1_name": {
-							"type": "string",
+							"type": ["string", "null"],
 							"description": "Level 1 category name (required if creating new)"
 						},
 						"category_l2_name": {
-							"type": "string",
+							"type": ["string", "null"],
 							"description": "Level 2 category name (required if creating new)"
 						},
 						"category_l3_name": {
-							"type": "string",
+							"type": ["string", "null"],
 							"description": "Level 3 category name (required if creating new)"
 						},
 						"intent_name": {
-							"type": "string",
+							"type": ["string", "null"],
 							"description": "Descriptive name for the intent (required if creating new) - should be a specific phrase describing the core issue"
 						},
 						"confidence": {
@@ -134,8 +134,26 @@ def get_batch_clustering_schema() -> dict:
 							"description": "Brief explanation of the decision"
 						}
 					},
-					"required": ["ticket_index", "decision", "intent_id", "category_l1_name", "category_l2_name", "category_l3_name", "intent_name", "confidence", "reasoning"],
-					"additionalProperties": False
+					"required": ["ticket_index", "decision", "confidence", "reasoning"],
+					"additionalProperties": False,
+					"allOf": [
+						{
+							"if": {
+								"properties": {"decision": {"const": "match_existing"}}
+							},
+							"then": {
+								"required": ["intent_id"]
+							}
+						},
+						{
+							"if": {
+								"properties": {"decision": {"const": "create_new"}}
+							},
+							"then": {
+								"required": ["category_l1_name", "category_l2_name", "category_l3_name", "intent_name"]
+							}
+						}
+					]
 				}
 			}
 		},

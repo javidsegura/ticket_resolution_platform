@@ -1,6 +1,7 @@
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from ai_ticket_platform.database.generated_models import Category
 import logging
 
@@ -80,29 +81,35 @@ async def get_or_create_category(
 	Returns:
 		Tuple of (Category, created) where created is True if newly created
 	"""
+	# Simplified query construction - SQLAlchemy handles None correctly
+	query = select(Category).where(
+		Category.name == name,
+		Category.level == level,
+		Category.parent_id == parent_id
+	)
+
+	result = await db.execute(query)
+	category = result.scalar_one_or_none()
+
+	if category:
+		logger.debug(f"Found existing category: {name} (id={category.id})")
+		return category, False
+
+	# Try to create new category, handling race condition with IntegrityError
 	try:
-		# Try to find existing category
-		query = select(Category).where(
-			Category.name == name,
-			Category.level == level
-		)
-
-		if parent_id is not None:
-			query = query.where(Category.parent_id == parent_id)
-		else:
-			query = query.where(Category.parent_id.is_(None))
-
-		result = await db.execute(query)
-		category = result.scalar_one_or_none()
-
-		if category:
-			logger.debug(f"Found existing category: {name} (id={category.id})")
-			return category, False
-
-		# Create new category if it doesn't exist
 		logger.debug(f"Creating new category: {name} (level {level})")
-		new_category = await create_category(db, name, level, parent_id)
-		return new_category, True
+		category = Category(name=name, level=level, parent_id=parent_id)
+		db.add(category)
+		await db.commit()
+		await db.refresh(category)
+		logger.info(f"Created category: {name} (level {level}, parent_id {parent_id})")
+		return category, True
+	except IntegrityError:
+		await db.rollback()
+		logger.warning(f"Race condition handled for category '{name}'. Fetching existing.")
+		result = await db.execute(query)
+		category = result.scalar_one()
+		return category, False
 	except Exception as e:
 		await db.rollback()
 		logger.error(f"Error in get_or_create_category for '{name}': {str(e)}")

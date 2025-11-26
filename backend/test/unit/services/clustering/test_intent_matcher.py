@@ -50,11 +50,13 @@ class TestIntentMatcher:
 			"reasoning": "Exact match",
 		}
 
+		stats = {"intents_created": 0, "intents_matched": 0, "categories_created": {"l1": 0, "l2": 0, "l3": 0}}
+
 		with patch(
-			"ai_ticket_platform.services.clustering.intent_matcher.intent_crud.update_ticket_intent"
+			"ai_ticket_platform.services.clustering.intent_matcher.ticket_crud.update_ticket_intent"
 		) as mock_update:
 			result = await process_match_decision(
-				mock_db, sample_ticket, llm_result, sample_existing_intents
+				mock_db, sample_ticket, llm_result, sample_existing_intents, stats
 			)
 
 			mock_update.assert_called_once_with(mock_db, 1, 100)
@@ -62,6 +64,7 @@ class TestIntentMatcher:
 			assert result["intent_id"] == 100
 			assert result["is_new_intent"] is False
 			assert result["category_l1_name"] == "Auth"
+			assert stats["intents_matched"] == 1
 
 	@pytest.mark.asyncio
 	async def test_process_match_decision_missing_intent_id(
@@ -69,10 +72,11 @@ class TestIntentMatcher:
 	):
 		"""Test match decision with missing intent_id raises error."""
 		llm_result = {"intent_id": None}
+		stats = {"intents_created": 0, "intents_matched": 0, "categories_created": {"l1": 0, "l2": 0, "l3": 0}}
 
 		with pytest.raises(ValueError, match="didn't provide intent_id"):
 			await process_match_decision(
-				mock_db, sample_ticket, llm_result, sample_existing_intents
+				mock_db, sample_ticket, llm_result, sample_existing_intents, stats
 			)
 
 	@pytest.mark.asyncio
@@ -81,10 +85,11 @@ class TestIntentMatcher:
 	):
 		"""Test match decision with non-existent intent_id raises error."""
 		llm_result = {"intent_id": 999}
+		stats = {"intents_created": 0, "intents_matched": 0, "categories_created": {"l1": 0, "l2": 0, "l3": 0}}
 
 		with pytest.raises(ValueError, match="non-existent intent ID"):
 			await process_match_decision(
-				mock_db, sample_ticket, llm_result, sample_existing_intents
+				mock_db, sample_ticket, llm_result, sample_existing_intents, stats
 			)
 
 	@pytest.mark.asyncio
@@ -106,7 +111,7 @@ class TestIntentMatcher:
 		) as mock_get_category, patch(
 			"ai_ticket_platform.services.clustering.intent_matcher.intent_crud.get_or_create_intent"
 		) as mock_get_intent, patch(
-			"ai_ticket_platform.services.clustering.intent_matcher.intent_crud.update_ticket_intent"
+			"ai_ticket_platform.services.clustering.intent_matcher.ticket_crud.update_ticket_intent"
 		) as mock_update:
 			# Mock newly created categories and intent
 			mock_l1 = Mock()
@@ -128,6 +133,7 @@ class TestIntentMatcher:
 			result = await process_create_decision(mock_db, sample_ticket, llm_result, stats)
 
 			assert mock_get_category.call_count == 3
+			mock_update.assert_called_once_with(mock_db, 1, 100)
 			assert result["decision"] == "create_new"
 			assert result["intent_name"] == "New Intent Name"
 			assert result["is_new_intent"] is True
