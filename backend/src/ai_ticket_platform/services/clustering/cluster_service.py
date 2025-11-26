@@ -29,9 +29,6 @@ def _compute_clustering_hash(ticket_texts: List[str]) -> str:
     return hashlib.sha256(combined.encode()).hexdigest()
 
 
-async def cluster_and_categorize_tickets(tickets: List[Dict],llm_client: LLMClient) -> Dict:
-    """
-    Main entry point for ticket clustering.
 # Default batch size - can be adjusted based on LLM context limits
 DEFAULT_BATCH_SIZE = 10
 
@@ -78,6 +75,21 @@ async def cluster_tickets(
 		}
 
 	logger.info(f"Starting batch clustering for {len(tickets)} tickets (batch_size={batch_size})")
+
+	# Extract ticket texts for cache key computation
+	ticket_texts = [ticket.subject for ticket in tickets if hasattr(ticket, 'subject')]
+	clustering_hash = _compute_clustering_hash(ticket_texts)
+	cache_key = f"clustering:batch:{clustering_hash}"
+
+	# Try cache first (if initialized)
+	if clients.cache_manager:
+		cached_result = await clients.cache_manager.get(cache_key)
+		if cached_result:
+			logger.info(f"Cache HIT for clustering hash {clustering_hash[:8]}... - returning cached result")
+			return cached_result
+		logger.info(f"Cache MISS for clustering hash {clustering_hash[:8]}... - processing batches")
+	else:
+		logger.warning("Cache manager not initialized, skipping cache check")
 
 	# Get all existing intents with their category hierarchy
 	existing_intents = await intent_crud.get_all_intents_with_categories(db)
@@ -141,6 +153,13 @@ async def cluster_tickets(
 		"categories_created": stats["categories_created"],
 		"assignments": all_assignments
 	}
+
+	# Store in cache for configured TTL (if initialized)
+	if clients.cache_manager:
+		await clients.cache_manager.set(cache_key, result, CacheTTL.CLUSTERING_TTL)
+		logger.info(f"Cached clustering result with TTL {CacheTTL.CLUSTERING_TTL}s")
+	else:
+		logger.warning("Cache manager not initialized, skipping cache storage")
 
 	logger.info(
 		f"Batch clustering completed successfully:\n"
