@@ -17,9 +17,15 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+    volumes:
+        - ../backend/src:/app/src
+    env_file:
+      - ${BACKEND_ENV_FILE}
     environment:
+      - PYTHONPATH=/app/src  # Point to where ai_ticket_platform lives
       - REDIS_HOST=redis
-    command: rq worker --url redis://redis:6379/0 --with-scheduler
+      - ENVIRONMENT=${ENVIRONMENT}
+    command: rq worker --url redis://redis:6379/0
     deploy:
       replicas: 3
   # db-migration:

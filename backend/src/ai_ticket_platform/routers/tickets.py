@@ -1,11 +1,23 @@
+from ai_ticket_platform.services.queue_manager.tasks import batch_finalizer, process_ticket_stage1
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+import logging
 
 from ai_ticket_platform.dependencies.database import get_db
 from ai_ticket_platform.services.csv_uploader.csv_orchestrator import upload_csv_file
 from ai_ticket_platform.schemas.endpoints.ticket import CSVUploadResponse
 
-router = APIRouter(tags=["tickets"])
+router = APIRouter(prefix="/tickets")
+logger = logging.getLogger(__name__)
+
+from ai_ticket_platform.core.clients.redis import initialize_redis_client
+from rq import Queue
+from rq.job import Job, Retry
+
+
+redis_client_connector = initialize_redis_client()
+sync_redis_connection = redis_client_connector.get_sync_connection()
+queue = Queue("default", connection=sync_redis_connection)
 
 
 @router.post("/upload-csv", response_model=CSVUploadResponse)
@@ -46,3 +58,79 @@ async def upload_tickets_csv(file: UploadFile = File(...), db: AsyncSession = De
         raise HTTPException(status_code=500, detail=f"Error processing CSV: {str(e)}")
 
 # ADD HERE FAKE CSV INGESTION, THEN CALL QUEUE SERVICE TO ADD STUFF
+@router.post("/upload-csv-with-pub-sub-model")
+async def process_tickets_endpoint():
+    """Process mock tickets in two stages (no CSV needed for demo)"""
+    
+    logger.info("[PUB/SUB] Starting ticket processing pipeline")
+    
+    # Mock ticket data
+    mock_tickets = [
+        {
+            "id": "TICKET-001",
+            "description": "Bug in login form - users cannot authenticate",
+            "category": "technical",
+            "priority": "high"
+        },
+        {
+            "id": "TICKET-002",
+            "description": "Add dark mode feature to the dashboard",
+            "category": "enhancement",
+            "priority": "medium"
+        },
+        {
+            "id": "TICKET-003",
+            "description": "Question about billing cycle",
+            "category": "support",
+            "priority": "low"
+        },
+        {
+            "id": "TICKET-004",
+            "description": "Error 500 when uploading large files",
+            "category": "technical",
+            "priority": "critical"
+        },
+        {
+            "id": "TICKET-005",
+            "description": "Feature request: export data to Excel",
+            "category": "enhancement",
+            "priority": "medium"
+        }
+    ]
+    
+    try:
+        # Stage 1: Enqueue all tickets
+        stage1_jobs = []
+        for ticket in mock_tickets:
+            job = queue.enqueue(
+                process_ticket_stage1,
+                ticket,
+                retry=Retry(max=3, interval=[10, 30, 60]),
+                job_timeout='5m'
+            )
+            stage1_jobs.append(job.id)
+            logger.info(f"[PUB/SUB] Enqueued stage1 job {job.id} for ticket {ticket['id']}")
+        
+        logger.info(f"[PUB/SUB] Stage 1 complete: {len(stage1_jobs)} jobs enqueued")
+        
+        # Finalizer: waits for stage1, then triggers stage2
+        finalizer_job = queue.enqueue(
+            batch_finalizer,
+            stage1_jobs,
+            job_timeout='30m'
+        )
+        logger.info(f"[PUB/SUB] Enqueued batch_finalizer job {finalizer_job.id} to process {len(stage1_jobs)} stage1 jobs")
+        
+        logger.info("[PUB/SUB] Pipeline initialized successfully")
+        
+        return {
+            "message": f"Processing {len(mock_tickets)} tickets",
+            "total": len(mock_tickets),
+            "tickets": [t["id"] for t in mock_tickets]
+        }
+        
+    except Exception as e:
+        logger.error(f"[PUB/SUB] Pipeline initialization failed: {str(e)}")
+        raise HTTPException(500, str(e))
+
+
