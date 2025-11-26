@@ -4,9 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --host 0.0.0.0",
-    "staging": "dotenv -f env_config/synced/.env.staging -- vite build",
-    "build": "tsc -b tsconfig.build.json && dotenv -f env_config/synced/.env.production -- vite build",
+    "dev": "vite --host 0.0.0.0 --mode dev",
+    "staging": "vite build --mode staging",
+    "build": "tsc -b tsconfig.build.json && vite build --mode production",
     "lint": "eslint .",
     "preview": "vite preview"
   },

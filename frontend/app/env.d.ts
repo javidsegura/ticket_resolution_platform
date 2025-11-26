@@ -1,13 +1,15 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  readonly VITE_FIREBASE_API_KEY: string
-  readonly VITE_FIREBASE_AUTH_DOMAIN: string
-  readonly VITE_FIREBASE_PROJECT_ID: string
-  readonly VITE_FIREBASE_STORAGE_BUCKET: string
-  readonly VITE_FIREBASE_MESSAGING_SENDER_ID: string
-  readonly VITE_FIREBASE_APP_ID: string
-  readonly VITE_FIREBASE_MEASUREMENT_ID?: string
+  // Firebase config variables (from .env.dev - simple names as requested)
+  readonly apiKey: string
+  readonly authDomain: string
+  readonly projectId: string
+  readonly storageBucket: string
+  readonly messagingSenderId: string
+  readonly appId: string
+  readonly measurementId?: string
+  // Other variables
   readonly VITE_USE_MOCK_AUTH?: string
   readonly VITE_BASE_URL?: string
 }

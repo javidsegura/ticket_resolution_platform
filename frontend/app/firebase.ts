@@ -1,12 +1,14 @@
-/// <reference path="./env.d.ts" />
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, type Auth } from "firebase/auth";
 import { mockAuth, type MockUser } from "./src/services/mockAuth";
 
 const USE_MOCK_AUTH = import.meta.env.VITE_USE_MOCK_AUTH === 'true' || 
-                      !import.meta.env.VITE_FIREBASE_API_KEY;
+                      !import.meta.env.apiKey;
 
-let auth: any;
+// Union type for auth - either real Firebase Auth or mock auth
+type AuthType = Auth | typeof mockAuth;
+
+let auth: AuthType;
 let isMockMode = false;
 
 if (USE_MOCK_AUTH) {
@@ -14,13 +16,13 @@ if (USE_MOCK_AUTH) {
   auth = mockAuth;
 } else {
   const firebaseConfig = {
-    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-    appId: import.meta.env.VITE_FIREBASE_APP_ID,
-    measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
+    apiKey: import.meta.env.apiKey,
+    authDomain: import.meta.env.authDomain,
+    projectId: import.meta.env.projectId,
+    storageBucket: import.meta.env.storageBucket,
+    messagingSenderId: import.meta.env.messagingSenderId,
+    appId: import.meta.env.appId,
+    measurementId: import.meta.env.measurementId,
   };
 
   // Validate required config values - fall back to mock if invalid

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { auth, isMockMode } from "../../firebase"
@@ -36,9 +36,9 @@ export default function FirebaseTest() {
 
     // Test 3: Check environment variables
     const envCheck = {
-      apiKey: import.meta.env.VITE_FIREBASE_API_KEY ? "✓" : "✗",
-      authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN ? "✓" : "✗",
-      projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID ? "✓" : "✗",
+      apiKey: import.meta.env.apiKey ? "✓" : "✗",
+      authDomain: import.meta.env.authDomain ? "✓" : "✗",
+      projectId: import.meta.env.projectId ? "✓" : "✗",
     }
     addResult(
       "Environment Variables",
@@ -145,11 +145,11 @@ export default function FirebaseTest() {
                 isMockMode,
                 hasAuth: !!auth,
                 env: {
-                  VITE_FIREBASE_API_KEY: import.meta.env.VITE_FIREBASE_API_KEY 
-                    ? `${import.meta.env.VITE_FIREBASE_API_KEY.substring(0, 10)}...` 
+                  apiKey: import.meta.env.apiKey 
+                    ? `${import.meta.env.apiKey.substring(0, 10)}...` 
                     : "NOT SET",
-                  VITE_FIREBASE_AUTH_DOMAIN: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "NOT SET",
-                  VITE_FIREBASE_PROJECT_ID: import.meta.env.VITE_FIREBASE_PROJECT_ID || "NOT SET",
+                  authDomain: import.meta.env.authDomain || "NOT SET",
+                  projectId: import.meta.env.projectId || "NOT SET",
                   VITE_USE_MOCK_AUTH: import.meta.env.VITE_USE_MOCK_AUTH || "NOT SET",
                 }
               }, null, 2)}
