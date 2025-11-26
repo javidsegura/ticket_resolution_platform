@@ -22,31 +22,30 @@ services:
     env_file:
       - ${BACKEND_ENV_FILE}
     environment:
-      - PYTHONPATH=/app/src  # Point to where ai_ticket_platform lives
       - REDIS_HOST=redis
       - ENVIRONMENT=${ENVIRONMENT}
     command: rq worker --url redis://redis:6379/0
     deploy:
       replicas: 3
-  # db-migration:
-  #   image: javidsegura/ai_ticket_platform
-  #   command: ["python", "scripts/migrate.py"]
-  #   working_dir: /app
-  #   env_file:
-  #     - ${BACKEND_ENV_FILE}
-  #   restart: "no"
-  #   environment:
-  #     ENVIRONMENT: ${ENVIRONMENT}  
-  # nginx:
-  #   image: nginx:alpine
-  #   ports:
-  #     - "80:80"
-  #   healthcheck:
-  #     test: ["CMD", "curl", "-f", "http://localhost:80"]
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 3
-  #     start_period: 5s
+  db-migration:
+    image: javidsegura/ai_ticket_platform
+    command: ["python", "scripts/migrate.py"]
+    working_dir: /app
+    env_file:
+      - ${BACKEND_ENV_FILE}
+    restart: "no"
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT}  
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
 
 volumes:
   redis-data:
