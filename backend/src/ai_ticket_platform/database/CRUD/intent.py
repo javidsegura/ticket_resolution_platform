@@ -115,6 +115,11 @@ async def get_or_create_intent(
 			category_level_2_id,
 			category_level_3_id
 		)
+		if intent is None:
+			raise RuntimeError(
+				f"Intent not found for category path "
+				f"({category_level_1_id}, {category_level_2_id}, {category_level_3_id})"
+			)
 		return intent, False
 	except Exception as e:
 		await db.rollback()

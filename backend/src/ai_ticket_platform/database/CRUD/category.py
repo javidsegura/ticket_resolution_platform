@@ -108,7 +108,9 @@ async def get_or_create_category(
 		await db.rollback()
 		logger.warning(f"Race condition handled for category '{name}'. Fetching existing.")
 		result = await db.execute(query)
-		category = result.scalar_one()
+		category = result.scalar_one_or_none()
+		if category is None:
+			raise RuntimeError(f"Category '{name}' not found after IntegrityError - concurrent deletion?")
 		return category, False
 	except Exception as e:
 		await db.rollback()
