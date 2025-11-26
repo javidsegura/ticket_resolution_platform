@@ -90,20 +90,24 @@ class Intent(Base):
     category_level_3_id: Mapped[int | None] = mapped_column(ForeignKey("categories.id"), nullable=True)
     area: Mapped[str | None] = mapped_column(String(255))
     is_processed: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("FALSE"))
+    variant_a_impressions: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    variant_b_impressions: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    variant_a_resolutions: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    variant_b_resolutions: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), nullable=False)
     updated_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), onupdate=text('CURRENT_TIMESTAMP'))
 
     category_level_1 = relationship("Category", foreign_keys=[category_level_1_id], lazy="joined")
     category_level_2 = relationship("Category", foreign_keys=[category_level_2_id], lazy="joined")
     category_level_3 = relationship("Category", foreign_keys=[category_level_3_id], lazy="joined")
-    
+
     articles: Mapped[List["Article"]] = relationship("Article", back_populates="intent", cascade="all, delete-orphan")
     source_tickets: Mapped[List["Ticket"]] = relationship("Ticket", back_populates="intent")
 
 
 class Ticket(Base):
     __tablename__ = "tickets"
-    
+
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     subject: Mapped[str] = mapped_column(String(500), nullable=False)
     body: Mapped[str] = mapped_column(Text, nullable=False)
@@ -111,5 +115,5 @@ class Ticket(Base):
     # Tickets start with intent_id=None when first created. After clustering is done, the orchestrator updates intent_id to correct value
     intent_id: Mapped[int | None] = mapped_column(ForeignKey("intents.id", ondelete='SET NULL'), nullable=True)
     updated_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, server_default=text('CURRENT_TIMESTAMP'), onupdate=text('CURRENT_TIMESTAMP'))
-    
+
     intent: Mapped["Intent | None"] = relationship("Intent", back_populates="source_tickets", passive_deletes=True)

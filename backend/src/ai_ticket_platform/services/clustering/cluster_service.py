@@ -2,14 +2,36 @@
 from typing import List, Dict
 from sqlalchemy.ext.asyncio import AsyncSession
 import logging
+import hashlib
+import json
 
+import ai_ticket_platform.core.clients as clients
 from ai_ticket_platform.core.clients import LLMClient
 from ai_ticket_platform.database.generated_models import Ticket
 from ai_ticket_platform.database.CRUD import intent as intent_crud
 from ai_ticket_platform.services.clustering import batch_processor
+from ai_ticket_platform.services.caching.ttl_config import CacheTTL
 
 logger = logging.getLogger(__name__)
 
+def _compute_clustering_hash(ticket_texts: List[str]) -> str:
+    """
+    Compute SHA256 hash of sorted ticket titles for deduplication.
+
+    Args:
+        ticket_texts: List of ticket subject strings
+
+    Returns:
+        SHA256 hash hex string
+    """
+    sorted_texts = sorted(ticket_texts)
+    combined = json.dumps(sorted_texts, sort_keys=True)
+    return hashlib.sha256(combined.encode()).hexdigest()
+
+
+async def cluster_and_categorize_tickets(tickets: List[Dict],llm_client: LLMClient) -> Dict:
+    """
+    Main entry point for ticket clustering.
 # Default batch size - can be adjusted based on LLM context limits
 DEFAULT_BATCH_SIZE = 10
 

@@ -61,8 +61,8 @@ def parse_csv_file(file_path: str) -> Dict:
     try:
         with open(file_path, 'r', encoding=encoding) as csvfile:
             reader = csv.DictReader(csvfile)
-            
-            # Validate required column exists
+
+            # Validate required columns exist
             required_columns = ['subject', 'body']
             if reader.fieldnames is None:
                 raise ValueError("CSV file is empty or invalid")
@@ -74,21 +74,21 @@ def parse_csv_file(file_path: str) -> Dict:
                     f"Missing: {missing_columns}. "
                     f"Found columns: {reader.fieldnames}"
                 )
-            
+
             for row_num, row in enumerate(reader, start=2):  # start=2 because row 1 is header
                 rows_processed += 1
-                
+
                 try:
                     subject = row.get('subject', '').strip()
                     body = row.get('body', '').strip()
-                    
+
                     # Skip rows with empty subject or body
                     if not subject or not body:
                         rows_skipped += 1
                         reason = "empty subject" if not subject else "empty body"
                         logger.debug(f"Skipping row {row_num}: {reason}")
                         continue
-                    
+
                     # Parse created_at if present, otherwise None to allow database default
                     created_at_val = None
                     if created_at_str := row.get('created_at'):
@@ -107,7 +107,7 @@ def parse_csv_file(file_path: str) -> Dict:
                         "created_at": created_at_val,
                         "body": body,
                     }
-                    
+
                     tickets.append(ticket)
                     
                 except Exception as e:

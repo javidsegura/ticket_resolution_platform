@@ -15,7 +15,7 @@ class Migrator():
     def _create_database(self):
         """Create the database if it doesn't exist."""
         print(f"Creating database '{self.app_settings.MYSQL_DATABASE}' if not exists...")
-        
+
         try:
             print("Connecting to MySQL with the following settings:")
             print(f"  Host: {self.app_settings.MYSQL_HOST}")
@@ -29,14 +29,14 @@ class Migrator():
                 user=self.app_settings.MYSQL_USER,
                 password=self.app_settings.MYSQL_PASSWORD
             )
-            
+
             with connection.cursor() as cursor:
                 cursor.execute(f"CREATE DATABASE IF NOT EXISTS {self.app_settings.MYSQL_DATABASE}")
                 print(f"✅ Database ready")
-            
+
             connection.commit()
             connection.close()
-            
+
         except Exception as e:
             print(f"❌ Error creating database: {e}")
             sys.exit(1)
@@ -45,14 +45,19 @@ class Migrator():
         """Run Alembic migrations."""
         print("Running Alembic migrations...")
         try:
-            subprocess.run(["alembic", "upgrade", "head"], check=True)
+            result = subprocess.run(["alembic", "upgrade", "head"], check=True, capture_output=True, text=True)
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
             print("✅ Migrations completed")
-            
-            subprocess.run(["alembic", "current"], check=True)
+
+            result = subprocess.run(["alembic", "current"], check=True, capture_output=True, text=True)
+            print("Current migration:", result.stdout)
             print("✅ Current migration status shown")
-            
+
         except subprocess.CalledProcessError as e:
             print(f"❌ Migration failed: {e}")
+            print(f"STDOUT: {e.stdout}")
+            print(f"STDERR: {e.stderr}")
             sys.exit(1)
 
 if __name__ == "__main__":

@@ -1,0 +1,39 @@
+sequenceDiagram
+    autonumber
+
+    participant U as User (Customer Site)
+    participant W as ingest.js Widget (Customer Site)
+    participant B as Backend / API
+    participant P as Analytics Service (A/B)
+    participant FE as Frontend
+    participant S as SME
+
+    %% User starts support
+    U->>W: Clicks "Help" button\n(or trigger action)
+    W->>W: Check localStorage for variant
+    alt Variant not found
+        W->>W: Randomly assign A or B
+        W->>W: Save variant in localStorage
+    end
+
+    %% Widget logs support start
+    W->>B: POST /collect\n{ event: "support_start", variant }
+
+    %% User asks question
+    U->>W: User types question
+    W->>B: POST /collect\n{ event: "user_query", text, variant }
+
+    %% Backend stores raw events
+    B->>B: Store events in Azure
+
+    %% Processing Layer runs periodically
+    B->>P: Provide raw events
+    P->>P: Group by article & compute metrics by variant
+
+    S->>FE: Loads A/B Testing window
+
+    %% Analytics API exposed
+    FE->>B: GET /analytics/experiments/{id}
+    B->>FE: Return { A, B, lift, winner }
+
+    FE->>S: Display “This article solved issue 14% more often”

@@ -45,3 +45,4 @@ src/database/migrations/versions/*__pycache__/
 .vscode/
 .idea/
 
+env_config/synced/.env.dev

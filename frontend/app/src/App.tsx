@@ -6,8 +6,10 @@ import ProtectedRoute from "./components/ProtectedRoute"
 import Landing from "./pages/Landing"
 import Dashboard from "./pages/Dashboard"
 import TicketDetail from "./pages/TicketDetail"
+import ClusterDetail from "./pages/ClusterDetail"
 import Login from "./pages/Login"
 import Signup from "./pages/Signup"
+import FirebaseTest from "./pages/FirebaseTest"
 
 function App(){
   return (
@@ -16,6 +18,7 @@ function App(){
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
+      <Route path="/firebase-test" element={<FirebaseTest />} />
       
       {/* Protected routes with layout */}
       <Route element={<AppLayout />}>
@@ -32,6 +35,14 @@ function App(){
           element={
             <ProtectedRoute>
               <TicketDetail />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/cluster/:id" 
+          element={
+            <ProtectedRoute>
+              <ClusterDetail />
             </ProtectedRoute>
           } 
         />

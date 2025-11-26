@@ -1,17 +1,13 @@
-# DOCS: write about waiting and race conditions with -d 
-# DOCS: write about firebase emulator
-
-
 services:
   database:
     image: mysql:8.0
     tmpfs:
       - /var/lib/mysql
-    ports: 
+    ports:
       - "3307:3306"
     environment:
       MYSQL_ROOT_PASSWORD: "rootpassword"
-      MYSQL_DATABASE: "url_shortener"
+      MYSQL_DATABASE: "ai_ticket_platform"
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -P 3306 -uroot -p\"$${MYSQL_ROOT_PASSWORD}\" --silent"]
       interval: 5s
@@ -23,14 +19,20 @@ services:
          context: ../backend
          dockerfile: Dockerfile
       image: db-migration:test
+      command: python scripts/migrate.py
+      env_file:
+        - ${BACKEND_ENV_FILE}
+      environment:
+        ENVIRONMENT: ${ENVIRONMENT}
+        MYSQL_HOST: database
       depends_on:
         database:
           condition: service_healthy
   firebase-emulator:
     image: evolutecx/firebase-emulator:latest
     ports:
-      - 14000:4000 #Emulator UI
-      - 19099:9099 #Firebase Auth
+      - 14000:4000
+      - 19099:9099
     environment:
       - FB_PROJECT_ID=url-shortener-abadb
   nginx:

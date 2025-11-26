@@ -1,30 +1,51 @@
 // Auth utility functions that work with both mock and real Firebase
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut as firebaseSignOut } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut as firebaseSignOut, type Auth } from 'firebase/auth';
 import { auth, isMockMode, type MockUser } from '../../firebase';
+import { mockAuth } from '../services/mockAuth';
+
+// Type guard to check if auth is Firebase Auth (not mock)
+const isFirebaseAuth = (authInstance: typeof auth): authInstance is Auth => {
+  return authInstance !== mockAuth;
+};
 
 export const signIn = async (email: string, password: string) => {
   if (isMockMode) {
-    return await auth.signInWithEmailAndPassword(email, password);
+    // TypeScript knows this is mockAuth here
+    return await mockAuth.signInWithEmailAndPassword(email, password);
   } else {
-    const userCredential = await signInWithEmailAndPassword(auth as any, email, password);
-    return userCredential.user;
+    // Type guard ensures this is Firebase Auth
+    if (isFirebaseAuth(auth)) {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      return userCredential.user;
+    }
+    throw new Error('Invalid auth instance');
   }
 };
 
 export const signUp = async (email: string, password: string) => {
   if (isMockMode) {
-    return await auth.createUserWithEmailAndPassword(email, password);
+    // TypeScript knows this is mockAuth here
+    return await mockAuth.createUserWithEmailAndPassword(email, password);
   } else {
-    const userCredential = await createUserWithEmailAndPassword(auth as any, email, password);
-    return userCredential.user;
+    // Type guard ensures this is Firebase Auth
+    if (isFirebaseAuth(auth)) {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      return userCredential.user;
+    }
+    throw new Error('Invalid auth instance');
   }
 };
 
 export const signOut = async () => {
   if (isMockMode) {
-    return await auth.signOut();
+    // TypeScript knows this is mockAuth here
+    return await mockAuth.signOut();
   } else {
-    return await firebaseSignOut(auth as any);
+    // Type guard ensures this is Firebase Auth
+    if (isFirebaseAuth(auth)) {
+      return await firebaseSignOut(auth);
+    }
+    throw new Error('Invalid auth instance');
   }
 };
 
