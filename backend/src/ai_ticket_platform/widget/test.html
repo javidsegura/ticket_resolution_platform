@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <h1>Widget Test</h1>
+
+    <!-- Intent provided exactly like in real customer site -->
+    <div data-intent="1"></div>
+
+    <script>
+      window.SupportAI = { intent: 1 };  // optional fallback
+    </script>
+
+    <!-- Load your ingest.js locally or from your dev CDN -->
+    <script src="http://localhost:8000/widget/ingest.js"></script>
+
+    <button onclick="SupportAI.ticketCreated()">Simulate Ticket Created</button>
+  </body>
+</html>
