@@ -1,3 +1,4 @@
+from ai_ticket_platform.dependencies.queue import get_queue
 from ai_ticket_platform.services.queue_manager.tasks import batch_finalizer, process_ticket_stage1
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,10 +15,6 @@ from ai_ticket_platform.core.clients.redis import initialize_redis_client
 from rq import Queue
 from rq.job import Job, Retry
 
-
-redis_client_connector = initialize_redis_client()
-sync_redis_connection = redis_client_connector.get_sync_connection()
-queue = Queue("default", connection=sync_redis_connection)
 
 
 @router.post("/upload-csv", response_model=CSVUploadResponse)
@@ -59,7 +56,7 @@ async def upload_tickets_csv(file: UploadFile = File(...), db: AsyncSession = De
 
 # ADD HERE FAKE CSV INGESTION, THEN CALL QUEUE SERVICE TO ADD STUFF
 @router.post("/upload-csv-with-pub-sub-model")
-async def process_tickets_endpoint():
+async def process_tickets_endpoint(queue: Queue = Depends(get_queue)):
     """Process mock tickets in two stages (no CSV needed for demo)"""
     
     logger.info("[PUB/SUB] Starting ticket processing pipeline")

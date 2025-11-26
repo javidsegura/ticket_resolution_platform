@@ -1,8 +1,10 @@
 import asyncio
 from typing import Annotated, Dict
 
+from ai_ticket_platform.dependencies.queue import get_sync_redis_connection
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
+from redis import Redis
 from rq.worker import Worker
 from sqlalchemy.ext.asyncio import AsyncSession
 from ai_ticket_platform.dependencies import get_app_settings, get_db
@@ -22,7 +24,8 @@ router = APIRouter(prefix="/health")
 @router.get(path="/dependencies", status_code=status.HTTP_200_OK)
 async def cheeck_backend_health_dependencies_endpoint(
 	db: Annotated[AsyncSession, Depends(get_db)],
-	settings: Annotated[list, Depends(get_app_settings)]
+	settings: Annotated[list, Depends(get_app_settings)],
+	sync_redis_connection: Annotated[Redis, Depends(get_sync_redis_connection)]
 ) -> Dict:
 	"""
 	You could have here the response schema to be service with variables\
@@ -34,14 +37,12 @@ async def cheeck_backend_health_dependencies_endpoint(
 
 
 	checks = {"status": "healthy", "checks": {}}
-
-	print("Aaaaaaaaqa")
     
 	# Redis
 	try:
 		redis_connected = await test_redis_connection()
 		if not redis_connected:
-			raise Exception()
+			raise ConnectionError("Redis connection test returned False")
 		checks["checks"]["redis"] = "ok"
 	except Exception as e:
 		checks["status"] = "unhealthy"
@@ -49,10 +50,6 @@ async def cheeck_backend_health_dependencies_endpoint(
 	
 	# Workers
 	try:
-		# RQ requires a synchronous Redis connection, not async
-		# RQ is a synchronous library and cannot use async Redis clients
-		redis_client_connector = initialize_redis_client()
-		sync_redis_connection = redis_client_connector.get_sync_connection()
 		workers = Worker.all(connection=sync_redis_connection)
 		count = len(workers)
 		checks["checks"]["workers"] = f"{count} active"

@@ -1,6 +1,4 @@
-
-# WRITE HERE JOBS + FUNCTIONS USED IN JOBS (PRINT TO STDOUT WHEN YOU ARE MAKING PROGRESS)
-
+from datetime import timedelta
 import time
 import logging
 from typing import Dict, Any, List
@@ -8,7 +6,7 @@ from typing import Dict, Any, List
 
 from ai_ticket_platform.core.clients.redis import initialize_redis_client
 from ai_ticket_platform.services.queue_manager.mock_services import filter_ticket, cluster_ticket, generate_content
-from rq import Queue
+from rq import Queue, Retry, get_current_job
 from redis import Redis
 from rq.job import Job
 
@@ -59,36 +57,38 @@ def process_ticket_stage2(ticket_data: Dict[str, Any]) -> Dict[str, Any]:
         raise # Will be automatically requequed 
 
 
-# tasks.py
 def batch_finalizer(stage1_job_ids: List[str]) -> Dict[str, Any]:
-    """Wait for stage1, then trigger stage2 ONCE PER UNIQUE CLUSTER"""
-    logger.info(f"[FINALIZER] Starting - waiting for {len(stage1_job_ids)} stage1 jobs")
-    all_results = []
+    logger.info(f"[FINALIZER] Starting - checking {len(stage1_job_ids)} stage1 jobs")
     
-    # Wait for all stage1 jobs
-    logger.info("[FINALIZER] Phase 1: Waiting for stage1 jobs to complete")
-    for job_id in stage1_job_ids:
-        try:
-            job = Job.fetch(job_id, connection=sync_redis_connection)
-            
-            # Wait up to 5 minutes per job
-            timeout = 300
-            start = time.time()
-            
-            while not job.is_finished and not job.is_failed:
-                if time.time() - start > timeout:
-                    logger.warning(f"[FINALIZER] Timeout waiting for job {job_id}")
-                    break
-                time.sleep(1)
-            
-            if job.is_finished and job.result:
-                all_results.append(job.result)
-                
-        except Exception as e:
-            logger.warning(f"[FINALIZER] Error fetching job {job_id}: {str(e)}")
-            continue
+    # Fetch all jobs once
+    jobs = [Job.fetch(job_id, connection=sync_redis_connection) for job_id in stage1_job_ids]
     
-    logger.info(f"[FINALIZER] Phase 1 complete: {len(all_results)}/{len(stage1_job_ids)} jobs processed")
+    # Separate finished/failed jobs from pending ones
+    pending_jobs = [j for j in jobs if not j.is_finished and not j.is_failed]
+    finished_jobs = [j for j in jobs if j.is_finished and not j.is_failed] # Only truly finished jobs
+    
+    if pending_jobs:
+        # Not all jobs are done, re-enqueue self to run in 30 seconds
+        current_job = get_current_job() 
+        if current_job: # Ensure we have a job context to re-enqueue
+            # Re-enqueue with the same job_id to ensure RQ treats this as a continuation
+            queue.enqueue_in(timedelta(seconds=30), batch_finalizer, stage1_job_ids, job_id=current_job.id)
+            logger.info(f"[FINALIZER] Re-enqueued finalizer job {current_job.id}, {len(finished_jobs)}/{len(stage1_job_ids)} jobs complete. {len(pending_jobs)} pending.")
+            return {
+                "message": f"Re-enqueued finalizer, {len(finished_jobs)}/{len(stage1_job_ids)} jobs complete.",
+                "status": "pending",
+                "finished_count": len(finished_jobs),
+                "total_count": len(stage1_job_ids)
+            }
+        else:
+            logger.error("[FINALIZER] Could not get current job context to re-enqueue. This should not happen in an RQ worker.")
+            # If for some reason we can't re-enqueue, consider it a failure for this iteration
+            return {"message": "Error: Could not re-enqueue finalizer.", "status": "failed"}
+
+    # All jobs are finished (or failed, but we only collect results from finished ones)
+    logger.info(f"[FINALIZER] Phase 1 complete: {len(finished_jobs)}/{len(stage1_job_ids)} jobs processed")
+    
+    all_results = [j.result for j in finished_jobs if j.result is not None] # Collect results from finished jobs
     
     # Group by unique clusters
     logger.info("[FINALIZER] Phase 2: Grouping results by unique clusters")
@@ -97,7 +97,6 @@ def batch_finalizer(stage1_job_ids: List[str]) -> Dict[str, Any]:
         if "data" in result and "error" not in result:
             cluster = result["data"].get("cluster")
             if cluster:
-                # Store first ticket data for this cluster
                 if cluster not in clusters_map:
                     clusters_map[cluster] = result["data"]
                     logger.info(f"[FINALIZER] New cluster found: {cluster}")
@@ -108,15 +107,19 @@ def batch_finalizer(stage1_job_ids: List[str]) -> Dict[str, Any]:
     logger.info("[FINALIZER] Phase 3: Enqueueing stage2 jobs (one per cluster)")
     stage2_jobs = []
     for cluster, ticket_data in clusters_map.items():
-        job = queue.enqueue(process_ticket_stage2, ticket_data)
+        job = queue.enqueue(process_ticket_stage2, 
+                           ticket_data,
+                           retry=Retry(max=3, interval=[10, 30, 60]),
+                           job_timeout="5m")
         stage2_jobs.append(job.id)
         logger.info(f"[FINALIZER] Enqueued stage2 job {job.id} for cluster {cluster}")
     
     logger.info(f"[FINALIZER] Complete: {len(stage2_jobs)} stage2 jobs enqueued")
     
     return {
-        "stage1_processed": len(all_results),
+        "stage1_processed": len(finished_jobs),
         "unique_clusters": len(clusters_map),
         "clusters": list(clusters_map.keys()),
-        "stage2_enqueued": len(stage2_jobs)
+        "stage2_enqueued": len(stage2_jobs),
+        "status": "completed"
     }
