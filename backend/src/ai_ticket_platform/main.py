@@ -1,12 +1,5 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
-from dotenv import load_dotenv
-
-# Load .env from root directory
-root_dir = Path(__file__).resolve().parent.parent.parent.parent
-env_file = root_dir / ".env"
-if env_file.exists():
-	load_dotenv(env_file)
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

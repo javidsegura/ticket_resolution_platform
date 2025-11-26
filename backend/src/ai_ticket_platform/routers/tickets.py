@@ -44,3 +44,5 @@ async def upload_tickets_csv(file: UploadFile = File(...), db: AsyncSession = De
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing CSV: {str(e)}")
+
+# ADD HERE FAKE CSV INGESTION, THEN CALL QUEUE SERVICE TO ADD STUFF

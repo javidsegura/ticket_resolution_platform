@@ -23,7 +23,7 @@ class DevSettings(BaseSettings):
                   "CLOUD_PROVIDER",
 
                   
-                  "OPENAI_API_KEY",  # Required for LLM clustering
+                  #"OPENAI_API_KEY",  # Required for LLM clustering
                   #"USING_FIREBASE_EMULATOR", "FB_AUTH_EMULATOR_HOST", "FB_PROJECT_ID"
             ]
             

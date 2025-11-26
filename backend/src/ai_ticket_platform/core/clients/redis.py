@@ -1,4 +1,5 @@
 import redis.asyncio as r
+import redis as sync_redis
 from redis.client import Redis
 
 from ai_ticket_platform.core.settings import initialize_settings
@@ -37,6 +38,16 @@ class RedisClientConnector:
 			logger.debug(f"REDIS CLIENT ID: {id(self._client)}")
 			await self._client.aclose()
 			self._client = None
+
+	def get_sync_connection(self) -> sync_redis.Redis:
+		"""
+		Get a synchronous Redis connection for libraries that require it (e.g., RQ).
+		RQ and other synchronous libraries cannot use async Redis clients.
+		"""
+		return sync_redis.from_url(
+			url=self.app_settings.REDIS_URL,
+			decode_responses=False,
+		)
 
 redis_client = None
 def initialize_redis_client():

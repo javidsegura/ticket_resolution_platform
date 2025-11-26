@@ -10,25 +10,37 @@ services:
       interval: 1s
       timeout: 3s
       retries: 5
-  db-migration:
-    image: javidsegura/ai_ticket_platform
-    command: ["python", "scripts/migrate.py"]
-    working_dir: /app
-    env_file:
-      - ${BACKEND_ENV_FILE}
-    restart: "no"
+  worker:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    depends_on:
+      redis:
+        condition: service_healthy
     environment:
-      ENVIRONMENT: ${ENVIRONMENT}  
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "80:80"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 5s
+      - REDIS_HOST=redis
+    command: rq worker --url redis://redis:6379/0 --with-scheduler
+    deploy:
+      replicas: 3
+  # db-migration:
+  #   image: javidsegura/ai_ticket_platform
+  #   command: ["python", "scripts/migrate.py"]
+  #   working_dir: /app
+  #   env_file:
+  #     - ${BACKEND_ENV_FILE}
+  #   restart: "no"
+  #   environment:
+  #     ENVIRONMENT: ${ENVIRONMENT}  
+  # nginx:
+  #   image: nginx:alpine
+  #   ports:
+  #     - "80:80"
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:80"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 5s
 
 volumes:
   redis-data:
