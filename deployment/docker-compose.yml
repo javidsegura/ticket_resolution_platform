@@ -10,6 +10,23 @@ services:
       interval: 1s
       timeout: 3s
       retries: 5
+  worker:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+        - ../backend/src:/app/src
+    env_file:
+      - ${BACKEND_ENV_FILE}
+    environment:
+      - REDIS_HOST=redis
+      - ENVIRONMENT=${ENVIRONMENT}
+    command: rq worker --url redis://redis:6379/0
+    deploy:
+      replicas: 3
   db-migration:
     image: javidsegura/ai_ticket_platform
     command: ["python", "scripts/migrate.py"]
