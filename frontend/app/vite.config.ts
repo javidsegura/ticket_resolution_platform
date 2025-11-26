@@ -20,6 +20,8 @@ export default defineConfig(({ mode }) => {
         "@": path.resolve(__dirname, "./src"),
       },
     },
+    // Load .env files from custom directory (enables automatic VITE_* variable exposure)
+    envDir: envDir,
     // Map the simple variable names from .env.dev to import.meta.env
     define: {
       'import.meta.env.apiKey': JSON.stringify(env.apiKey || ''),

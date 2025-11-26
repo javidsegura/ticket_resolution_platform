@@ -1,11 +1,14 @@
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, type Auth } from "firebase/auth";
 import { mockAuth, type MockUser } from "./src/services/mockAuth";
 
 const USE_MOCK_AUTH = import.meta.env.VITE_USE_MOCK_AUTH === 'true' || 
                       !import.meta.env.apiKey;
 
-let auth: any;
+// Union type for auth - either real Firebase Auth or mock auth
+type AuthType = Auth | typeof mockAuth;
+
+let auth: AuthType;
 let isMockMode = false;
 
 if (USE_MOCK_AUTH) {
