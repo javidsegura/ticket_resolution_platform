@@ -37,7 +37,6 @@ install-packages: ## Install only packages
 dev-start: ## Hot reload enabled for both backend and frontend
 	$(MAKE) check_enviroment_variables
 	BACKEND_ENV_FILE=$(BACKEND_ENV_FILE_SYNCED_PATH) docker compose -f deployment/docker-compose.yml -f deployment/docker-compose.dev.yml -p $(PROJECT_NAME) up --build 
-	$(MAKE) container_logs SERVICE_NAME=backend
 
 dev-stop: ## Stop development environment
 	$(MAKE) check_enviroment_variables
