@@ -894,6 +894,301 @@ async def redis_client() -> redis.Redis:
 
 ---
 
+## E2E Tests (End-to-End User Workflows)
+
+### Overview
+
+E2E tests verify complete user workflows from UI interaction through final output. Tests focus on:
+- **Real Docker services** (MySQL, Redis, Firebase)
+- **Complete request pipelines** (not just individual endpoints)
+- **User journeys** (CSV upload → draft → approval → publish → widget)
+- **State transitions** (DB state changes throughout workflow)
+- **Background tasks** (async operations, notifications)
+
+**Total Tests:** 25 E2E tests across 5 workflows
+**Running:** `make test-e2e` (when implemented)
+**Location:** `tests/e2e/`
+
+---
+
+### Test 1: CSV → Draft Pipeline (4 tests)
+**File:** `test_csv_draft_pipeline.py`
+**Purpose:** Validate transformation from raw CSV to initial draft object
+**User Journey:** User uploads CSV → System processes → Draft created
+
+#### Tests:
+1. **test_csv_upload_triggers_pipeline** - Verify CSV upload initiates pipeline
+   - Upload CSV via `POST /api/tickets/upload-csv`
+   - Verify HTTP 200
+   - Check that backend processes file automatically
+
+2. **test_data_validation_and_normalization** - Verify data is validated & cleaned
+   - Upload CSV with various formats (mixed case, extra spaces, special chars)
+   - Verify normalization (lowercase, trimmed, escaped)
+   - Check validation rules applied (no empty subjects, etc.)
+   - Verify invalid rows handled gracefully
+
+3. **test_draft_created_in_database** - Verify draft object persists
+   - Upload CSV
+   - Query drafts table
+   - Verify draft exists with correct ticket data
+   - Check draft status = "draft"
+
+4. **test_draft_metadata_correct** - Verify all metadata stored properly
+   - Check `source_file` = uploaded filename
+   - Check `row_count` = number of uploaded rows
+   - Check `summary` field (auto-generated or provided)
+   - Check `created_at` timestamp present
+   - Check `version` = 1.0
+
+---
+
+### Test 2: CSV → Complete Flow (8 tests)
+**File:** `test_csv_complete_flow.py`
+**Purpose:** Full pipeline from CSV → clustering → caching → draft → markdown output
+**User Journey:** User uploads CSV → System clusters → Generates markdown
+
+#### Tests:
+1. **test_csv_ingestion_succeeds** - CSV upload completes without errors
+   - Upload CSV file
+   - Verify all rows parsed
+   - Verify tickets inserted into DB
+   - Check response contains row count
+
+2. **test_clustering_runs_and_stores** - Clustering triggered and saved
+   - Upload CSV triggers clustering
+   - Verify clusters created (via `GET /api/clusters`)
+   - Check cluster data in DB
+   - Verify ticket→cluster mappings
+
+3. **test_redis_clustering_cache_hit** - Cached clustering results returned
+   - Upload CSV → Triggers clustering
+   - Call `GET /api/clusters` first time (cache miss)
+   - Call `GET /api/clusters` second time (cache hit)
+   - Verify both return identical results
+   - Verify response time improves on cache hit
+
+4. **test_draft_created_with_clustering_data** - Draft includes cluster info
+   - Upload CSV + clustering complete
+   - Query draft from DB
+   - Verify draft contains cluster references
+   - Verify ticket assignments to clusters stored
+
+5. **test_draft_converted_to_markdown** - Draft → Markdown conversion works
+   - Draft exists with clustering data
+   - Trigger markdown generation
+   - Verify `.md` file created
+   - Check markdown contains cluster summaries
+   - Verify formatting (headers, lists, etc.)
+
+6. **test_background_tasks_complete** - All async operations finish
+   - Upload CSV
+   - Wait for processing (async clustering, markdown gen)
+   - Verify no tasks stuck in "pending" state
+   - Check completion timestamps recorded
+   - Verify success status for all tasks
+
+7. **test_db_entries_updated_throughout** - Data flows correctly through pipeline
+   - Track DB state at each stage
+   - Verify tickets table populated
+   - Verify clusters table populated
+   - Verify drafts table updated
+   - Verify draft_markdown table populated
+
+8. **test_end_state_matches_expected** - Final output structure correct
+   - Verify draft status = "ready_for_approval"
+   - Verify markdown file valid
+   - Verify all data relationships intact
+   - Verify no orphaned records
+
+---
+
+### Test 3: Approval Workflow (4 tests)
+**File:** `test_approval_flow.py`
+**Purpose:** Validate manual/automated approval process and state transitions
+**User Journey:** Draft created → Approver reviews → Approval/rejection → State updated
+
+#### Tests:
+1. **test_draft_enters_awaiting_approval_state** - Draft transitions to approval queue
+   - Create draft from CSV upload
+   - Trigger approval workflow
+   - Verify draft status = "awaiting_approval"
+   - Check draft locked for editing
+   - Verify notification sent to approver
+
+2. **test_approver_can_approve_draft** - Approval action succeeds
+   - Get draft in "awaiting_approval" state
+   - Call approval endpoint (e.g., `POST /api/drafts/{id}/approve`)
+   - Verify HTTP 200
+   - Check draft status changed to "approved"
+   - Verify timestamp recorded
+
+3. **test_approver_can_reject_draft** - Rejection action succeeds
+   - Get draft in "awaiting_approval" state
+   - Call reject endpoint (e.g., `POST /api/drafts/{id}/reject`)
+   - Verify HTTP 200
+   - Check draft status = "rejected"
+   - Verify rejection reason stored
+   - Check draft reverts to editable state
+
+4. **test_state_transitions_update_correctly** - DB reflects all state changes
+   - Track draft state throughout approval flow
+   - Verify audit trail (who, when, what changed)
+   - Check timestamps update on each transition
+   - Verify no duplicate state entries
+   - Verify notifications triggered on state change
+
+---
+
+### Test 4: Publishing Workflow (6 tests)
+**File:** `test_publish_flow.py`
+**Purpose:** Validate approved drafts move to production and publish correctly
+**User Journey:** Draft approved → Publishing triggered → Content live
+
+#### Tests:
+1. **test_publishing_triggers_background_job** - Publish action queues processing
+   - Get approved draft
+   - Call publish endpoint (e.g., `POST /api/drafts/{id}/publish`)
+   - Verify HTTP 200
+   - Check background job created
+   - Verify job status = "processing"
+
+2. **test_markdown_to_html_conversion** - Markdown converted to valid HTML
+   - Draft markdown exists
+   - Trigger HTML generation
+   - Verify HTML file created
+   - Check HTML is valid (well-formed, no broken tags)
+   - Verify all markdown elements converted (headers, lists, code blocks)
+
+3. **test_static_microsite_generated** - Static site assets created
+   - Trigger publish
+   - Verify microsite directory created
+   - Check index.html generated
+   - Verify CSS files present
+   - Check images/assets copied
+
+4. **test_files_written_to_correct_directory** - Output written to proper location
+   - Publish triggers file writes
+   - Verify files in `/public/` or configured output dir
+   - Check directory structure matches expected layout
+   - Verify file permissions correct (readable, not writable)
+
+5. **test_publish_metadata_persisted** - Publication info stored in DB
+   - Publish completes
+   - Query published_articles table
+   - Verify `publish_timestamp` recorded
+   - Check `version` field (e.g., "1.0.0")
+   - Verify `author` field populated
+   - Check `publish_status` = "live"
+   - Verify `url_slug` generated
+
+6. **test_publish_endpoint_returns_final_content** - API serves published content
+   - Publish succeeds
+   - Call `GET /api/published/{article_id}` (or similar)
+   - Verify HTTP 200
+   - Check response contains full HTML/rendered content
+   - Verify metadata (title, author, date) in response
+   - Check SEO fields (meta tags, OG tags)
+
+---
+
+### Test 5: Widget Rendering Tests (3 tests)
+**File:** `test_js_widget.py`
+**Purpose:** Verify JS widget correctly renders published content externally
+**User Journey:** External site loads widget → Widget fetches & renders content
+
+#### Tests:
+1. **test_widget_fetches_data_from_api** - Widget API calls succeed
+   - Widget loads on external page
+   - Verify widget calls `GET /api/published/{article_id}` (or widget endpoint)
+   - Check CORS headers allow cross-origin
+   - Verify response contains publishable data
+   - Check no sensitive data exposed
+
+2. **test_widget_handles_missing_data_gracefully** - Widget doesn't break on errors
+   - Widget attempts to load non-existent article
+   - Verify widget doesn't crash (no JS errors)
+   - Check error message displayed to user
+   - Verify fallback content shown (or "Article not found")
+   - Test with malformed API response
+
+3. **test_widget_rendering_matches_expected_dom** - Widget HTML structure correct
+   - Widget renders published content
+   - Verify DOM structure matches spec (divs, classes, IDs)
+   - Check content displayed in correct order
+   - Verify styling applied correctly
+   - Test responsive layout (mobile/desktop)
+   - Verify images load and display
+
+---
+
+### E2E Test Infrastructure Requirements
+
+**Endpoints Needed (in addition to Integration Tests):**
+- `POST /api/drafts` - Create draft
+- `GET /api/drafts/:id` - Retrieve draft
+- `POST /api/drafts/:id/approve` - Approve draft
+- `POST /api/drafts/:id/reject` - Reject draft
+- `POST /api/drafts/:id/publish` - Publish draft
+- `GET /api/published/:id` - Get published article
+- `GET /api/widget/:id` - Widget API endpoint (JSONP or fetch-friendly)
+
+**Test Database Setup:**
+- Pre-populate test users with approval roles
+- Create test drafts in various states
+- Populate sample published articles
+
+**Async Task Monitoring:**
+- Tests must wait for background jobs (clustering, markdown generation, publishing)
+- Track job status in background_jobs or similar table
+- Verify completion before assertions
+
+**File System Access:**
+- Tests need access to markdown output directory
+- Tests need access to published microsite directory
+- Verify files created with correct permissions
+
+---
+
+### Running E2E Tests
+
+**Full Suite:**
+```bash
+cd backend
+make test-e2e
+```
+
+**Individual Workflow:**
+```bash
+ENVIRONMENT=test pytest -s -vv tests/e2e/test_csv_draft_pipeline.py
+ENVIRONMENT=test pytest -s -vv tests/e2e/test_csv_complete_flow.py
+ENVIRONMENT=test pytest -s -vv tests/e2e/test_approval_flow.py
+ENVIRONMENT=test pytest -s -vv tests/e2e/test_publish_flow.py
+ENVIRONMENT=test pytest -s -vv tests/e2e/test_js_widget.py
+```
+
+**Single Test:**
+```bash
+ENVIRONMENT=test pytest -s -vv tests/e2e/test_csv_complete_flow.py::test_csv_ingestion_succeeds
+```
+
+---
+
+### E2E Test Timeline
+
+**Prerequisites:** All integration test endpoints implemented + passing
+
+**Implementation Order:**
+1. Test 1 (CSV→Draft): 2-3 hours - Foundation for other tests
+2. Test 2 (CSV→Complete): 3-4 hours - Full pipeline testing
+3. Test 3 (Approval): 2-3 hours - State machine testing
+4. Test 4 (Publishing): 3-4 hours - File generation testing
+5. Test 5 (Widget): 1-2 hours - External rendering testing
+
+**Total:** ~12-16 hours after all endpoints ready
+
+---
+
 ## Development Workflow
 
 When adding new features:
