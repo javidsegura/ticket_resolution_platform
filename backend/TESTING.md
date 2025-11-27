@@ -376,53 +376,263 @@ HEALTH:
 
 ### Planned Business Logic Integration Tests
 
-**Note:** These will be implemented once endpoints are finalized. They will test the **end-to-end CSV processing flow**:
+**Status:** Ready to implement once teammates complete endpoint implementations
+**Scope:** End-to-end CSV processing flow (stops before Slack approval)
+**Approach:** Will test actual business logic workflows using real Docker services
 
 ```
-CSV Upload Flow (stops before Slack approval):
-  1. Upload CSV file
+Target Flow (Implemented by teammates):
+  1. Upload CSV file → POST /api/tickets/upload-csv
      ↓
   2. Parse CSV → MySQL (tickets table)
      ↓
-  3. Run clustering (tickets → clusters)
+  3. Trigger clustering → GET /api/clusters (uses uploaded tickets)
      ↓
   4. Cache clustering results in Redis
      ↓
-  5. Verify cluster output structure
+  5. Retrieve clusters → GET /api/clusters/:id (with cache verification)
      ↓
-  [STOP before: Slack notification/approval]
+  [STOP before: Slack notification/approval workflow]
 ```
 
-**Planned Tests:**
+#### Test 1: Clustering Cache Test
+**File:** `test_cluster_caching_docker.py`
+**Endpoints Required:** `GET /api/clusters`
+**Test Flow:**
+```python
+# Scenario: Verify clustering results are cached in Redis
+Setup:
+  - Ensure tickets exist in MySQL (from previous CSV upload)
 
-1. **CSV→Clusters Pipeline** (`test_end_to_end_csv_flow.py`)
-   - Upload CSV → Parse → MySQL
-   - Verify tickets created
-   - Run clustering
-   - Verify clusters created
-   - Verify Redis caching
+First Call (Cache Miss):
+  - GET /api/clusters
+  - Record response time
+  - Verify HTTP 200
+  - Store clustering results in variable
+  - Verify Redis cache is populated with results
 
-2. **Cluster Retrieval with Cache** (`test_cluster_caching.py`)
-   - GET /api/clusters → First call (cache miss)
-   - GET /api/clusters → Second call (cache hit)
-   - Verify response time improvement
+Second Call (Cache Hit):
+  - GET /api/clusters
+  - Record response time
+  - Verify HTTP 200
+  - Verify results match first call
+  - Verify response time is faster (proves cache hit)
 
-3. **Ticket Search with Caching** (`test_ticket_search_cache.py`)
-   - GET /api/tickets?search=query → First call (MySQL fetch)
-   - GET /api/tickets?search=query → Second call (Redis cache hit)
-   - Verify data consistency
+Assertions:
+  - Response structure valid (contains clusters array)
+  - Cache key exists in Redis after first call
+  - Second call response time < first call response time
+  - Data consistency across both calls
+```
 
-4. **Document Upload Workflow** (`test_document_workflow.py`)
-   - POST /api/documents/upload → File processing
-   - Verify metadata in database
-   - Verify labels assigned
-   - Verify company_files created
+**Verifies:**
+- Clustering endpoint works correctly
+- Redis caching of clustering results works
+- Cache-aside pattern: First miss → MySQL, second hit → Redis
+- Performance improvement from caching
 
-5. **Concurrent CSV Uploads** (`test_concurrent_flows.py`)
-   - Multiple concurrent CSV uploads
-   - Each triggers clustering independently
-   - Verify no conflicts in cache
-   - Verify all clusters created correctly
+---
+
+#### Test 2: Cache-Aside Pattern (Ticket Search) Test
+**File:** `test_ticket_search_cache_docker.py`
+**Endpoints Required:** `GET /api/tickets?search=query`
+**Test Flow:**
+```python
+# Scenario: Verify search results use cache-aside pattern
+Setup:
+  - Upload CSV with known tickets
+  - Verify tickets in MySQL
+  - Clear Redis cache
+
+First Call (Cache Miss):
+  - GET /api/tickets?search=test
+  - Verify HTTP 200
+  - Store results in variable
+  - Verify cache miss (came from MySQL)
+  - Verify Redis cache now populated
+
+Second Call (Cache Hit):
+  - GET /api/tickets?search=test
+  - Verify HTTP 200
+  - Verify results match first call
+  - Verify cache hit (came from Redis)
+
+Assertions:
+  - Search results structure valid
+  - First call fetches from MySQL
+  - Redis populated after first call
+  - Second call fetches from Redis
+  - Response times: second call faster than first
+  - Data consistency across both calls
+```
+
+**Verifies:**
+- Ticket search endpoint works
+- Cache-aside pattern implementation correct
+- MySQL → Redis flow works
+- Cache invalidation works correctly
+
+---
+
+#### Test 3: End-to-End CSV→Clustering Pipeline Test
+**File:** `test_csv_to_clusters_pipeline_docker.py`
+**Endpoints Required:** `POST /api/tickets/upload-csv`, `GET /api/clusters`
+**Test Flow:**
+```python
+# Scenario: Complete workflow from CSV upload through clustering
+Setup:
+  - Prepare test CSV file with known data
+
+Step 1: Upload CSV
+  - POST /api/tickets/upload-csv
+  - Verify HTTP 200
+  - Verify tickets inserted into MySQL
+  - Record number of tickets uploaded
+
+Step 2: Trigger Clustering
+  - GET /api/clusters
+  - Verify HTTP 200
+  - Verify clusters created from uploaded tickets
+  - Verify Redis cache populated
+
+Step 3: Verify Cache
+  - Check Redis contains clustering results
+  - Verify cache structure valid
+
+Step 4: Verify Data Integrity
+  - GET /api/clusters (should come from Redis now)
+  - Verify results match first clustering call
+
+Assertions:
+  - Correct number of tickets inserted
+  - Clusters created with proper structure
+  - All tickets assigned to clusters
+  - Redis cache contains results
+  - Response times: second call faster
+  - No data loss in pipeline
+```
+
+**Verifies:**
+- Complete CSV upload flow works
+- Clustering triggered automatically/on-demand
+- Data flows correctly through pipeline
+- Caching works end-to-end
+- No data loss or corruption
+
+---
+
+#### Test 4: Document Upload Workflow Test
+**File:** `test_document_upload_workflow_docker.py`
+**Endpoints Required:** `POST /api/documents/upload`
+**Test Flow:**
+```python
+# Scenario: Document upload with automatic labeling
+Setup:
+  - Create test PDF file
+
+Step 1: Upload Document
+  - POST /api/documents/upload (multipart form-data)
+  - Verify HTTP 200
+  - Verify response contains upload details
+
+Step 2: Verify Database Storage
+  - Query company_files table
+  - Verify metadata stored
+  - Verify area label assigned (from LLM)
+
+Step 3: Verify File Processing
+  - Verify document text extracted (up to 25K chars)
+  - Verify labeling completed
+  - Verify no errors in processing
+
+Assertions:
+  - Document inserted into database
+  - Metadata complete (file_id, area, blob_path)
+  - Area label is valid department (Tech, Finance, HR, etc.)
+  - Processing completed without errors
+  - File status is "processed" or "success"
+```
+
+**Verifies:**
+- Document upload endpoint works
+- PDF processing pipeline works
+- LLM-based labeling assigns correct department
+- Database persistence works
+- File metadata stored correctly
+
+---
+
+#### Test 5: Concurrent CSV Uploads Test
+**File:** `test_concurrent_csv_uploads_docker.py`
+**Endpoints Required:** `POST /api/tickets/upload-csv`, `GET /api/clusters`
+**Test Flow:**
+```python
+# Scenario: Multiple CSV uploads simultaneously don't conflict in caching
+Setup:
+  - Prepare 3+ test CSV files with different data
+  - Clear Redis cache
+
+Concurrent Operations:
+  - Upload CSV 1 (asyncio task)
+  - Upload CSV 2 (asyncio task)
+  - Upload CSV 3 (asyncio task)
+  - All execute in parallel
+
+Step 1: Verify All Uploads Succeeded
+  - All HTTP 200 responses
+  - All tickets in MySQL
+  - Total count = sum of all CSV rows
+
+Step 2: Trigger Clustering
+  - GET /api/clusters
+  - Verify all tickets included in clusters
+  - Verify Redis cache populated
+
+Step 3: Verify No Cache Conflicts
+  - Redis contains ONE clustering result (not multiple)
+  - Result includes ALL uploaded tickets
+  - Cache structure valid
+
+Step 4: Verify No Race Conditions
+  - Retrieve clustering twice
+  - Verify identical results (cache working)
+  - No partial/corrupted data
+
+Assertions:
+  - All concurrent uploads succeed (0 failures)
+  - No connection pool exhaustion
+  - All tickets persisted correctly
+  - Clustering includes all uploaded tickets
+  - Single unified cache entry (not per-upload)
+  - Data integrity maintained
+  - Response times consistent
+```
+
+**Verifies:**
+- Concurrent operations handled safely
+- No race conditions in clustering
+- Cache handles concurrent updates correctly
+- Connection pooling works under load
+- Data integrity with concurrent writes
+
+---
+
+### Implementation Timeline
+
+**When teammates complete:**
+1. ✅ Cluster endpoints → Implement Tests 1 & 3
+2. ✅ Ticket search endpoint → Implement Test 2
+3. ✅ Document upload endpoint → Implement Test 4
+4. ✅ All of above working → Implement Test 5
+
+**Estimated effort per test:**
+- Test 1 (Clustering Cache): 1-2 hours
+- Test 2 (Search Cache): 1-2 hours
+- Test 3 (CSV→Clusters): 2-3 hours
+- Test 4 (Document Workflow): 1.5-2 hours
+- Test 5 (Concurrent Uploads): 2-3 hours
+
+**Total:** ~8-12 hours after endpoints are ready
 
 ### Running Integration Tests
 
