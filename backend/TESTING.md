@@ -1092,33 +1092,22 @@ E2E tests verify complete user workflows from UI interaction through final outpu
 
 ---
 
-### Test 5: Widget Rendering Tests (3 tests)
-**File:** `test_js_widget.py`
+### Test 5: Widget Rendering Tests ⏳ (FUTURE WORK - Not Currently in Scope)
+**Status:** Widget feature not yet implemented - marked for future development
+**File:** `test_js_widget.py` (template only, no tests implemented)
 **Purpose:** Verify JS widget correctly renders published content externally
 **User Journey:** External site loads widget → Widget fetches & renders content
 
-#### Tests:
+**⚠️ NOTE:** This test suite is held in reserve for when the widget feature is actually built. Currently:
+- No widget exists in backend
+- No widget code in frontend
+- No widget router implemented
+- Test only serves as documentation of expected behavior
+
+#### Planned Tests (When Widget is Implemented):
 1. **test_widget_fetches_data_from_api** - Widget API calls succeed
-   - Widget loads on external page
-   - Verify widget calls `GET /api/published/{article_id}` (or widget endpoint)
-   - Check CORS headers allow cross-origin
-   - Verify response contains publishable data
-   - Check no sensitive data exposed
-
 2. **test_widget_handles_missing_data_gracefully** - Widget doesn't break on errors
-   - Widget attempts to load non-existent article
-   - Verify widget doesn't crash (no JS errors)
-   - Check error message displayed to user
-   - Verify fallback content shown (or "Article not found")
-   - Test with malformed API response
-
 3. **test_widget_rendering_matches_expected_dom** - Widget HTML structure correct
-   - Widget renders published content
-   - Verify DOM structure matches spec (divs, classes, IDs)
-   - Check content displayed in correct order
-   - Verify styling applied correctly
-   - Test responsive layout (mobile/desktop)
-   - Verify images load and display
 
 ---
 
@@ -1131,7 +1120,9 @@ E2E tests verify complete user workflows from UI interaction through final outpu
 - `POST /api/drafts/:id/reject` - Reject draft
 - `POST /api/drafts/:id/publish` - Publish draft
 - `GET /api/published/:id` - Get published article
-- `GET /api/widget/:id` - Widget API endpoint (JSONP or fetch-friendly)
+
+**Endpoints NOT needed (widget feature future work):**
+- ~~`GET /api/widget/:id`~~ - Widget endpoint (removed from scope, no widget implementation)
 
 **Test Database Setup:**
 - Pre-populate test users with approval roles
@@ -1183,9 +1174,9 @@ ENVIRONMENT=test pytest -s -vv tests/e2e/test_csv_complete_flow.py::test_csv_ing
 2. Test 2 (CSV→Complete): 3-4 hours - Full pipeline testing
 3. Test 3 (Approval): 2-3 hours - State machine testing
 4. Test 4 (Publishing): 3-4 hours - File generation testing
-5. Test 5 (Widget): 1-2 hours - External rendering testing
+5. ⏳ Test 5 (Widget): Future work - Blocked by widget feature not yet implemented
 
-**Total:** ~12-16 hours after all endpoints ready
+**Total:** ~10-14 hours after all endpoints ready (4 active test suites)
 
 ---
 
@@ -1224,20 +1215,20 @@ TICKETS (CRITICAL - Blocks 2 integration tests):
   GET /api/tickets/:id                      # Get single ticket [HIGH]
 ```
 
-#### ❌ **NEEDED FOR E2E TESTS** (7 endpoints - BLOCKED)
+#### ❌ **NEEDED FOR E2E TESTS** (6 endpoints - BLOCKED)
 ```
-DRAFTS (Required by all 5 E2E workflows):
+DRAFTS (Required by E2E tests 1, 2, 3, 4):
   POST /api/drafts                          # Create draft [CRITICAL]
   GET /api/drafts/:id                       # Retrieve draft [CRITICAL]
   POST /api/drafts/:id/approve              # Approve draft [CRITICAL]
   POST /api/drafts/:id/reject               # Reject draft [CRITICAL]
   POST /api/drafts/:id/publish              # Publish draft [CRITICAL]
 
-PUBLISHED (Required by E2E tests 2, 4, 5):
+PUBLISHED (Required by E2E tests 2, 4):
   GET /api/published/:id                    # Get published article [CRITICAL]
 
-WIDGET (Required by E2E test 5):
-  GET /api/widget/:id                       # Widget API endpoint [HIGH]
+WIDGET (⏳ FUTURE WORK - Not in current scope):
+  GET /api/widget/:id                       # [REMOVED - Widget feature not implemented]
 ```
 
 ---
@@ -1271,13 +1262,13 @@ WIDGET (Required by E2E test 5):
    - Blocks: 2 tests
 
 #### 🟡 **PHASE 3: MAJOR** (Enables E2E testing)
-**Endpoints:** 5 CRITICAL endpoints
-**Impact:** Unblocks all 25 E2E tests
+**Endpoints:** 6 CRITICAL endpoints
+**Impact:** Unblocks 22 E2E tests (4 active test suites, Test 5 future work)
 **Effort:** ~8-10 hours
 
 5. `POST /api/drafts` - Create draft
    - Used by: E2E tests 1, 2, 3, 4
-   - Blocking: All E2E tests
+   - Blocking: 15 E2E tests
 
 6. `GET /api/drafts/:id` - Retrieve draft
    - Used by: E2E tests 2, 3, 4
@@ -1292,16 +1283,15 @@ WIDGET (Required by E2E test 5):
    - Blocking: 4 E2E tests
 
 9. `POST /api/drafts/:id/publish` - Publish draft
-   - Used by: E2E tests 4, 5
-   - Blocking: 9 E2E tests
+   - Used by: E2E test 4
+   - Blocking: 6 E2E tests
 
 10. `GET /api/published/:id` - Get published article
-    - Used by: E2E tests 4, 5
-    - Blocking: 9 E2E tests
+    - Used by: E2E tests 2, 4
+    - Blocking: 8 E2E tests
 
-11. `GET /api/widget/:id` - Widget endpoint
-    - Used by: E2E test 5
-    - Blocking: 3 E2E tests
+**NOT IMPLEMENTING (Future Work):**
+- ~~`GET /api/widget/:id`~~ - Widget feature not yet implemented
 
 ---
 
@@ -1309,12 +1299,12 @@ WIDGET (Required by E2E test 5):
 
 | Endpoint | Integration Tests | E2E Tests | Total Impact |
 |----------|---|---|---|
-| ✅ `POST /api/tickets/upload-csv` | 1 | 5 | 6 ✓ PASSING |
+| ✅ `POST /api/tickets/upload-csv` | 1 | 4 | 5 ✓ PASSING |
 | ✅ `POST /api/documents/upload` | 0 | 1 | 1 ✓ PASSING |
 | ✅ `GET /api/health/ping` | 1 | 0 | 1 ✓ PASSING |
 | ❌ `GET /api/clusters` | 3 | 3 | 6 BLOCKED |
 | ❌ `GET /api/clusters/:id` | 1 | 2 | 3 BLOCKED |
-| ❌ `GET /api/tickets` | 2 | 3 | 5 BLOCKED |
+| ❌ `GET /api/tickets` | 2 | 2 | 4 BLOCKED |
 | ❌ `GET /api/tickets/:id` | 1 | 2 | 3 BLOCKED |
 | ❌ `POST /api/drafts` | 0 | 4 | 4 BLOCKED |
 | ❌ `GET /api/drafts/:id` | 0 | 3 | 3 BLOCKED |
@@ -1322,8 +1312,8 @@ WIDGET (Required by E2E test 5):
 | ❌ `POST /api/drafts/:id/reject` | 0 | 1 | 1 BLOCKED |
 | ❌ `POST /api/drafts/:id/publish` | 0 | 2 | 2 BLOCKED |
 | ❌ `GET /api/published/:id` | 0 | 2 | 2 BLOCKED |
-| ❌ `GET /api/widget/:id` | 0 | 1 | 1 BLOCKED |
-| **TOTAL** | **9/13** | **0/25** | **9/38** |
+| ⏳ ~~`GET /api/widget/:id`~~ | 0 | 0 | 0 FUTURE WORK |
+| **TOTAL** | **9/13** | **0/22** | **9/35** |
 
 ---
 
@@ -1332,9 +1322,11 @@ WIDGET (Required by E2E test 5):
 **Unit Tests:** 170 ✅ (all passing)
 **Integration Tests (Infrastructure):** 6/8 ✅ (passing)
 **Integration Tests (Business Logic):** 0/5 ❌ (blocked - need 4 endpoints)
-**E2E Tests:** 0/25 ❌ (blocked - need 7 endpoints)
+**E2E Tests:** 0/22 ❌ (blocked - need 6 endpoints, 4 active test suites only)
+**E2E Tests (Future Work):** 0/3 ⏳ (widget feature not implemented)
 
-**Total:** 176/213 tests passing (83%)
+**Total:** 176/210 tests in active scope (84%)
+**Total Including Future Work:** 176/213 (83%)
 
 ---
 
