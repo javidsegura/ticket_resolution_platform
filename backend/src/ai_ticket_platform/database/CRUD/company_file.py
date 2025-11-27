@@ -32,7 +32,7 @@ async def get_all_company_files(db: AsyncSession, skip: int = 0, limit: int = 10
 	Retrieve all company files.
 	"""
 	result = await db.execute(select(CompanyFile).offset(skip).limit(limit))
-	return list(result.scalars().all())
+	return result.scalars().all()
 
 async def delete_company_file(db: AsyncSession, file_id: int) -> bool:
 	"""

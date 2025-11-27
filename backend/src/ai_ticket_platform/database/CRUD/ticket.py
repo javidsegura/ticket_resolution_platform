@@ -2,6 +2,7 @@
 from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from ai_ticket_platform.database.generated_models import Ticket
 
 
@@ -33,7 +34,7 @@ async def create_tickets(db: AsyncSession, tickets_data: List[dict]) -> List[Tic
     try:
         db.add_all(tickets)
         await db.commit()
-    except Exception as e:
+    except SQLAlchemyError as e:
         await db.rollback()
         raise RuntimeError(f"Failed to create tickets: {e}") from e
 

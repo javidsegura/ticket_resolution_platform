@@ -1,20 +1,59 @@
 from ai_ticket_platform.dependencies.queue import get_queue
 from ai_ticket_platform.services.queue_manager.tasks import batch_finalizer, process_ticket_stage1
-from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
+from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 import logging
 
-from ai_ticket_platform.dependencies.database import get_db
+from ai_ticket_platform.dependencies import get_db
 from ai_ticket_platform.services.csv_uploader.csv_orchestrator import upload_csv_file
-from ai_ticket_platform.schemas.endpoints.ticket import CSVUploadResponse
+from ai_ticket_platform.schemas.endpoints.ticket import (
+    CSVUploadResponse,
+    TicketListResponse,
+    TicketResponse,
+)
+from ai_ticket_platform.database.CRUD.ticket import (
+    get_ticket as crud_get_ticket,
+    list_tickets as crud_list_tickets,
+)
 
-router = APIRouter(prefix="/tickets")
+router = APIRouter(prefix="/tickets", tags=["tickets"])
 logger = logging.getLogger(__name__)
 
 from ai_ticket_platform.core.clients.redis import initialize_redis_client
 from rq import Queue
 from rq.job import Job, Retry
 
+
+
+@router.get("/", response_model=TicketListResponse)
+async def get_tickets(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Return a paginated list of tickets.
+    """
+    tickets = await crud_list_tickets(db, skip=skip, limit=limit)
+    ticket_models = [TicketResponse.model_validate(ticket) for ticket in tickets]
+    return TicketListResponse(
+        total=len(ticket_models),
+        skip=skip,
+        limit=limit,
+        tickets=ticket_models,
+    )
+
+
+@router.get("/{ticket_id}", response_model=TicketResponse)
+async def get_ticket_by_id(ticket_id: int, db: AsyncSession = Depends(get_db)):
+    """
+    Retrieve a single ticket by ID.
+    """
+    ticket = await crud_get_ticket(db, ticket_id)
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+
+    return TicketResponse.model_validate(ticket)
 
 
 @router.post("/upload-csv", response_model=CSVUploadResponse)

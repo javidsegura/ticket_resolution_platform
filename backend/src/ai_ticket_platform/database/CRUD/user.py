@@ -1,4 +1,5 @@
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from typing import Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from ai_ticket_platform.database.generated_models import User
@@ -26,7 +27,7 @@ async def create_user(
         db.add(db_user)
         await db.commit()
         await db.refresh(db_user)
-    except Exception as e:
+    except SQLAlchemyError as e:
         await db.rollback()
         raise RuntimeError(f"Failed to create user: {e}") from e
     return db_user
@@ -45,7 +46,7 @@ async def get_all_users(db: AsyncSession, skip: int = 0, limit: int = 100) -> Li
     Retrieve all users.
     """
     result = await db.execute(select(User).offset(skip).limit(limit).order_by(User.created_at.desc()))
-    return list(result.scalars().all())
+    return result.scalars().all()
 
 
 async def update_user(
@@ -79,7 +80,7 @@ async def update_user(
     try:
         await db.commit()
         await db.refresh(user)
-    except Exception as e:
+    except SQLAlchemyError as e:
         await db.rollback()
         raise RuntimeError(f"Failed to update user: {e}") from e
 
@@ -95,7 +96,7 @@ async def delete_user(db: AsyncSession, user_id: int) -> bool:
         try:
             await db.delete(user)
             await db.commit()
-        except Exception as e:
+        except SQLAlchemyError as e:
             await db.rollback()
             raise RuntimeError(f"Failed to delete user: {e}") from e
         return True

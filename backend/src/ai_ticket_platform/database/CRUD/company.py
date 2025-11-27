@@ -1,4 +1,5 @@
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from typing import Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from ai_ticket_platform.database.generated_models import CompanyProfile
@@ -24,7 +25,7 @@ async def create_company_profile(
         db.add(db_profile)
         await db.commit()
         await db.refresh(db_profile)
-    except Exception as e:
+    except SQLAlchemyError as e:
         await db.rollback()
         raise RuntimeError(f"Failed to create company profile: {e}") from e
     return db_profile
@@ -43,7 +44,7 @@ async def get_all_company_profiles(db: AsyncSession, skip: int = 0, limit: int =
     Retrieve all company profiles.
     """
     result = await db.execute(select(CompanyProfile).offset(skip).limit(limit).order_by(CompanyProfile.created_at.desc()))
-    return list(result.scalars().all())
+    return result.scalars().all()
 
 
 async def update_company_profile(
@@ -74,7 +75,7 @@ async def update_company_profile(
     try:
         await db.commit()
         await db.refresh(profile)
-    except Exception as e:
+    except SQLAlchemyError as e:
         await db.rollback()
         raise RuntimeError(f"Failed to update company profile: {e}") from e
 
@@ -90,7 +91,7 @@ async def delete_company_profile(db: AsyncSession, profile_id: int) -> bool:
         try:
             await db.delete(profile)
             await db.commit()
-        except Exception as e:
+        except SQLAlchemyError as e:
             await db.rollback()
             raise RuntimeError(f"Failed to delete company profile: {e}") from e
         return True

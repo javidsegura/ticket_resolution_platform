@@ -1,4 +1,5 @@
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from typing import Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from ai_ticket_platform.database.generated_models import Article
@@ -7,7 +8,7 @@ from ai_ticket_platform.database.generated_models import Article
 async def create_article(
     db: AsyncSession,
     intent_id: int,
-    type: str,
+    article_type: str,
     blob_path: str,
     status: str = "iteration",
     version: int = 1,
@@ -19,7 +20,7 @@ async def create_article(
     Args:
         db: Database session
         intent_id: Intent ID (immutable after creation)
-        type: Article type (immutable after creation)
+        article_type: Article type (immutable after creation)
         blob_path: Blob path (immutable after creation)
         status: Article status (default 'iteration')
         version: Version number (default 1)
@@ -27,7 +28,7 @@ async def create_article(
     """
     db_article = Article(
         intent_id=intent_id,
-        type=type,
+        type=article_type,
         blob_path=blob_path,
         status=status,
         version=version,
@@ -37,7 +38,7 @@ async def create_article(
         db.add(db_article)
         await db.commit()
         await db.refresh(db_article)
-    except Exception as e:
+    except SQLAlchemyError as e:
         await db.rollback()
         raise RuntimeError(f"Failed to create article: {e}") from e
     return db_article
@@ -56,7 +57,7 @@ async def get_all_articles(db: AsyncSession, skip: int = 0, limit: int = 100) ->
     Retrieve all articles.
     """
     result = await db.execute(select(Article).offset(skip).limit(limit).order_by(Article.created_at.desc()))
-    return list(result.scalars().all())
+    return result.scalars().all()
 
 
 async def update_article(
@@ -86,7 +87,7 @@ async def update_article(
     try:
         await db.commit()
         await db.refresh(article)
-    except Exception as e:
+    except SQLAlchemyError as e:
         await db.rollback()
         raise RuntimeError(f"Failed to update article: {e}") from e
 
@@ -102,7 +103,7 @@ async def delete_article(db: AsyncSession, article_id: int) -> bool:
         try:
             await db.delete(article)
             await db.commit()
-        except Exception as e:
+        except SQLAlchemyError as e:
             await db.rollback()
             raise RuntimeError(f"Failed to delete article: {e}") from e
         return True
