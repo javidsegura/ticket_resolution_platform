@@ -1189,6 +1189,155 @@ ENVIRONMENT=test pytest -s -vv tests/e2e/test_csv_complete_flow.py::test_csv_ing
 
 ---
 
+## COMPLETE ENDPOINT REQUIREMENTS SUMMARY
+
+### All Endpoints Needed (Integration + E2E Testing)
+
+#### ✅ **Already Implemented** (5 endpoints - WORKING)
+```
+TICKETS:
+  POST /api/tickets/upload-csv              # Upload CSV file
+
+DOCUMENTS:
+  POST /api/documents/upload                # Upload PDF documents
+
+HEALTH:
+  GET /api/health/ping                      # API health check
+  GET /api/health/dependencies              # Service health check
+
+SLACK (utility, not required for testing):
+  POST /api/slack/send-message
+  POST /api/slack/send-article-proposal
+  POST /api/slack/send-approval-confirmation
+  POST /api/slack/receive-answer
+  GET /api/slack/ping
+```
+
+#### ❌ **NEEDED FOR INTEGRATION TESTS** (4 endpoints - BLOCKED)
+```
+CLUSTERS (CRITICAL - Blocks 3 integration tests):
+  GET /api/clusters                         # List all clusters [CRITICAL]
+  GET /api/clusters/:id                     # Get single cluster [HIGH]
+
+TICKETS (CRITICAL - Blocks 2 integration tests):
+  GET /api/tickets                          # List/search tickets with ?search= [CRITICAL]
+  GET /api/tickets/:id                      # Get single ticket [HIGH]
+```
+
+#### ❌ **NEEDED FOR E2E TESTS** (7 endpoints - BLOCKED)
+```
+DRAFTS (Required by all 5 E2E workflows):
+  POST /api/drafts                          # Create draft [CRITICAL]
+  GET /api/drafts/:id                       # Retrieve draft [CRITICAL]
+  POST /api/drafts/:id/approve              # Approve draft [CRITICAL]
+  POST /api/drafts/:id/reject               # Reject draft [CRITICAL]
+  POST /api/drafts/:id/publish              # Publish draft [CRITICAL]
+
+PUBLISHED (Required by E2E tests 2, 4, 5):
+  GET /api/published/:id                    # Get published article [CRITICAL]
+
+WIDGET (Required by E2E test 5):
+  GET /api/widget/:id                       # Widget API endpoint [HIGH]
+```
+
+---
+
+### Priority-Based Implementation Roadmap
+
+#### 🔴 **PHASE 1: CRITICAL** (Unblocks most tests)
+**Endpoints:** 2 CRITICAL endpoints
+**Impact:** Unblocks 5+ tests
+**Effort:** ~4-6 hours
+
+1. `GET /api/clusters` - List clusters
+   - Used by: Integration tests 1, 3, 5 + E2E tests 2, 4, 5
+   - Blocks: 5 tests total
+
+2. `GET /api/tickets` - List/search tickets
+   - Used by: Integration test 2 + E2E tests 2, 5
+   - Blocks: 3 tests total
+
+#### 🟠 **PHASE 2: HIGH** (Completes integration testing)
+**Endpoints:** 2 HIGH endpoints
+**Impact:** Unblocks 2 integration tests
+**Effort:** ~2-4 hours
+
+3. `GET /api/clusters/:id` - Get single cluster
+   - Used by: Integration test 1 (detail flow) + E2E tests 2, 4
+   - Blocks: 2 tests
+
+4. `GET /api/tickets/:id` - Get single ticket
+   - Used by: Integration test 2 (detail flow) + E2E tests 2, 5
+   - Blocks: 2 tests
+
+#### 🟡 **PHASE 3: MAJOR** (Enables E2E testing)
+**Endpoints:** 5 CRITICAL endpoints
+**Impact:** Unblocks all 25 E2E tests
+**Effort:** ~8-10 hours
+
+5. `POST /api/drafts` - Create draft
+   - Used by: E2E tests 1, 2, 3, 4
+   - Blocking: All E2E tests
+
+6. `GET /api/drafts/:id` - Retrieve draft
+   - Used by: E2E tests 2, 3, 4
+   - Blocking: 12 E2E tests
+
+7. `POST /api/drafts/:id/approve` - Approve draft
+   - Used by: E2E test 3
+   - Blocking: 4 E2E tests
+
+8. `POST /api/drafts/:id/reject` - Reject draft
+   - Used by: E2E test 3
+   - Blocking: 4 E2E tests
+
+9. `POST /api/drafts/:id/publish` - Publish draft
+   - Used by: E2E tests 4, 5
+   - Blocking: 9 E2E tests
+
+10. `GET /api/published/:id` - Get published article
+    - Used by: E2E tests 4, 5
+    - Blocking: 9 E2E tests
+
+11. `GET /api/widget/:id` - Widget endpoint
+    - Used by: E2E test 5
+    - Blocking: 3 E2E tests
+
+---
+
+### Testing Coverage Matrix
+
+| Endpoint | Integration Tests | E2E Tests | Total Impact |
+|----------|---|---|---|
+| ✅ `POST /api/tickets/upload-csv` | 1 | 5 | 6 ✓ PASSING |
+| ✅ `POST /api/documents/upload` | 0 | 1 | 1 ✓ PASSING |
+| ✅ `GET /api/health/ping` | 1 | 0 | 1 ✓ PASSING |
+| ❌ `GET /api/clusters` | 3 | 3 | 6 BLOCKED |
+| ❌ `GET /api/clusters/:id` | 1 | 2 | 3 BLOCKED |
+| ❌ `GET /api/tickets` | 2 | 3 | 5 BLOCKED |
+| ❌ `GET /api/tickets/:id` | 1 | 2 | 3 BLOCKED |
+| ❌ `POST /api/drafts` | 0 | 4 | 4 BLOCKED |
+| ❌ `GET /api/drafts/:id` | 0 | 3 | 3 BLOCKED |
+| ❌ `POST /api/drafts/:id/approve` | 0 | 1 | 1 BLOCKED |
+| ❌ `POST /api/drafts/:id/reject` | 0 | 1 | 1 BLOCKED |
+| ❌ `POST /api/drafts/:id/publish` | 0 | 2 | 2 BLOCKED |
+| ❌ `GET /api/published/:id` | 0 | 2 | 2 BLOCKED |
+| ❌ `GET /api/widget/:id` | 0 | 1 | 1 BLOCKED |
+| **TOTAL** | **9/13** | **0/25** | **9/38** |
+
+---
+
+### Current Testing Status
+
+**Unit Tests:** 170 ✅ (all passing)
+**Integration Tests (Infrastructure):** 6/8 ✅ (passing)
+**Integration Tests (Business Logic):** 0/5 ❌ (blocked - need 4 endpoints)
+**E2E Tests:** 0/25 ❌ (blocked - need 7 endpoints)
+
+**Total:** 176/213 tests passing (83%)
+
+---
+
 ## Development Workflow
 
 When adding new features:
