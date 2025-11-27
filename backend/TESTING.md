@@ -1,8 +1,8 @@
-# Unit Testing Guide
+# Testing Guide
 
 ## Overview
 
-This project includes comprehensive unit tests for three feature branches:
+This project includes comprehensive unit tests and integration tests:
 
 ### Feature Branches
 1. **feature/clustering** - Ticket clustering with LLM integration
@@ -319,6 +319,180 @@ pip install pytest pytest-cov pytest-asyncio
 # Run with timeout
 pytest tests/unit/ --timeout=10
 ```
+
+---
+
+## Integration Tests (Docker-Based)
+
+### Overview
+
+Integration tests verify real Docker services (MySQL, Redis, Firebase) and test actual system behavior end-to-end.
+
+**Current Tests:** 8 tests covering infrastructure and data persistence
+**Location:** `tests/integration/`
+**Running:** `make test-integration-services-docker` (from backend dir)
+
+### Available Endpoints (In Development)
+
+```
+CLUSTERS:
+  GET /api/clusters              # List clusters (optional search param)
+  GET /api/clusters/:id          # Get cluster by ID
+  POST /api/clusters/:id/feedback (FUTURE)
+  POST /api/clusters/:id/approve (FUTURE)
+  DELETE /api/clusters/:id (FUTURE)
+
+TICKETS:
+  GET /api/tickets               # List tickets (optional search param)
+  GET /api/tickets/:id           # Get ticket by ID
+  POST /api/tickets/upload-csv   # Upload CSV file
+
+DASHBOARD:
+  GET /api/dashboard/stats (FUTURE)
+
+DOCUMENTS:
+  POST /api/documents/upload     # Upload PDF documents
+
+HEALTH:
+  GET /api/health/ping           # API health check
+```
+
+### Current Infrastructure Tests (8 tests)
+
+**File: `test_csv_upload_docker.py` (2 tests)**
+- `test_csv_upload_persists_to_mysql` - Verifies CSV data correctly persists to MySQL
+- `test_health_endpoint_works` - Verifies API health endpoint accessibility
+
+**File: `test_caching_docker.py` (4 tests)**
+- `test_redis_cache_operations` - Verifies SET/GET operations and data persistence
+- `test_redis_ttl_expiration_works` - Verifies automatic TTL eviction after 2s timeout
+- `test_redis_connection_and_basic_operations` - Comprehensive Redis connectivity and INCR/DECR
+- (Demonstrates cache-aside pattern foundation)
+
+**File: `test_persistence_docker.py` (3 tests)**
+- `test_mysql_transaction_acid_compliance` - Verifies ACID guarantees (Atomicity, Durability, Consistency)
+- `test_concurrent_database_operations_and_pooling` - Tests 10 concurrent insert/read/update with pooling
+- `test_database_connection_health` - Verifies connection health, transactions, table existence
+
+### Planned Business Logic Integration Tests
+
+**Note:** These will be implemented once endpoints are finalized. They will test the **end-to-end CSV processing flow**:
+
+```
+CSV Upload Flow (stops before Slack approval):
+  1. Upload CSV file
+     ↓
+  2. Parse CSV → MySQL (tickets table)
+     ↓
+  3. Run clustering (tickets → clusters)
+     ↓
+  4. Cache clustering results in Redis
+     ↓
+  5. Verify cluster output structure
+     ↓
+  [STOP before: Slack notification/approval]
+```
+
+**Planned Tests:**
+
+1. **CSV→Clusters Pipeline** (`test_end_to_end_csv_flow.py`)
+   - Upload CSV → Parse → MySQL
+   - Verify tickets created
+   - Run clustering
+   - Verify clusters created
+   - Verify Redis caching
+
+2. **Cluster Retrieval with Cache** (`test_cluster_caching.py`)
+   - GET /api/clusters → First call (cache miss)
+   - GET /api/clusters → Second call (cache hit)
+   - Verify response time improvement
+
+3. **Ticket Search with Caching** (`test_ticket_search_cache.py`)
+   - GET /api/tickets?search=query → First call (MySQL fetch)
+   - GET /api/tickets?search=query → Second call (Redis cache hit)
+   - Verify data consistency
+
+4. **Document Upload Workflow** (`test_document_workflow.py`)
+   - POST /api/documents/upload → File processing
+   - Verify metadata in database
+   - Verify labels assigned
+   - Verify company_files created
+
+5. **Concurrent CSV Uploads** (`test_concurrent_flows.py`)
+   - Multiple concurrent CSV uploads
+   - Each triggers clustering independently
+   - Verify no conflicts in cache
+   - Verify all clusters created correctly
+
+### Running Integration Tests
+
+**Option 1: Automated (Recommended)**
+```bash
+cd backend
+make test-integration-services-docker
+```
+
+This command:
+- Starts Docker services (ENVIRONMENT=test)
+- Runs all infrastructure tests (8 tests)
+- Cleans up containers
+- Reports pass/fail
+
+**Option 2: Manual Control**
+```bash
+cd backend
+
+# Terminal 1: Start services
+ENVIRONMENT=test make test-docker-compose-start
+
+# Terminal 2: Run tests
+ENVIRONMENT=test pytest -s -vv tests/integration/test_csv_upload_docker.py
+
+# Terminal 1: Stop services
+ENVIRONMENT=test make test-docker-compose-stop
+```
+
+**Option 3: Run Individual Test File**
+```bash
+cd backend
+
+# With services already running:
+ENVIRONMENT=test pytest -s -vv tests/integration/test_caching_docker.py
+```
+
+### Docker Infrastructure
+
+**Services Used:**
+- **MySQL 8.0** - Port 3307 (host) / 3306 (container)
+- **Redis 7.2** - Port 6379
+- **Firebase Emulator** - Port 9099 (auth), 4000 (firestore)
+- **Nginx** - Reverse proxy
+
+**Configuration:**
+- Located in `deployment/docker-compose.yml` and `deployment/docker-compose.test.yml`
+- Test env variables in `.env.test` (gitignored)
+- Database migrations run automatically
+
+### Test Fixtures (conftest.py)
+
+```python
+@pytest_asyncio.fixture
+async def async_client() -> AsyncClient:
+    """HTTP client to FastAPI app via ASGI transport"""
+    # Already existed, unchanged
+
+@pytest_asyncio.fixture
+async def db_connection() -> AsyncSession:
+    """Direct async MySQL connection for verification queries"""
+    # Newly added for integration tests
+
+@pytest_asyncio.fixture
+async def redis_client() -> redis.Redis:
+    """Direct Redis client for cache verification"""
+    # Newly added for integration tests
+```
+
+---
 
 ## Development Workflow
 
