@@ -2,8 +2,9 @@ import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Ticket, TrendingUp, Clock, CheckCircle, Upload, Layers, AlertCircle, ChevronDown, ChevronUp, Maximize2, X, Search } from "lucide-react"
+import { Ticket, TrendingUp, Clock, CheckCircle, Upload, Layers, AlertCircle, ChevronDown, ChevronUp, Maximize2, X, Search, FlaskConical } from "lucide-react"
 import { fetchClusters, type Cluster } from "@/services/clusters"
+import { fetchABTestingTotals, type ABTestingTotals } from "@/services/analytics"
 
 // Dummy data - will be replaced with API calls
 const dummyTickets = [
@@ -145,6 +146,9 @@ export default function Dashboard() {
   // Global search state
   const [globalSearch, setGlobalSearch] = useState("")
   const [showGlobalSearchResults, setShowGlobalSearchResults] = useState(false)
+  const [abTestingTotals, setAbTestingTotals] = useState<ABTestingTotals | null>(null)
+  const [abTestingLoading, setAbTestingLoading] = useState(true)
+  const [abTestingError, setAbTestingError] = useState<string | null>(null)
   
   // Reset modal filters when modal closes
   const handleCloseClustersModal = () => {
@@ -172,7 +176,22 @@ export default function Dashboard() {
       }
     }
 
+    const loadABTestingTotals = async () => {
+      try {
+        setAbTestingLoading(true)
+        const data = await fetchABTestingTotals()
+        setAbTestingTotals(data)
+        setAbTestingError(null)
+      } catch (error) {
+        console.error("Error loading AB testing data:", error)
+        setAbTestingError("Unable to load A/B test performance right now.")
+      } finally {
+        setAbTestingLoading(false)
+      }
+    }
+
     loadClusters()
+    loadABTestingTotals()
   }, [])
 
   const CLUSTERS_PREVIEW_COUNT = 6
@@ -232,6 +251,20 @@ export default function Dashboard() {
   }
   
   const totalGlobalResults = globalSearchResults.clusters.length + globalSearchResults.tickets.length
+
+  const variantAConversion = abTestingTotals
+    ? (abTestingTotals.variant_a_impressions === 0
+        ? 0
+        : (abTestingTotals.variant_a_resolutions / abTestingTotals.variant_a_impressions) * 100)
+    : 0
+
+  const variantBConversion = abTestingTotals
+    ? (abTestingTotals.variant_b_impressions === 0
+        ? 0
+        : (abTestingTotals.variant_b_resolutions / abTestingTotals.variant_b_impressions) * 100)
+    : 0
+
+  const conversionDifference = abTestingTotals ? variantAConversion - variantBConversion : 0
 
   return (
     <div className="space-y-6">
@@ -393,8 +426,8 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Clusters and Tickets Side by Side */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 relative">
+      {/* Clusters, AB Testing and Tickets */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.2fr_1fr_0.5fr] relative">
         {/* Clusters Section */}
         <Card>
           <CardHeader className="pb-3">
@@ -514,8 +547,94 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
+        {/* AB Testing Section */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <FlaskConical className="h-4 w-4" />
+                  A/B Testing Performance
+                </CardTitle>
+                <CardDescription className="text-xs mt-1">
+                  Impressions, resolutions, and conversion rates
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            {abTestingLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600 mx-auto"></div>
+                  <p className="mt-2 text-gray-600 text-xs">Loading experiment data...</p>
+                </div>
+              </div>
+            ) : abTestingError ? (
+              <div className="text-center py-8 text-gray-500">
+                <AlertCircle className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                <p className="text-xs">{abTestingError}</p>
+              </div>
+            ) : abTestingTotals ? (
+              <div className="space-y-5">
+                <div className="grid grid-cols-1 gap-4">
+                  {(["variant_a", "variant_b"] as const).map((variantKey) => {
+                    const label = variantKey === "variant_a" ? "Variant A" : "Variant B"
+                    const impressions = abTestingTotals[`${variantKey}_impressions` as const]
+                    const resolutions = abTestingTotals[`${variantKey}_resolutions` as const]
+                    const conversion = impressions === 0 ? 0 : (resolutions / impressions) * 100
+
+                    return (
+                      <div key={variantKey} className="rounded-lg border p-3">
+                        <div className="flex items-center justify-between text-sm font-medium text-gray-900">
+                          <span>{label}</span>
+                          <span>{conversion.toFixed(1)}%</span>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          {resolutions} resolutions / {impressions} impressions
+                        </p>
+                        <div className="mt-3 h-2 rounded-full bg-gray-100">
+                          <div
+                            className="h-full rounded-full bg-primary-500 transition-all"
+                            style={{ width: `${Math.min(conversion, 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                <div className="rounded-lg bg-gray-50 p-4 text-xs text-gray-600">
+                  <p className="font-semibold text-gray-800 mb-1">Quick insights</p>
+                  <ul className="space-y-1">
+                    <li>
+                      Variant A lift vs B:{" "}
+                      <span className={`font-semibold ${conversionDifference >= 0 ? "text-green-700" : "text-red-600"}`}>
+                        {conversionDifference >= 0 ? "+" : ""}
+                        {conversionDifference.toFixed(1)} pp
+                      </span>
+                    </li>
+                    <li>
+                      Total impressions:{" "}
+                      <span className="font-semibold text-gray-900">
+                        {abTestingTotals.variant_a_impressions + abTestingTotals.variant_b_impressions}
+                      </span>
+                    </li>
+                    <li>
+                      Total resolutions:{" "}
+                      <span className="font-semibold text-gray-900">
+                        {abTestingTotals.variant_a_resolutions + abTestingTotals.variant_b_resolutions}
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+
         {/* Recent Tickets Section */}
-      <Card>
+        <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div>

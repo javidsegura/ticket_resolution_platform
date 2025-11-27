@@ -6,7 +6,7 @@ AI-Powered Ticket Resolution Platform
 1. Every time you run make targets you need to set up the environment you are working at:
 `export ENVIRONMENT=""` value can be between ["test", "dev", "staging", "prod"]
 2. Install packages dependencies: 
-   - Project-wide dependencies:  make install at the root level
+   - Project-wide dependencies:  make install at the root level, as well as make install packages
    - Frontend dependencies:  make -C frontend install
    - Backend dependencies:  make -C backend install   
    - Infra dependencies (**only if working in infra**):  make install  after cd infra/
