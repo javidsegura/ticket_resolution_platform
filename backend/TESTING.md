@@ -17,10 +17,35 @@ This project includes comprehensive unit tests and integration tests:
 - **Company File CRUD** - Database operations for company documents
 
 **Test Statistics:**
-- **Total Tests:** 170 (focused on feature branch services only)
+- **Total Tests:** 170 (unit) + 8 (integration/infrastructure) = 178 total
 - **Code Coverage:** 97% on feature branch services
 - **Status:** All tests passing ✓
 - **Uncovered Lines:** 11 (edge cases in csv_parser.py)
+
+### Test Hierarchy (By Type)
+
+```
+Testing Pyramid:
+                    E2E Tests (User Workflows) [NOT YET IMPLEMENTED]
+                          /
+                         /  Business Logic Tests (5 planned)
+                        /
+                  Integration Tests (8 current - infrastructure)
+                      /
+                     /  Unit Tests (170 - services & logic)
+                    /
+           Infrastructure (Docker, fixtures)
+```
+
+**Current Test Breakdown:**
+- **Unit Tests:** 170 tests (service logic, CRUD operations)
+- **Integration Tests (Infrastructure):** 6 passing (CSV, Redis, MySQL)
+  - Direct database/cache testing (no HTTP endpoints needed)
+  - Docker services verification
+- **Integration Tests (Business Logic):** 5 planned (BLOCKED - waiting for endpoints)
+  - End-to-end workflow testing (CSV→Clustering→Caching)
+  - Requires cluster & ticket GET endpoints
+- **E2E Tests:** Next phase (user journey from UI perspective)
 
 ## Running Tests
 
@@ -332,29 +357,37 @@ Integration tests verify real Docker services (MySQL, Redis, Firebase) and test 
 **Location:** `tests/integration/`
 **Running:** `make test-integration-services-docker` (from backend dir)
 
-### Available Endpoints (In Development)
+### Available Endpoints - Implementation Status
 
+#### ✅ **Already Implemented**
 ```
-CLUSTERS:
-  GET /api/clusters              # List clusters (optional search param)
-  GET /api/clusters/:id          # Get cluster by ID
-  POST /api/clusters/:id/feedback (FUTURE)
-  POST /api/clusters/:id/approve (FUTURE)
-  DELETE /api/clusters/:id (FUTURE)
-
 TICKETS:
-  GET /api/tickets               # List tickets (optional search param)
-  GET /api/tickets/:id           # Get ticket by ID
-  POST /api/tickets/upload-csv   # Upload CSV file
-
-DASHBOARD:
-  GET /api/dashboard/stats (FUTURE)
+  POST /api/tickets/upload-csv   # Upload CSV file (WORKING)
 
 DOCUMENTS:
-  POST /api/documents/upload     # Upload PDF documents
+  POST /api/documents/upload     # Upload PDF documents (WORKING)
 
 HEALTH:
-  GET /api/health/ping           # API health check
+  GET /api/health/ping           # API health check (WORKING)
+  GET /api/health/dependencies   # Service health check (WORKING)
+
+SLACK:
+  POST /api/slack/send-message
+  POST /api/slack/send-article-proposal
+  POST /api/slack/send-approval-confirmation
+  POST /api/slack/receive-answer
+  GET /api/slack/ping
+```
+
+#### ❌ **NEEDED FOR BUSINESS LOGIC TESTS** (Not Yet Implemented)
+```
+CLUSTERS (CRITICAL - Required by 3 tests):
+  GET /api/clusters              # List all clusters [REQUIRED]
+  GET /api/clusters/:id          # Get single cluster [REQUIRED]
+
+TICKETS (CRITICAL - Required by 2 tests):
+  GET /api/tickets               # List/search tickets with ?search= param [REQUIRED]
+  GET /api/tickets/:id           # Get single ticket [REQUIRED]
 ```
 
 ### Current Infrastructure Tests (8 tests)
@@ -614,6 +647,163 @@ Assertions:
 - Cache handles concurrent updates correctly
 - Connection pooling works under load
 - Data integrity with concurrent writes
+
+---
+
+### Endpoint Specifications (Required for Business Logic Tests)
+
+#### **TIER 1: GET /api/clusters** (CRITICAL - Blocks 3 tests)
+**Purpose:** List all clusters for caching and pipeline tests
+**Used By:** Tests 1, 3, 5
+**Method:** GET
+**Path:** `/api/clusters`
+**Query Params:** None
+**Status Code:** 200 OK
+**Response Schema:**
+```json
+{
+  "clusters": [
+    {
+      "id": 1,
+      "title": "Password Reset Issues",
+      "summary": "Users experiencing difficulties with password reset functionality",
+      "ticketCount": 12,
+      "mainTopics": ["Reset link location", "Email delivery issues"],
+      "priority": "high",
+      "status": "active",
+      "createdAt": "2025-01-10T08:00:00Z",
+      "updatedAt": "2025-01-15T14:30:00Z"
+    },
+    {
+      "id": 2,
+      "title": "Order History Navigation",
+      "summary": "Users cannot locate their order history",
+      "ticketCount": 8,
+      "mainTopics": ["Account dashboard layout", "Navigation menu structure"],
+      "priority": "medium",
+      "status": "active",
+      "createdAt": "2025-01-08T10:15:00Z",
+      "updatedAt": "2025-01-14T09:20:00Z"
+    }
+  ],
+  "total": 7
+}
+```
+
+#### **TIER 2: GET /api/clusters/:id** (HIGH - Blocks cluster detail test)
+**Purpose:** Get single cluster with full resolution details
+**Used By:** Test 1 (advanced flow)
+**Method:** GET
+**Path:** `/api/clusters/{cluster_id}`
+**Query Params:** None
+**Status Code:** 200 OK (or 404 if not found)
+**Response Schema:**
+```json
+{
+  "id": 1,
+  "title": "Password Reset Issues",
+  "summary": "Users experiencing difficulties...",
+  "ticketCount": 12,
+  "mainTopics": ["Reset link location", "Email delivery"],
+  "priority": "high",
+  "status": "active",
+  "resolution": "# Website Improvement Recommendation\n\nAdd a prominent 'Forgot Password?' link...",
+  "createdAt": "2025-01-10T08:00:00Z",
+  "updatedAt": "2025-01-15T14:30:00Z"
+}
+```
+
+#### **TIER 3: GET /api/tickets** (CRITICAL - Blocks 2 tests)
+**Purpose:** List/search tickets with optional filtering
+**Used By:** Tests 2, 5
+**Method:** GET
+**Path:** `/api/tickets`
+**Query Params:**
+- `search` (optional): String to search in subject/body
+- `limit` (optional): Number of results to return (default: 100)
+- `offset` (optional): Pagination offset (default: 0)
+
+**Status Code:** 200 OK
+**Response Schema:**
+```json
+{
+  "tickets": [
+    {
+      "id": 1,
+      "subject": "Test Ticket 1",
+      "body": "This is the first test ticket",
+      "createdAt": "2025-11-27T10:00:00Z",
+      "status": "open"
+    },
+    {
+      "id": 2,
+      "subject": "Test Ticket 2",
+      "body": "This is the second test ticket",
+      "createdAt": "2025-11-27T10:05:00Z",
+      "status": "open"
+    }
+  ],
+  "total": 150,
+  "limit": 100,
+  "offset": 0
+}
+```
+
+**Example Queries:**
+- `GET /api/tickets` - Get all tickets
+- `GET /api/tickets?search=password` - Search for "password" in tickets
+- `GET /api/tickets?search=reset&limit=10` - Search with limit
+- `GET /api/tickets?limit=50&offset=50` - Pagination
+
+#### **TIER 4: GET /api/tickets/:id** (HIGH - Blocks ticket detail test)
+**Purpose:** Get single ticket details
+**Used By:** Test 2 (advanced flow)
+**Method:** GET
+**Path:** `/api/tickets/{ticket_id}`
+**Query Params:** None
+**Status Code:** 200 OK (or 404 if not found)
+**Response Schema:**
+```json
+{
+  "id": 1,
+  "subject": "Test Ticket 1",
+  "body": "This is the first test ticket",
+  "createdAt": "2025-11-27T10:00:00Z",
+  "status": "open",
+  "clusterId": 1
+}
+```
+
+#### **TIER 5: POST /api/documents/upload** (Already Implemented)
+**Purpose:** Upload PDF documents with LLM labeling
+**Used By:** Test 4
+**Method:** POST
+**Path:** `/api/documents/upload`
+**Content-Type:** `multipart/form-data`
+**Body:** Multiple PDF files
+**Status Code:** 200 OK
+**Response Schema:**
+```json
+{
+  "total_processed": 3,
+  "successful": 3,
+  "failed": 0,
+  "results": [
+    {
+      "filename": "document1.pdf",
+      "success": true,
+      "department": "Support",
+      "summary": "Customer support documentation"
+    },
+    {
+      "filename": "document2.pdf",
+      "success": true,
+      "department": "Engineering",
+      "summary": "Technical implementation guide"
+    }
+  ]
+}
+```
 
 ---
 
