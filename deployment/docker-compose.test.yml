@@ -25,6 +25,7 @@ services:
       environment:
         ENVIRONMENT: ${ENVIRONMENT}
         MYSQL_HOST: database
+        MYSQL_PORT: "3306"
       depends_on:
         database:
           condition: service_healthy

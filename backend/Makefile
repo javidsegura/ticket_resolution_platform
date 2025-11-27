@@ -140,6 +140,20 @@ test-integration-widget: ## Run JS widget rendering tests
 	@echo "$(YELLOW)Running widget tests...$(RESET)"
 	$(VENV_ACTIVATE) && pytest -s -vv tests/integration/test_js_widget.py
 
+test-smoke: ## Run smoke tests for Docker service verification
+	@echo "$(YELLOW)Running smoke tests...$(RESET)"
+	$(VENV_ACTIVATE) && pytest -s -vv --cov=ai_ticket_platform --cov-report=term-missing tests/smoke/
+
+test-smoke-docker: ## Run smoke tests with Docker (verifies services are up)
+	@echo "$(YELLOW)Starting Docker-based smoke test suite...$(RESET)"
+	ENVIRONMENT=test $(MAKE) test-docker-compose-start
+	@echo "$(BLUE)Running smoke tests against Docker services...$(RESET)"
+	$(VENV_ACTIVATE) && ENVIRONMENT=test pytest -s -vv --cov=ai_ticket_platform --cov-report=term-missing tests/smoke/ || TEST_FAILED=1
+	@echo "$(YELLOW)Cleaning up Docker containers...$(RESET)"
+	ENVIRONMENT=test $(MAKE) test-docker-compose-stop
+	@if [ "$$TEST_FAILED" = "1" ]; then echo "$(RED)Tests failed$(RESET)"; exit 1; fi
+	@echo "$(GREEN)All smoke tests passed!$(RESET)"
+
 # 6) Miscellaneous
 check_enviroment_variables:
 	@if [ -z "$$ENVIRONMENT" ]; then \
