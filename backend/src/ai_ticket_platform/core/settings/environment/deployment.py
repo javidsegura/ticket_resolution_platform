@@ -12,14 +12,15 @@ class DeploymentSettings(BaseSettings):
                   "REDIS_URL", "MYSQL_USER", "MYSQL_PASSWORD", "MYSQL_HOST",
                   "MYSQL_PORT", "MYSQL_DATABASE", "MYSQL_SYNC_DRIVER", 
                   "MYSQL_ASYNC_DRIVER", 
-                  "CLOUD_PROVIDER"
+                  "CLOUD_PROVIDER", "GEMINI_API_KEY",
             ]
             
             # Dynamically add cloud-specific required vars
             cloud_provider = os.getenv("CLOUD_PROVIDER", "aws").lower()
             if cloud_provider == "aws":
-                  base_vars.extend(["S3_MAIN_BUCKET_NAME", "AWS_MAIN_REGION",
-                  "OPENAI_API_KEY", ])
+                  base_vars.extend(["S3_MAIN_BUCKET_NAME", 
+                                    "AWS_MAIN_REGION",    
+                  ])
             elif cloud_provider == "azure":
                   base_vars.extend([
                         "AZURE_STORAGE_CONTAINER_NAME",
@@ -74,8 +75,8 @@ class DeploymentSettings(BaseSettings):
             self.SLACK_CHANNEL_ID = os.getenv("SLACK_CHANNEL_ID")
 
       def _extract_llm_variables(self):
-            self.OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-            self.OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
+            self.GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+            self.GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
 
 
 

@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ai_ticket_platform.database.generated_models import Ticket
 from ai_ticket_platform.database.CRUD.ticket import create_tickets
 from ai_ticket_platform.core.clients import llm_client
-from ai_ticket_platform.services.clustering.cluster_service import cluster_and_categorize_tickets
+from ai_ticket_platform.services.clustering.cluster_service import cluster_tickets
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ async def cluster_tickets_with_cache(tickets_data: List[dict]) -> Dict:
 
     try:
         # Call clustering service which handles caching internally
-        clustering_result = await cluster_and_categorize_tickets(tickets_data, llm_client)
+        clustering_result = await cluster_tickets(tickets_data, llm_client)
         logger.info(f"Clustering completed: {clustering_result.get('clusters_created', 0)} clusters created")
         return clustering_result
     except Exception as e:

@@ -16,10 +16,10 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sess
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
 
-from ai_ticket_platform.main import app
-from ai_ticket_platform.database.generated_models import Base
-from ai_ticket_platform.dependencies.database import get_db
-from ai_ticket_platform.dependencies.settings import get_app_settings
+from src.ai_ticket_platform.main import app
+from src.ai_ticket_platform.database.generated_models import Base
+from src.ai_ticket_platform.dependencies.database import get_db
+from src.ai_ticket_platform.dependencies.settings import get_app_settings
 
 
 # ============================================================================
@@ -28,8 +28,8 @@ from ai_ticket_platform.dependencies.settings import get_app_settings
 
 # Set test environment before any app initialization
 os.environ.setdefault("ENVIRONMENT", "test")
-os.environ.setdefault("OPENAI_API_KEY", "test-key-123")
-os.environ.setdefault("OPENAI_MODEL", "gpt-4")
+os.environ.setdefault("GEMINI_API_KEY", "test-key-123")
+os.environ.setdefault("GEMINI_MODEL", "gemini-1.5-flash")
 os.environ.setdefault("SLACK_BOT_TOKEN", "xoxb-test-token")
 os.environ.setdefault("SLACK_CHANNEL_ID", "C123456789")
 
@@ -88,8 +88,8 @@ async def db_session(setup_test_db):
 class TestSettings:
     """Test settings object for dependency injection"""
     ENVIRONMENT = 'test'
-    OPENAI_API_KEY = 'test-key-123'
-    OPENAI_MODEL = 'gpt-4'
+    GEMINI_API_KEY = 'test-key-123'
+    GEMINI_MODEL = 'gemini-1.5-flash'
     SLACK_BOT_TOKEN = 'xoxb-test-token'
     SLACK_CHANNEL_ID = 'C123456789'
     DATABASE_URL = TEST_DATABASE_URL
