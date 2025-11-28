@@ -5,42 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Ticket, TrendingUp, Clock, CheckCircle, Upload, Layers, AlertCircle, ChevronDown, ChevronUp, Maximize2, X, Search, FlaskConical } from "lucide-react"
 import { fetchClusters, type Cluster } from "@/services/clusters"
 import { fetchABTestingTotals, type ABTestingTotals } from "@/services/analytics"
-
-// Dummy data - will be replaced with API calls
-const dummyTickets = [
-  {
-    id: "1",
-    title: "How do I reset my password?",
-    status: "pending",
-    priority: "high",
-    createdAt: "2024-01-15T10:30:00Z",
-    customer: "john.doe@example.com"
-  },
-  {
-    id: "2",
-    title: "Where can I find my order history?",
-    status: "resolved",
-    priority: "medium",
-    createdAt: "2024-01-14T14:20:00Z",
-    customer: "jane.smith@example.com"
-  },
-  {
-    id: "3",
-    title: "What is your return policy?",
-    status: "pending",
-    priority: "low",
-    createdAt: "2024-01-15T09:15:00Z",
-    customer: "bob.johnson@example.com"
-  },
-  {
-    id: "4",
-    title: "How do I contact customer support?",
-    status: "in_review",
-    priority: "medium",
-    createdAt: "2024-01-13T16:45:00Z",
-    customer: "alice.brown@example.com"
-  },
-]
+import { fetchTickets, type Ticket as ApiTicket } from "@/services/tickets"
 
 const dummyStats = {
   totalTickets: 24,
@@ -57,33 +22,6 @@ const formatDate = (dateString: string) => {
     hour: "2-digit",
     minute: "2-digit"
   })
-}
-
-const getStatusBadge = (status: string) => {
-  const styles = {
-    pending: "bg-yellow-100 text-yellow-800",
-    resolved: "bg-green-100 text-green-800",
-    in_review: "bg-blue-100 text-blue-800",
-    declined: "bg-red-100 text-red-800"
-  }
-  return (
-    <span className={`px-2 py-1 rounded-full text-xs font-medium ${styles[status as keyof typeof styles] || "bg-gray-100 text-gray-800"}`}>
-      {status.replace("_", " ")}
-    </span>
-  )
-}
-
-const getPriorityBadge = (priority: string) => {
-  const styles = {
-    high: "text-red-600 font-semibold",
-    medium: "text-yellow-600 font-semibold",
-    low: "text-green-600 font-semibold"
-  }
-  return (
-    <span className={styles[priority as keyof typeof styles] || "text-gray-600"}>
-      {priority}
-    </span>
-  )
 }
 
 // Dummy API call handler for CSV upload
@@ -129,8 +67,8 @@ export default function Dashboard() {
   
   // Filter states for compact view clusters
   const [clusterSearch, setClusterSearch] = useState("")
-  const [clusterPriorityFilter, setClusterPriorityFilter] = useState<string>("all")
-  const [clusterStatusFilter, setClusterStatusFilter] = useState<string>("all")
+  const clusterPriorityFilter = "all"
+  const clusterStatusFilter = "all"
   
   // Filter states for modal clusters (separate from compact view)
   const [clusterModalSearch, setClusterModalSearch] = useState("")
@@ -149,6 +87,9 @@ export default function Dashboard() {
   const [abTestingTotals, setAbTestingTotals] = useState<ABTestingTotals | null>(null)
   const [abTestingLoading, setAbTestingLoading] = useState(true)
   const [abTestingError, setAbTestingError] = useState<string | null>(null)
+  const [tickets, setTickets] = useState<ApiTicket[]>([])
+  const [ticketsLoading, setTicketsLoading] = useState(true)
+  const [ticketsError, setTicketsError] = useState<string | null>(null)
   
   // Reset modal filters when modal closes
   const handleCloseClustersModal = () => {
@@ -192,6 +133,20 @@ export default function Dashboard() {
 
     loadClusters()
     loadABTestingTotals()
+    const loadTickets = async () => {
+      try {
+        setTicketsLoading(true)
+        const data = await fetchTickets()
+        setTickets(data.tickets)
+        setTicketsError(null)
+      } catch (error) {
+        console.error("Error loading tickets:", error)
+        setTicketsError("Unable to load tickets right now.")
+      } finally {
+        setTicketsLoading(false)
+      }
+    }
+    loadTickets()
   }, [])
 
   const CLUSTERS_PREVIEW_COUNT = 6
@@ -217,16 +172,18 @@ export default function Dashboard() {
   })
   
   // Filter tickets for compact view
-  const filteredTickets = dummyTickets.filter(ticket => {
+  const filteredTickets = tickets.filter(ticket => {
     const matchesSearch = ticketSearch === "" || 
-      ticket.title.toLowerCase().includes(ticketSearch.toLowerCase())
+      ticket.subject.toLowerCase().includes(ticketSearch.toLowerCase()) ||
+      (ticket.body?.toLowerCase().includes(ticketSearch.toLowerCase()) ?? false)
     return matchesSearch
   })
   
   // Filter tickets for modal view (separate filters)
-  const filteredTicketsModal = dummyTickets.filter(ticket => {
+  const filteredTicketsModal = tickets.filter(ticket => {
     const matchesSearch = ticketModalSearch === "" || 
-      ticket.title.toLowerCase().includes(ticketModalSearch.toLowerCase())
+      ticket.subject.toLowerCase().includes(ticketModalSearch.toLowerCase()) ||
+      (ticket.body?.toLowerCase().includes(ticketModalSearch.toLowerCase()) ?? false)
     return matchesSearch
   })
   
@@ -244,9 +201,9 @@ export default function Dashboard() {
       cluster.summary.toLowerCase().includes(globalSearch.toLowerCase()) ||
       cluster.mainTopics.some(topic => topic.toLowerCase().includes(globalSearch.toLowerCase()))
     ).slice(0, 5), // Limit to 5 results
-    tickets: globalSearch === "" ? [] : dummyTickets.filter(ticket => 
-      ticket.title.toLowerCase().includes(globalSearch.toLowerCase()) ||
-      ticket.customer.toLowerCase().includes(globalSearch.toLowerCase())
+    tickets: globalSearch === "" ? [] : tickets.filter(ticket => 
+      ticket.subject.toLowerCase().includes(globalSearch.toLowerCase()) ||
+      (ticket.body?.toLowerCase().includes(globalSearch.toLowerCase()) ?? false)
     ).slice(0, 5) // Limit to 5 results
   }
   
@@ -351,8 +308,8 @@ export default function Dashboard() {
                           }}
                           className="block px-3 py-2 hover:bg-gray-50 rounded transition-colors border-b last:border-b-0"
                         >
-                          <div className="font-medium text-sm text-gray-900">{ticket.title}</div>
-                          <div className="text-xs text-gray-500 mt-1">{ticket.customer}</div>
+                          <div className="font-medium text-sm text-gray-900">{ticket.subject}</div>
+                          <div className="text-xs text-gray-500 mt-1 line-clamp-1">{ticket.body}</div>
                         </Link>
                       ))}
                     </div>
@@ -663,7 +620,7 @@ export default function Dashboard() {
         </CardHeader>
           <CardContent className="pt-0 space-y-3">
             {/* Search Bar */}
-            {dummyTickets.length > 0 && (
+            {tickets.length > 0 && (
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
@@ -676,7 +633,19 @@ export default function Dashboard() {
               </div>
             )}
             
-            {dummyTickets.length === 0 ? (
+            {ticketsLoading ? (
+              <div className="flex items-center justify-center py-4">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600 mx-auto"></div>
+                  <p className="mt-2 text-gray-600 text-xs">Loading tickets...</p>
+                </div>
+              </div>
+            ) : ticketsError ? (
+              <div className="text-center py-4 text-gray-500">
+                <AlertCircle className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                <p className="text-xs">{ticketsError}</p>
+              </div>
+            ) : tickets.length === 0 ? (
               <div className="text-center py-4 text-gray-500">
                 <AlertCircle className="h-8 w-8 mx-auto mb-2 text-gray-400" />
                 <p className="text-xs">No tickets found</p>
@@ -687,20 +656,20 @@ export default function Dashboard() {
                 <p className="text-xs">No tickets match your search</p>
               </div>
             ) : (
-            <div className="space-y-0.5 max-h-96 overflow-y-auto">
-              {displayedTickets.map((ticket) => (
-                    <Link 
-                  key={ticket.id}
-                      to={`/ticket/${ticket.id}`}
-                  className="flex items-center justify-between p-2.5 hover:bg-gray-50 rounded transition-colors border-b last:border-b-0"
-                    >
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <h4 className="font-medium text-sm text-gray-900 truncate hover:text-primary-600 transition-colors">
-                      {ticket.title}
-                    </h4>
-                  </div>
-                </Link>
-              ))}
+              <div className="space-y-0.5 max-h-96 overflow-y-auto">
+                {displayedTickets.map((ticket) => (
+                  <Link 
+                    key={ticket.id}
+                    to={`/ticket/${ticket.id}`}
+                    className="flex items-center justify-between p-2.5 hover:bg-gray-50 rounded transition-colors border-b last:border-b-0"
+                  >
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <h4 className="font-medium text-sm text-gray-900 truncate hover:text-primary-600 transition-colors">
+                        {ticket.subject}
+                      </h4>
+                    </div>
+                  </Link>
+                ))}
               </div>
             )}
           </CardContent>
@@ -861,7 +830,7 @@ export default function Dashboard() {
 
               {/* Results Count */}
               <div className="text-sm text-gray-600">
-                Showing {filteredTicketsModal.length} of {dummyTickets.length} tickets
+                Showing {filteredTicketsModal.length} of {tickets.length} tickets
               </div>
 
               {/* Tickets List */}
@@ -881,8 +850,12 @@ export default function Dashboard() {
                     >
                       <div className="flex items-center gap-3 flex-1 min-w-0">
                         <h4 className="font-medium text-sm text-gray-900 hover:text-primary-600 transition-colors">
-                          {ticket.title}
+                          {ticket.subject}
                         </h4>
+                      </div>
+                      <div className="text-xs text-gray-500 text-right">
+                        <p className="line-clamp-1">{ticket.body}</p>
+                        <p className="mt-1">{formatDate(ticket.created_at)}</p>
                       </div>
                     </Link>
                   ))
