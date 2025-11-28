@@ -1,4 +1,5 @@
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from typing import Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from ai_ticket_platform.database.generated_models import Category
@@ -19,6 +20,13 @@ async def create_category(
         level: Category level (1-3)
         parent_id: Parent category ID (required for levels 2-3, must be None for level 1)
     """
+    if level not in (1, 2, 3):
+        raise ValueError("Category level must be between 1 and 3.")
+    if level == 1 and parent_id is not None:
+        raise ValueError("Level 1 categories cannot have a parent.")
+    if level in (2, 3) and parent_id is None:
+        raise ValueError("Level 2-3 categories require a parent_id.")
+
     db_category = Category(
         name=name,
         level=level,
@@ -28,7 +36,7 @@ async def create_category(
         db.add(db_category)
         await db.commit()
         await db.refresh(db_category)
-    except Exception as e:
+    except SQLAlchemyError as e:
         await db.rollback()
         raise RuntimeError(f"Failed to create category: {e}") from e
     return db_category
@@ -47,7 +55,7 @@ async def get_all_categories(db: AsyncSession, skip: int = 0, limit: int = 100) 
     Retrieve all categories.
     """
     result = await db.execute(select(Category).offset(skip).limit(limit).order_by(Category.created_at.desc()))
-    return list(result.scalars().all())
+    return result.scalars().all()
 
 
 async def update_category(
@@ -71,7 +79,7 @@ async def update_category(
     try:
         await db.commit()
         await db.refresh(category)
-    except Exception as e:
+    except SQLAlchemyError as e:
         await db.rollback()
         raise RuntimeError(f"Failed to update category: {e}") from e
 
@@ -87,7 +95,7 @@ async def delete_category(db: AsyncSession, category_id: int) -> bool:
         try:
             await db.delete(category)
             await db.commit()
-        except Exception as e:
+        except SQLAlchemyError as e:
             await db.rollback()
             raise RuntimeError(f"Failed to delete category: {e}") from e
         return True

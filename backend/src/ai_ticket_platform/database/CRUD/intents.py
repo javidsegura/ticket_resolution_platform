@@ -1,6 +1,6 @@
 from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update
+from sqlalchemy import select, update, func
 from ai_ticket_platform.database.generated_models import Intent
 from ai_ticket_platform.schemas.endpoints.intent import IntentCreate, IntentUpdate
 
@@ -208,3 +208,24 @@ async def increment_variant_resolutions(db: AsyncSession, intent_id: int, varian
 	
 	await db.commit()
 	return True
+
+
+async def get_ab_testing_totals(db: AsyncSession) -> dict[str, int]:
+	"""
+	Return summed impressions and resolutions across all intents.
+	"""
+	query = select(
+		func.coalesce(func.sum(Intent.variant_a_impressions), 0).label("variant_a_impressions"),
+		func.coalesce(func.sum(Intent.variant_b_impressions), 0).label("variant_b_impressions"),
+		func.coalesce(func.sum(Intent.variant_a_resolutions), 0).label("variant_a_resolutions"),
+		func.coalesce(func.sum(Intent.variant_b_resolutions), 0).label("variant_b_resolutions"),
+	)
+	result = await db.execute(query)
+	row = result.one()
+
+	return {
+		"variant_a_impressions": row.variant_a_impressions,
+		"variant_b_impressions": row.variant_b_impressions,
+		"variant_a_resolutions": row.variant_a_resolutions,
+		"variant_b_resolutions": row.variant_b_resolutions,
+	}

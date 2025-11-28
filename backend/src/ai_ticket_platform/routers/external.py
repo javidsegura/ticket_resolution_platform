@@ -3,7 +3,12 @@ import logging
 from sqlalchemy.ext.asyncio import AsyncSession
 from ai_ticket_platform.dependencies import get_db
 from pydantic import BaseModel
-from ai_ticket_platform.database.CRUD.intents import increment_variant_impressions, increment_variant_resolutions, get_intent
+from ai_ticket_platform.database.CRUD.intents import (
+    increment_variant_impressions,
+    increment_variant_resolutions,
+    get_intent,
+    get_ab_testing_totals,
+)
 
 router = APIRouter(
     prefix="/external",
@@ -43,7 +48,13 @@ async def collect_event(event: CollectEvent, db: AsyncSession = Depends(get_db))
     
     return {"success": True}
 
+# Gets the SUM of totals for all intents
+@router.get("/analytics/totals")
+async def get_analytics_totals(db: AsyncSession = Depends(get_db)):
+    totals = await get_ab_testing_totals(db)
+    return totals
 
+#Gets the totals for a specific intent
 @router.get("/analytics/{intent_id}")
 async def get_analytics(intent_id: int, db: AsyncSession = Depends(get_db)):
     intent = await get_intent(db, intent_id)
@@ -56,3 +67,4 @@ async def get_analytics(intent_id: int, db: AsyncSession = Depends(get_db)):
         "variant_a_resolutions": intent.variant_a_resolutions,
         "variant_b_resolutions": intent.variant_b_resolutions,
     }
+

@@ -2,44 +2,10 @@ import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Ticket, TrendingUp, Clock, CheckCircle, Upload, Layers, AlertCircle, ChevronDown, ChevronUp, Maximize2, X, Search } from "lucide-react"
+import { Ticket, TrendingUp, Clock, CheckCircle, Upload, Layers, AlertCircle, ChevronDown, ChevronUp, Maximize2, X, Search, FlaskConical } from "lucide-react"
 import { fetchClusters, type Cluster } from "@/services/clusters"
-
-// Dummy data - will be replaced with API calls
-const dummyTickets = [
-  {
-    id: "1",
-    title: "How do I reset my password?",
-    status: "pending",
-    priority: "high",
-    createdAt: "2024-01-15T10:30:00Z",
-    customer: "john.doe@example.com"
-  },
-  {
-    id: "2",
-    title: "Where can I find my order history?",
-    status: "resolved",
-    priority: "medium",
-    createdAt: "2024-01-14T14:20:00Z",
-    customer: "jane.smith@example.com"
-  },
-  {
-    id: "3",
-    title: "What is your return policy?",
-    status: "pending",
-    priority: "low",
-    createdAt: "2024-01-15T09:15:00Z",
-    customer: "bob.johnson@example.com"
-  },
-  {
-    id: "4",
-    title: "How do I contact customer support?",
-    status: "in_review",
-    priority: "medium",
-    createdAt: "2024-01-13T16:45:00Z",
-    customer: "alice.brown@example.com"
-  },
-]
+import { fetchABTestingTotals, type ABTestingTotals } from "@/services/analytics"
+import { fetchTickets, type Ticket as ApiTicket } from "@/services/tickets"
 
 const dummyStats = {
   totalTickets: 24,
@@ -58,39 +24,17 @@ const formatDate = (dateString: string) => {
   })
 }
 
-const getStatusBadge = (status: string) => {
-  const styles = {
-    pending: "bg-yellow-100 text-yellow-800",
-    resolved: "bg-green-100 text-green-800",
-    in_review: "bg-blue-100 text-blue-800",
-    declined: "bg-red-100 text-red-800"
-  }
-  return (
-    <span className={`px-2 py-1 rounded-full text-xs font-medium ${styles[status as keyof typeof styles] || "bg-gray-100 text-gray-800"}`}>
-      {status.replace("_", " ")}
-    </span>
-  )
-}
-
-const getPriorityBadge = (priority: string) => {
-  const styles = {
-    high: "text-red-600 font-semibold",
-    medium: "text-yellow-600 font-semibold",
-    low: "text-green-600 font-semibold"
-  }
-  return (
-    <span className={styles[priority as keyof typeof styles] || "text-gray-600"}>
-      {priority}
-    </span>
-  )
-}
-
-// Dummy API call handler for CSV upload
+// Dummy handlers for manual uploads
 const handleTicketDropIn = () => {
   console.log("API Call: Ticket Drop In (CSV)")
   // TODO: Replace with actual API call
-  // This would typically open a file picker and upload the CSV
-  alert("Ticket Drop In (CSV) - API call placeholder. This will upload a CSV file with tickets.")
+  alert("Ticket Drop In (CSV) - This will upload a CSV file with tickets.")
+}
+
+const handleCompanyDocsDropIn = () => {
+  console.log("API Call: Company Docs Drop In (PDF only)")
+  // TODO: Replace with actual API call and PDF file picker restriction
+  alert("Company Docs Drop In - Only PDF files are accepted in this upload.")
 }
 
 const getClusterStatusBadge = (status: string) => {
@@ -106,19 +50,6 @@ const getClusterStatusBadge = (status: string) => {
   )
 }
 
-const getClusterPriorityBadge = (priority: string) => {
-  const styles = {
-    high: "text-red-600 font-semibold",
-    medium: "text-yellow-600 font-semibold",
-    low: "text-green-600 font-semibold"
-  }
-  return (
-    <span className={styles[priority as keyof typeof styles] || "text-gray-600"}>
-      {priority}
-    </span>
-  )
-}
-
 export default function Dashboard() {
   const [clusters, setClusters] = useState<Cluster[]>([])
   const [clustersLoading, setClustersLoading] = useState(true)
@@ -128,12 +59,10 @@ export default function Dashboard() {
   
   // Filter states for compact view clusters
   const [clusterSearch, setClusterSearch] = useState("")
-  const [clusterPriorityFilter, setClusterPriorityFilter] = useState<string>("all")
-  const [clusterStatusFilter, setClusterStatusFilter] = useState<string>("all")
+  const clusterStatusFilter = "all"
   
   // Filter states for modal clusters (separate from compact view)
   const [clusterModalSearch, setClusterModalSearch] = useState("")
-  const [clusterModalPriorityFilter, setClusterModalPriorityFilter] = useState<string>("all")
   const [clusterModalStatusFilter, setClusterModalStatusFilter] = useState<string>("all")
   
   // Filter states for compact view tickets
@@ -145,12 +74,17 @@ export default function Dashboard() {
   // Global search state
   const [globalSearch, setGlobalSearch] = useState("")
   const [showGlobalSearchResults, setShowGlobalSearchResults] = useState(false)
+  const [abTestingTotals, setAbTestingTotals] = useState<ABTestingTotals | null>(null)
+  const [abTestingLoading, setAbTestingLoading] = useState(true)
+  const [abTestingError, setAbTestingError] = useState<string | null>(null)
+  const [tickets, setTickets] = useState<ApiTicket[]>([])
+  const [ticketsLoading, setTicketsLoading] = useState(true)
+  const [ticketsError, setTicketsError] = useState<string | null>(null)
   
   // Reset modal filters when modal closes
   const handleCloseClustersModal = () => {
     setClustersExpandedModal(false)
     setClusterModalSearch("")
-    setClusterModalPriorityFilter("all")
     setClusterModalStatusFilter("all")
   }
   
@@ -172,7 +106,36 @@ export default function Dashboard() {
       }
     }
 
+    const loadABTestingTotals = async () => {
+      try {
+        setAbTestingLoading(true)
+        const data = await fetchABTestingTotals()
+        setAbTestingTotals(data)
+        setAbTestingError(null)
+      } catch (error) {
+        console.error("Error loading AB testing data:", error)
+        setAbTestingError("Unable to load A/B test performance right now.")
+      } finally {
+        setAbTestingLoading(false)
+      }
+    }
+
     loadClusters()
+    loadABTestingTotals()
+    const loadTickets = async () => {
+      try {
+        setTicketsLoading(true)
+        const data = await fetchTickets()
+        setTickets(data.tickets)
+        setTicketsError(null)
+      } catch (error) {
+        console.error("Error loading tickets:", error)
+        setTicketsError("Unable to load tickets right now.")
+      } finally {
+        setTicketsLoading(false)
+      }
+    }
+    loadTickets()
   }, [])
 
   const CLUSTERS_PREVIEW_COUNT = 6
@@ -182,9 +145,8 @@ export default function Dashboard() {
     const matchesSearch = clusterSearch === "" || 
       cluster.title.toLowerCase().includes(clusterSearch.toLowerCase()) ||
       cluster.summary.toLowerCase().includes(clusterSearch.toLowerCase())
-    const matchesPriority = clusterPriorityFilter === "all" || cluster.priority === clusterPriorityFilter
     const matchesStatus = clusterStatusFilter === "all" || cluster.status === clusterStatusFilter
-    return matchesSearch && matchesPriority && matchesStatus
+    return matchesSearch && matchesStatus
   })
   
   // Filter clusters for modal view (separate filters)
@@ -192,22 +154,23 @@ export default function Dashboard() {
     const matchesSearch = clusterModalSearch === "" || 
       cluster.title.toLowerCase().includes(clusterModalSearch.toLowerCase()) ||
       cluster.summary.toLowerCase().includes(clusterModalSearch.toLowerCase())
-    const matchesPriority = clusterModalPriorityFilter === "all" || cluster.priority === clusterModalPriorityFilter
     const matchesStatus = clusterModalStatusFilter === "all" || cluster.status === clusterModalStatusFilter
-    return matchesSearch && matchesPriority && matchesStatus
+    return matchesSearch && matchesStatus
   })
   
   // Filter tickets for compact view
-  const filteredTickets = dummyTickets.filter(ticket => {
+  const filteredTickets = tickets.filter(ticket => {
     const matchesSearch = ticketSearch === "" || 
-      ticket.title.toLowerCase().includes(ticketSearch.toLowerCase())
+      ticket.subject.toLowerCase().includes(ticketSearch.toLowerCase()) ||
+      (ticket.body?.toLowerCase().includes(ticketSearch.toLowerCase()) ?? false)
     return matchesSearch
   })
   
   // Filter tickets for modal view (separate filters)
-  const filteredTicketsModal = dummyTickets.filter(ticket => {
+  const filteredTicketsModal = tickets.filter(ticket => {
     const matchesSearch = ticketModalSearch === "" || 
-      ticket.title.toLowerCase().includes(ticketModalSearch.toLowerCase())
+      ticket.subject.toLowerCase().includes(ticketModalSearch.toLowerCase()) ||
+      (ticket.body?.toLowerCase().includes(ticketModalSearch.toLowerCase()) ?? false)
     return matchesSearch
   })
   
@@ -225,13 +188,27 @@ export default function Dashboard() {
       cluster.summary.toLowerCase().includes(globalSearch.toLowerCase()) ||
       cluster.mainTopics.some(topic => topic.toLowerCase().includes(globalSearch.toLowerCase()))
     ).slice(0, 5), // Limit to 5 results
-    tickets: globalSearch === "" ? [] : dummyTickets.filter(ticket => 
-      ticket.title.toLowerCase().includes(globalSearch.toLowerCase()) ||
-      ticket.customer.toLowerCase().includes(globalSearch.toLowerCase())
+    tickets: globalSearch === "" ? [] : tickets.filter(ticket => 
+      ticket.subject.toLowerCase().includes(globalSearch.toLowerCase()) ||
+      (ticket.body?.toLowerCase().includes(globalSearch.toLowerCase()) ?? false)
     ).slice(0, 5) // Limit to 5 results
   }
   
   const totalGlobalResults = globalSearchResults.clusters.length + globalSearchResults.tickets.length
+
+  const variantAConversion = abTestingTotals
+    ? (abTestingTotals.variant_a_impressions === 0
+        ? 0
+        : (abTestingTotals.variant_a_resolutions / abTestingTotals.variant_a_impressions) * 100)
+    : 0
+
+  const variantBConversion = abTestingTotals
+    ? (abTestingTotals.variant_b_impressions === 0
+        ? 0
+        : (abTestingTotals.variant_b_resolutions / abTestingTotals.variant_b_impressions) * 100)
+    : 0
+
+  const conversionDifference = abTestingTotals ? variantAConversion - variantBConversion : 0
 
   return (
     <div className="space-y-6">
@@ -291,10 +268,6 @@ export default function Dashboard() {
                           <div className="text-xs text-gray-500 mt-1 line-clamp-1">{cluster.summary}</div>
                           <div className="flex items-center gap-2 mt-2">
                             {getClusterStatusBadge(cluster.status)}
-                            {getClusterPriorityBadge(cluster.priority)}
-                            <span className="text-xs text-gray-500">
-                              {cluster.ticketCount} tickets
-                            </span>
                           </div>
                         </Link>
                       ))}
@@ -318,8 +291,8 @@ export default function Dashboard() {
                           }}
                           className="block px-3 py-2 hover:bg-gray-50 rounded transition-colors border-b last:border-b-0"
                         >
-                          <div className="font-medium text-sm text-gray-900">{ticket.title}</div>
-                          <div className="text-xs text-gray-500 mt-1">{ticket.customer}</div>
+                          <div className="font-medium text-sm text-gray-900">{ticket.subject}</div>
+                          <div className="text-xs text-gray-500 mt-1 line-clamp-1">{ticket.body}</div>
                         </Link>
                       ))}
                     </div>
@@ -342,6 +315,10 @@ export default function Dashboard() {
         <Button onClick={handleTicketDropIn} variant="outline">
           <Upload className="mr-2 h-4 w-4" />
           Ticket Drop In (CSV)
+        </Button>
+        <Button onClick={handleCompanyDocsDropIn} variant="outline">
+          <Upload className="mr-2 h-4 w-4" />
+          Company Docs (PDF)
         </Button>
         </div>
       </div>
@@ -393,8 +370,8 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Clusters and Tickets Side by Side */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 relative">
+      {/* Clusters, AB Testing and Tickets */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.2fr_1fr_0.5fr] relative">
         {/* Clusters Section */}
         <Card>
           <CardHeader className="pb-3">
@@ -429,16 +406,15 @@ export default function Dashboard() {
                     )}
                   </Button>
                 )}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setClustersExpandedModal(true)
-                    // Reset modal filters when opening
-                    setClusterModalSearch("")
-                    setClusterModalPriorityFilter("all")
-                    setClusterModalStatusFilter("all")
-                  }}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            setClustersExpandedModal(true)
+            // Reset modal filters when opening
+            setClusterModalSearch("")
+            setClusterModalStatusFilter("all")
+          }}
                   className="flex items-center gap-1 h-7 text-xs"
                   title="Expand with filters"
                 >
@@ -493,12 +469,7 @@ export default function Dashboard() {
                       </h4>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0 ml-3">
-                      <span className="text-xs text-gray-600 flex items-center gap-1">
-                        <Ticket className="h-3 w-3" />
-                        {cluster.ticketCount}
-                      </span>
                       {getClusterStatusBadge(cluster.status)}
-                      {getClusterPriorityBadge(cluster.priority)}
                     </div>
                   </Link>
                 ))}
@@ -514,8 +485,94 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
+        {/* AB Testing Section */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <FlaskConical className="h-4 w-4" />
+                  A/B Testing Performance
+                </CardTitle>
+                <CardDescription className="text-xs mt-1">
+                  Impressions, resolutions, and conversion rates
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            {abTestingLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600 mx-auto"></div>
+                  <p className="mt-2 text-gray-600 text-xs">Loading experiment data...</p>
+                </div>
+              </div>
+            ) : abTestingError ? (
+              <div className="text-center py-8 text-gray-500">
+                <AlertCircle className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                <p className="text-xs">{abTestingError}</p>
+              </div>
+            ) : abTestingTotals ? (
+              <div className="space-y-5">
+                <div className="grid grid-cols-1 gap-4">
+                  {(["variant_a", "variant_b"] as const).map((variantKey) => {
+                    const label = variantKey === "variant_a" ? "Variant A" : "Variant B"
+                    const impressions = abTestingTotals[`${variantKey}_impressions` as const]
+                    const resolutions = abTestingTotals[`${variantKey}_resolutions` as const]
+                    const conversion = impressions === 0 ? 0 : (resolutions / impressions) * 100
+
+                    return (
+                      <div key={variantKey} className="rounded-lg border p-3">
+                        <div className="flex items-center justify-between text-sm font-medium text-gray-900">
+                          <span>{label}</span>
+                          <span>{conversion.toFixed(1)}%</span>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          {resolutions} resolutions / {impressions} impressions
+                        </p>
+                        <div className="mt-3 h-2 rounded-full bg-gray-100">
+                          <div
+                            className="h-full rounded-full bg-primary-500 transition-all"
+                            style={{ width: `${Math.min(conversion, 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                <div className="rounded-lg bg-gray-50 p-4 text-xs text-gray-600">
+                  <p className="font-semibold text-gray-800 mb-1">Quick insights</p>
+                  <ul className="space-y-1">
+                    <li>
+                      Variant A lift vs B:{" "}
+                      <span className={`font-semibold ${conversionDifference >= 0 ? "text-green-700" : "text-red-600"}`}>
+                        {conversionDifference >= 0 ? "+" : ""}
+                        {conversionDifference.toFixed(1)} pp
+                      </span>
+                    </li>
+                    <li>
+                      Total impressions:{" "}
+                      <span className="font-semibold text-gray-900">
+                        {abTestingTotals.variant_a_impressions + abTestingTotals.variant_b_impressions}
+                      </span>
+                    </li>
+                    <li>
+                      Total resolutions:{" "}
+                      <span className="font-semibold text-gray-900">
+                        {abTestingTotals.variant_a_resolutions + abTestingTotals.variant_b_resolutions}
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+
         {/* Recent Tickets Section */}
-      <Card>
+        <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div>
@@ -544,7 +601,7 @@ export default function Dashboard() {
         </CardHeader>
           <CardContent className="pt-0 space-y-3">
             {/* Search Bar */}
-            {dummyTickets.length > 0 && (
+            {tickets.length > 0 && (
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
@@ -557,7 +614,19 @@ export default function Dashboard() {
               </div>
             )}
             
-            {dummyTickets.length === 0 ? (
+            {ticketsLoading ? (
+              <div className="flex items-center justify-center py-4">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600 mx-auto"></div>
+                  <p className="mt-2 text-gray-600 text-xs">Loading tickets...</p>
+                </div>
+              </div>
+            ) : ticketsError ? (
+              <div className="text-center py-4 text-gray-500">
+                <AlertCircle className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                <p className="text-xs">{ticketsError}</p>
+              </div>
+            ) : tickets.length === 0 ? (
               <div className="text-center py-4 text-gray-500">
                 <AlertCircle className="h-8 w-8 mx-auto mb-2 text-gray-400" />
                 <p className="text-xs">No tickets found</p>
@@ -568,20 +637,20 @@ export default function Dashboard() {
                 <p className="text-xs">No tickets match your search</p>
               </div>
             ) : (
-            <div className="space-y-0.5 max-h-96 overflow-y-auto">
-              {displayedTickets.map((ticket) => (
-                    <Link 
-                  key={ticket.id}
-                      to={`/ticket/${ticket.id}`}
-                  className="flex items-center justify-between p-2.5 hover:bg-gray-50 rounded transition-colors border-b last:border-b-0"
-                    >
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <h4 className="font-medium text-sm text-gray-900 truncate hover:text-primary-600 transition-colors">
-                      {ticket.title}
-                    </h4>
-                  </div>
-                </Link>
-              ))}
+              <div className="space-y-0.5 max-h-96 overflow-y-auto">
+                {displayedTickets.map((ticket) => (
+                  <Link 
+                    key={ticket.id}
+                    to={`/ticket/${ticket.id}`}
+                    className="flex items-center justify-between p-2.5 hover:bg-gray-50 rounded transition-colors border-b last:border-b-0"
+                  >
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <h4 className="font-medium text-sm text-gray-900 truncate hover:text-primary-600 transition-colors">
+                        {ticket.subject}
+                      </h4>
+                    </div>
+                  </Link>
+                ))}
               </div>
             )}
           </CardContent>
@@ -621,7 +690,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent className="pt-4 space-y-4 flex-1 overflow-hidden flex flex-col">
               {/* Filters */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <input
@@ -632,16 +701,6 @@ export default function Dashboard() {
                     className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
                   />
                 </div>
-                <select
-                  value={clusterModalPriorityFilter}
-                  onChange={(e) => setClusterModalPriorityFilter(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
-                >
-                  <option value="all">All Priorities</option>
-                  <option value="high">High</option>
-                  <option value="medium">Medium</option>
-                  <option value="low">Low</option>
-                </select>
                 <select
                   value={clusterModalStatusFilter}
                   onChange={(e) => setClusterModalStatusFilter(e.target.value)}
@@ -680,12 +739,7 @@ export default function Dashboard() {
                         </h4>
                       </div>
                       <div className="flex items-center gap-3 flex-shrink-0 ml-4">
-                        <span className="text-xs text-gray-600 flex items-center gap-1">
-                          <Ticket className="h-3 w-3" />
-                          {cluster.ticketCount}
-                        </span>
                         {getClusterStatusBadge(cluster.status)}
-                        {getClusterPriorityBadge(cluster.priority)}
                       </div>
                     </Link>
                   ))
@@ -742,7 +796,7 @@ export default function Dashboard() {
 
               {/* Results Count */}
               <div className="text-sm text-gray-600">
-                Showing {filteredTicketsModal.length} of {dummyTickets.length} tickets
+                Showing {filteredTicketsModal.length} of {tickets.length} tickets
               </div>
 
               {/* Tickets List */}
@@ -762,8 +816,12 @@ export default function Dashboard() {
                     >
                       <div className="flex items-center gap-3 flex-1 min-w-0">
                         <h4 className="font-medium text-sm text-gray-900 hover:text-primary-600 transition-colors">
-                          {ticket.title}
+                          {ticket.subject}
                         </h4>
+                      </div>
+                      <div className="text-xs text-gray-500 text-right">
+                        <p className="line-clamp-1">{ticket.body}</p>
+                        <p className="mt-1">{formatDate(ticket.created_at)}</p>
                       </div>
                     </Link>
                   ))

@@ -1,7 +1,8 @@
 # database/CRUD/ticket.py
 from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
+from sqlalchemy.exc import SQLAlchemyError
 from ai_ticket_platform.database.generated_models import Ticket
 
 
@@ -33,7 +34,7 @@ async def create_tickets(db: AsyncSession, tickets_data: List[dict]) -> List[Tic
     try:
         db.add_all(tickets)
         await db.commit()
-    except Exception as e:
+    except SQLAlchemyError as e:
         await db.rollback()
         raise RuntimeError(f"Failed to create tickets: {e}") from e
 
@@ -73,6 +74,20 @@ async def list_tickets(db: AsyncSession, skip: int = 0, limit: int = 100) -> Lis
         .order_by(Ticket.created_at.desc())
     )
     return result.scalars().all()
+
+
+async def count_tickets(db: AsyncSession) -> int:
+    """
+    Count the total number of tickets in the database.
+    
+    Args:
+        db: Database session
+        
+    Returns:
+        Total count of tickets
+    """
+    result = await db.execute(select(func.count(Ticket.id)))
+    return result.scalar_one()
 
 
 async def list_tickets_by_intent(db: AsyncSession, intent_id: int) -> List[Ticket]:
