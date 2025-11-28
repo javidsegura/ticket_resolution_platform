@@ -14,6 +14,7 @@ from ai_ticket_platform.schemas.endpoints.ticket import (
 from ai_ticket_platform.database.CRUD.ticket import (
     get_ticket as crud_get_ticket,
     list_tickets as crud_list_tickets,
+    count_tickets as crud_count_tickets,
 )
 
 router = APIRouter(prefix="/tickets", tags=["tickets"])
@@ -35,9 +36,10 @@ async def get_tickets(
     Return a paginated list of tickets.
     """
     tickets = await crud_list_tickets(db, skip=skip, limit=limit)
+    total_count = await crud_count_tickets(db)
     ticket_models = [TicketResponse.model_validate(ticket) for ticket in tickets]
     return TicketListResponse(
-        total=len(ticket_models),
+        total=total_count,
         skip=skip,
         limit=limit,
         tickets=ticket_models,
