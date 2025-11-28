@@ -1,17 +1,87 @@
 // Cluster API service
 import { config } from "@/core/config"
 
+type CategoryRef = {
+  id: number
+  name: string
+}
+
 export interface Cluster {
   id: string
   title: string
   summary: string
-  ticketCount: number
   createdAt: string
   updatedAt: string
   mainTopics: string[]
-  priority: "high" | "medium" | "low"
   status: "active" | "resolved" | "pending"
   resolution?: string // AI-generated resolution in markdown format
+  area?: string | null
+  isProcessed?: boolean
+  categories?: {
+    level1?: CategoryRef
+    level2?: CategoryRef
+    level3?: CategoryRef
+  }
+  variantAImpressions?: number
+  variantBImpressions?: number
+  variantAResolutions?: number
+  variantBResolutions?: number
+}
+
+type IntentResponse = {
+  id: number
+  name: string
+  area: string | null
+  is_processed: boolean
+  created_at: string
+  updated_at: string
+  category_level_1?: CategoryRef
+  category_level_2?: CategoryRef
+  category_level_3?: CategoryRef
+  variant_a_impressions?: number
+  variant_b_impressions?: number
+  variant_a_resolutions?: number
+  variant_b_resolutions?: number
+}
+
+const buildApiBaseUrl = () => {
+  const baseUrl = config.BASE_API_URL?.replace(/\/+$/, "")
+
+  if (!baseUrl) {
+    return null
+  }
+
+  const needsApiPrefix = !/\/api(\/|$)/.test(baseUrl)
+  return needsApiPrefix ? `${baseUrl}/api` : baseUrl
+}
+
+const mapIntentToCluster = (intent: IntentResponse): Cluster => {
+  const categoryNames = [
+    intent.category_level_1?.name,
+    intent.category_level_2?.name,
+    intent.category_level_3?.name
+  ].filter((name): name is string => Boolean(name))
+
+  return {
+    id: String(intent.id),
+    title: intent.name,
+    summary: intent.area ?? "No area specified",
+    createdAt: intent.created_at,
+    updatedAt: intent.updated_at,
+    mainTopics: categoryNames,
+    status: intent.is_processed ? "resolved" : "pending",
+    area: intent.area,
+    isProcessed: intent.is_processed,
+    categories: {
+      level1: intent.category_level_1,
+      level2: intent.category_level_2,
+      level3: intent.category_level_3
+    },
+    variantAImpressions: intent.variant_a_impressions ?? 0,
+    variantBImpressions: intent.variant_b_impressions ?? 0,
+    variantAResolutions: intent.variant_a_resolutions ?? 0,
+    variantBResolutions: intent.variant_b_resolutions ?? 0
+  }
 }
 
 // Dummy clusters data - will be replaced with API calls
@@ -20,7 +90,6 @@ const dummyClusters: Cluster[] = [
     id: "cluster-1",
     title: "Password Reset Issues",
     summary: "Multiple customers are experiencing difficulties with password reset functionality. Common issues include missing reset links, unclear instructions, and login page discoverability problems.",
-    ticketCount: 12,
     createdAt: "2024-01-10T08:00:00Z",
     updatedAt: "2024-01-15T14:30:00Z",
     mainTopics: [
@@ -28,7 +97,6 @@ const dummyClusters: Cluster[] = [
       "Email delivery issues",
       "Reset instructions clarity"
     ],
-    priority: "high",
     status: "active",
     resolution: `**Website Improvement Recommendation:**
 
@@ -136,7 +204,6 @@ By implementing these recommendations, we expect to see a 60-80% reduction in pa
     id: "cluster-2",
     title: "Order History Navigation",
     summary: "Users frequently cannot locate their order history. The feature appears to be buried in submenus and lacks prominent placement in the account dashboard.",
-    ticketCount: 8,
     createdAt: "2024-01-08T10:15:00Z",
     updatedAt: "2024-01-14T09:20:00Z",
     mainTopics: [
@@ -144,14 +211,12 @@ By implementing these recommendations, we expect to see a 60-80% reduction in pa
       "Navigation menu structure",
       "Order tracking visibility"
     ],
-    priority: "medium",
     status: "active"
   },
   {
     id: "cluster-3",
     title: "Return Policy Inquiries",
     summary: "High volume of questions about return policies, refund timelines, and return process. Customers are seeking clear, accessible information about returns and exchanges.",
-    ticketCount: 15,
     createdAt: "2024-01-05T12:00:00Z",
     updatedAt: "2024-01-13T16:45:00Z",
     mainTopics: [
@@ -159,14 +224,12 @@ By implementing these recommendations, we expect to see a 60-80% reduction in pa
       "Refund process clarity",
       "Return window information"
     ],
-    priority: "high",
     status: "pending"
   },
   {
     id: "cluster-4",
     title: "Customer Support Contact",
     summary: "Customers cannot find contact information for customer support. Missing phone numbers, email addresses, and support links are causing frustration and delays.",
-    ticketCount: 20,
     createdAt: "2024-01-03T09:30:00Z",
     updatedAt: "2024-01-12T11:00:00Z",
     mainTopics: [
@@ -174,14 +237,12 @@ By implementing these recommendations, we expect to see a 60-80% reduction in pa
       "Support information placement",
       "Multiple contact methods"
     ],
-    priority: "high",
     status: "active"
   },
   {
     id: "cluster-5",
     title: "Shipping Information Access",
     summary: "Users are asking about shipping options, delivery times, and tracking information. This information needs to be more prominently displayed during checkout and order process.",
-    ticketCount: 6,
     createdAt: "2024-01-12T14:00:00Z",
     updatedAt: "2024-01-15T10:00:00Z",
     mainTopics: [
@@ -189,14 +250,12 @@ By implementing these recommendations, we expect to see a 60-80% reduction in pa
       "Delivery time estimates",
       "Order tracking integration"
     ],
-    priority: "medium",
     status: "active"
   },
   {
     id: "cluster-6",
     title: "Payment Method Issues",
     summary: "Customers experiencing problems with payment processing, including declined cards, missing payment options, and unclear error messages during checkout.",
-    ticketCount: 9,
     createdAt: "2024-01-09T11:20:00Z",
     updatedAt: "2024-01-14T15:30:00Z",
     mainTopics: [
@@ -204,7 +263,6 @@ By implementing these recommendations, we expect to see a 60-80% reduction in pa
       "Accepted payment methods",
       "Checkout process clarity"
     ],
-    priority: "medium",
     status: "resolved"
   }
 ]
@@ -214,10 +272,10 @@ By implementing these recommendations, we expect to see a 60-80% reduction in pa
  * @returns Promise<Cluster[]> Array of clusters
  */
 export const fetchClusters = async (): Promise<Cluster[]> => {
-  const baseUrl = config.BASE_API_URL
+  const apiBase = buildApiBaseUrl()
 
   // If no API URL is configured, return dummy data
-  if (!baseUrl) {
+  if (!apiBase) {
     console.warn("BASE_API_URL not configured, using dummy cluster data")
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 300))
@@ -225,9 +283,7 @@ export const fetchClusters = async (): Promise<Cluster[]> => {
   }
 
   try {
-    // TODO: Replace with actual API endpoint when backend is ready
-    // Expected endpoint: GET /api/clusters
-    const response = await fetch(`${baseUrl}/api/clusters`, {
+    const response = await fetch(`${apiBase}/intents/`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -240,8 +296,8 @@ export const fetchClusters = async (): Promise<Cluster[]> => {
       throw new Error(`Failed to fetch clusters: ${response.statusText}`)
     }
 
-    const data = await response.json()
-    return data as Cluster[]
+    const data = await response.json() as IntentResponse[]
+    return data.map(mapIntentToCluster)
   } catch (error) {
     console.error("Error fetching clusters:", error)
     // Fallback to dummy data on error
@@ -256,19 +312,17 @@ export const fetchClusters = async (): Promise<Cluster[]> => {
  * @returns Promise<Cluster | null> The cluster or null if not found
  */
 export const fetchClusterById = async (clusterId: string): Promise<Cluster | null> => {
-  const baseUrl = config.BASE_API_URL
+  const apiBase = buildApiBaseUrl()
 
   // If no API URL is configured, return dummy data
-  if (!baseUrl) {
+  if (!apiBase) {
     console.warn("BASE_API_URL not configured, using dummy cluster data")
     await new Promise(resolve => setTimeout(resolve, 300))
     return dummyClusters.find(c => c.id === clusterId) || null
   }
 
   try {
-    // TODO: Replace with actual API endpoint when backend is ready
-    // Expected endpoint: GET /api/clusters/:id
-    const response = await fetch(`${baseUrl}/api/clusters/${clusterId}`, {
+    const response = await fetch(`${apiBase}/intents/${clusterId}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -284,8 +338,8 @@ export const fetchClusterById = async (clusterId: string): Promise<Cluster | nul
       throw new Error(`Failed to fetch cluster: ${response.statusText}`)
     }
 
-    const data = await response.json()
-    return data as Cluster
+    const data = await response.json() as IntentResponse
+    return mapIntentToCluster(data)
   } catch (error) {
     console.error("Error fetching cluster:", error)
     // Fallback to dummy data on error

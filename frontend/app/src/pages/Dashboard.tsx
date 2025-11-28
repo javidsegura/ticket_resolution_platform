@@ -45,19 +45,6 @@ const getClusterStatusBadge = (status: string) => {
   )
 }
 
-const getClusterPriorityBadge = (priority: string) => {
-  const styles = {
-    high: "text-red-600 font-semibold",
-    medium: "text-yellow-600 font-semibold",
-    low: "text-green-600 font-semibold"
-  }
-  return (
-    <span className={styles[priority as keyof typeof styles] || "text-gray-600"}>
-      {priority}
-    </span>
-  )
-}
-
 export default function Dashboard() {
   const [clusters, setClusters] = useState<Cluster[]>([])
   const [clustersLoading, setClustersLoading] = useState(true)
@@ -67,12 +54,10 @@ export default function Dashboard() {
   
   // Filter states for compact view clusters
   const [clusterSearch, setClusterSearch] = useState("")
-  const clusterPriorityFilter = "all"
   const clusterStatusFilter = "all"
   
   // Filter states for modal clusters (separate from compact view)
   const [clusterModalSearch, setClusterModalSearch] = useState("")
-  const [clusterModalPriorityFilter, setClusterModalPriorityFilter] = useState<string>("all")
   const [clusterModalStatusFilter, setClusterModalStatusFilter] = useState<string>("all")
   
   // Filter states for compact view tickets
@@ -95,7 +80,6 @@ export default function Dashboard() {
   const handleCloseClustersModal = () => {
     setClustersExpandedModal(false)
     setClusterModalSearch("")
-    setClusterModalPriorityFilter("all")
     setClusterModalStatusFilter("all")
   }
   
@@ -156,9 +140,8 @@ export default function Dashboard() {
     const matchesSearch = clusterSearch === "" || 
       cluster.title.toLowerCase().includes(clusterSearch.toLowerCase()) ||
       cluster.summary.toLowerCase().includes(clusterSearch.toLowerCase())
-    const matchesPriority = clusterPriorityFilter === "all" || cluster.priority === clusterPriorityFilter
     const matchesStatus = clusterStatusFilter === "all" || cluster.status === clusterStatusFilter
-    return matchesSearch && matchesPriority && matchesStatus
+    return matchesSearch && matchesStatus
   })
   
   // Filter clusters for modal view (separate filters)
@@ -166,9 +149,8 @@ export default function Dashboard() {
     const matchesSearch = clusterModalSearch === "" || 
       cluster.title.toLowerCase().includes(clusterModalSearch.toLowerCase()) ||
       cluster.summary.toLowerCase().includes(clusterModalSearch.toLowerCase())
-    const matchesPriority = clusterModalPriorityFilter === "all" || cluster.priority === clusterModalPriorityFilter
     const matchesStatus = clusterModalStatusFilter === "all" || cluster.status === clusterModalStatusFilter
-    return matchesSearch && matchesPriority && matchesStatus
+    return matchesSearch && matchesStatus
   })
   
   // Filter tickets for compact view
@@ -281,10 +263,6 @@ export default function Dashboard() {
                           <div className="text-xs text-gray-500 mt-1 line-clamp-1">{cluster.summary}</div>
                           <div className="flex items-center gap-2 mt-2">
                             {getClusterStatusBadge(cluster.status)}
-                            {getClusterPriorityBadge(cluster.priority)}
-                            <span className="text-xs text-gray-500">
-                              {cluster.ticketCount} tickets
-                            </span>
                           </div>
                         </Link>
                       ))}
@@ -419,16 +397,15 @@ export default function Dashboard() {
                     )}
                   </Button>
                 )}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setClustersExpandedModal(true)
-                    // Reset modal filters when opening
-                    setClusterModalSearch("")
-                    setClusterModalPriorityFilter("all")
-                    setClusterModalStatusFilter("all")
-                  }}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            setClustersExpandedModal(true)
+            // Reset modal filters when opening
+            setClusterModalSearch("")
+            setClusterModalStatusFilter("all")
+          }}
                   className="flex items-center gap-1 h-7 text-xs"
                   title="Expand with filters"
                 >
@@ -483,12 +460,7 @@ export default function Dashboard() {
                       </h4>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0 ml-3">
-                      <span className="text-xs text-gray-600 flex items-center gap-1">
-                        <Ticket className="h-3 w-3" />
-                        {cluster.ticketCount}
-                      </span>
                       {getClusterStatusBadge(cluster.status)}
-                      {getClusterPriorityBadge(cluster.priority)}
                     </div>
                   </Link>
                 ))}
@@ -709,7 +681,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent className="pt-4 space-y-4 flex-1 overflow-hidden flex flex-col">
               {/* Filters */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <input
@@ -720,16 +692,6 @@ export default function Dashboard() {
                     className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
                   />
                 </div>
-                <select
-                  value={clusterModalPriorityFilter}
-                  onChange={(e) => setClusterModalPriorityFilter(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
-                >
-                  <option value="all">All Priorities</option>
-                  <option value="high">High</option>
-                  <option value="medium">Medium</option>
-                  <option value="low">Low</option>
-                </select>
                 <select
                   value={clusterModalStatusFilter}
                   onChange={(e) => setClusterModalStatusFilter(e.target.value)}
@@ -768,12 +730,7 @@ export default function Dashboard() {
                         </h4>
                       </div>
                       <div className="flex items-center gap-3 flex-shrink-0 ml-4">
-                        <span className="text-xs text-gray-600 flex items-center gap-1">
-                          <Ticket className="h-3 w-3" />
-                          {cluster.ticketCount}
-                        </span>
                         {getClusterStatusBadge(cluster.status)}
-                        {getClusterPriorityBadge(cluster.priority)}
                       </div>
                     </Link>
                   ))

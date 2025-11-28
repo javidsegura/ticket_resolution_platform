@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Download, Check, MessageSquare, X, ArrowLeft, Ticket, Layers, Send, Info } from "lucide-react"
+import { Download, Check, MessageSquare, X, ArrowLeft, Layers, Send, Info, FlaskConical } from "lucide-react"
 import { fetchClusterById, type Cluster } from "@/services/clusters"
 import ReactMarkdown from "react-markdown"
 
@@ -25,19 +25,6 @@ const getClusterStatusBadge = (status: string) => {
   return (
     <span className={`px-3 py-1 rounded-full text-sm font-medium ${styles[status as keyof typeof styles] || "bg-gray-100 text-gray-800"}`}>
       {status}
-    </span>
-  )
-}
-
-const getClusterPriorityBadge = (priority: string) => {
-  const styles = {
-    high: "text-red-600 font-semibold",
-    medium: "text-yellow-600 font-semibold",
-    low: "text-green-600 font-semibold"
-  }
-  return (
-    <span className={`text-lg ${styles[priority as keyof typeof styles] || "text-gray-600"}`}>
-      {priority.toUpperCase()}
     </span>
   )
 }
@@ -206,62 +193,136 @@ export default function ClusterDetail() {
         </div>
       </div>
 
-      {/* Key Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Key Information</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-            <div>
-              <p className="text-sm text-muted-foreground">Ticket Count</p>
-              <p className="font-medium flex items-center gap-2 mt-1">
-                <Ticket className="h-4 w-4" />
-                {cluster.ticketCount} tickets
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Status</p>
-              <div className="mt-1">{getClusterStatusBadge(cluster.status)}</div>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Priority</p>
-              <div className="mt-1">{getClusterPriorityBadge(cluster.priority)}</div>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Created</p>
-              <p className="font-medium text-sm">{formatDate(cluster.createdAt)}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Last Updated</p>
-              <p className="font-medium text-sm">{formatDate(cluster.updatedAt)}</p>
-            </div>
-          </div>
-          
-          {/* Summary */}
-          <div className="mt-4 pt-4 border-t">
-            <p className="text-sm text-muted-foreground mb-2">Summary</p>
-            <p className="text-gray-700 leading-relaxed">{cluster.summary}</p>
-          </div>
-
-          {/* Main Topics */}
-          {cluster.mainTopics && cluster.mainTopics.length > 0 && (
-            <div className="mt-4 pt-4 border-t">
-              <p className="text-sm text-muted-foreground mb-2">Main Topics</p>
-              <div className="flex flex-wrap gap-2">
-                {cluster.mainTopics.map((topic, idx) => (
-                  <span
-                    key={idx}
-                    className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-md text-sm font-medium"
-                  >
-                    {topic}
-                  </span>
-                ))}
+      {/* Key Information & A/B Testing */}
+      <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
+        <Card>
+          <CardHeader>
+            <CardTitle>Key Information</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div>
+                <p className="text-sm text-muted-foreground">Status</p>
+                <div className="mt-1">{getClusterStatusBadge(cluster.status)}</div>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Created</p>
+                <p className="font-medium text-sm">{formatDate(cluster.createdAt)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Last Updated</p>
+                <p className="font-medium text-sm">{formatDate(cluster.updatedAt)}</p>
               </div>
             </div>
-          )}
-        </CardContent>
-      </Card>
+            
+            {/* Area */}
+            <div className="mt-4 pt-4 border-t">
+              <p className="text-sm text-muted-foreground mb-2">Area</p>
+              <p className="text-gray-700 leading-relaxed">{cluster.area ?? cluster.summary}</p>
+            </div>
+
+            {/* Main Topics */}
+            {cluster.mainTopics && cluster.mainTopics.length > 0 && (
+              <div className="mt-4 pt-4 border-t">
+                <p className="text-sm text-muted-foreground mb-2">Main Topics</p>
+                <div className="flex flex-wrap gap-2">
+                  {cluster.mainTopics.map((topic, idx) => (
+                    <span
+                      key={idx}
+                      className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-md text-sm font-medium"
+                    >
+                      {topic}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="lg:h-full">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <FlaskConical className="h-4 w-4" />
+                  A/B Testing Performance
+                </CardTitle>
+                <CardDescription className="text-xs mt-1">
+                  Variant impressions, resolutions, and conversion rates
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0 space-y-5">
+            <div className="space-y-3">
+              {(["variantA", "variantB"] as const).map((variantKey) => {
+                const label = variantKey === "variantA" ? "Variant A" : "Variant B"
+                const impressions = cluster[variantKey === "variantA" ? "variantAImpressions" : "variantBImpressions"] ?? 0
+                const resolutions = cluster[variantKey === "variantA" ? "variantAResolutions" : "variantBResolutions"] ?? 0
+                const conversion = impressions === 0 ? 0 : (resolutions / impressions) * 100
+
+                return (
+                  <div key={variantKey} className="rounded-lg border p-3">
+                    <div className="flex items-center justify-between text-sm font-medium text-gray-900">
+                      <span>{label}</span>
+                      <span>{conversion.toFixed(1)}%</span>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      {resolutions} resolutions / {impressions} impressions
+                    </p>
+                    <div className="mt-3 h-2 rounded-full bg-gray-100">
+                      <div
+                        className="h-full rounded-full bg-primary-500 transition-all"
+                        style={{ width: `${Math.min(conversion, 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            <div className="rounded-lg bg-gray-50 p-4 text-xs text-gray-600">
+              <p className="font-semibold text-gray-800 mb-1">Quick insights</p>
+              <ul className="space-y-1">
+                {(() => {
+                  const variantAImpressions = cluster.variantAImpressions ?? 0
+                  const variantBImpressions = cluster.variantBImpressions ?? 0
+                  const variantAResolutions = cluster.variantAResolutions ?? 0
+                  const variantBResolutions = cluster.variantBResolutions ?? 0
+                  const variantAConversion = variantAImpressions === 0 ? 0 : (variantAResolutions / variantAImpressions) * 100
+                  const variantBConversion = variantBImpressions === 0 ? 0 : (variantBResolutions / variantBImpressions) * 100
+                  const conversionDifference = variantAConversion - variantBConversion
+
+                  return (
+                    <>
+                      <li>
+                        Variant A lift vs B:{" "}
+                        <span className={`font-semibold ${conversionDifference >= 0 ? "text-green-700" : "text-red-600"}`}>
+                          {conversionDifference >= 0 ? "+" : ""}
+                          {conversionDifference.toFixed(1)} pp
+                        </span>
+                      </li>
+                      <li>
+                        Total impressions:{" "}
+                        <span className="font-semibold text-gray-900">
+                          {variantAImpressions + variantBImpressions}
+                        </span>
+                      </li>
+                      <li>
+                        Total resolutions:{" "}
+                        <span className="font-semibold text-gray-900">
+                          {variantAResolutions + variantBResolutions}
+                        </span>
+                      </li>
+                    </>
+                  )
+                })()}
+              </ul>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Resolution with Actions Side by Side */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
