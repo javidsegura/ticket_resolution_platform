@@ -3,6 +3,13 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from ai_ticket_platform.database.generated_models import Category
 
 
+class IntentCategoryInfo(BaseModel):
+    id: int
+    name: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class IntentBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     category_level_1_id: int | None = Field(None, ge=1)
@@ -69,5 +76,8 @@ class IntentRead(IntentBase):
     id: int
     created_at: datetime
     updated_at: datetime | None = None
+    category_level_1: IntentCategoryInfo | None = None
+    category_level_2: IntentCategoryInfo | None = None
+    category_level_3: IntentCategoryInfo | None = None
 
     model_config = ConfigDict(from_attributes=True)
