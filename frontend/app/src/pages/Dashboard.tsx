@@ -24,12 +24,17 @@ const formatDate = (dateString: string) => {
   })
 }
 
-// Dummy API call handler for CSV upload
+// Dummy handlers for manual uploads
 const handleTicketDropIn = () => {
   console.log("API Call: Ticket Drop In (CSV)")
   // TODO: Replace with actual API call
-  // This would typically open a file picker and upload the CSV
-  alert("Ticket Drop In (CSV) - API call placeholder. This will upload a CSV file with tickets.")
+  alert("Ticket Drop In (CSV) - This will upload a CSV file with tickets.")
+}
+
+const handleCompanyDocsDropIn = () => {
+  console.log("API Call: Company Docs Drop In (PDF only)")
+  // TODO: Replace with actual API call and PDF file picker restriction
+  alert("Company Docs Drop In - Only PDF files are accepted in this upload.")
 }
 
 const getClusterStatusBadge = (status: string) => {
@@ -310,6 +315,10 @@ export default function Dashboard() {
         <Button onClick={handleTicketDropIn} variant="outline">
           <Upload className="mr-2 h-4 w-4" />
           Ticket Drop In (CSV)
+        </Button>
+        <Button onClick={handleCompanyDocsDropIn} variant="outline">
+          <Upload className="mr-2 h-4 w-4" />
+          Company Docs (PDF)
         </Button>
         </div>
       </div>
