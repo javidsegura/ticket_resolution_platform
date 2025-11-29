@@ -359,10 +359,21 @@ Integration tests verify real Docker services (MySQL, Redis, Firebase) and test 
 
 ### Available Endpoints - Implementation Status
 
-#### ✅ **Already Implemented**
+#### ✅ **Recently Implemented** (From Main Branch Integration)
 ```
-TICKETS:
-  POST /api/tickets/upload-csv   # Upload CSV file (WORKING)
+TICKETS (NOW TESTABLE):
+  GET /api/tickets               # List tickets with pagination (skip, limit) ✅ [5 tests]
+  GET /api/tickets/{id}          # Get single ticket by ID ✅ [2 tests]
+  POST /api/tickets/upload-csv   # Upload CSV file (WORKING) ✅ [1 test]
+
+INTENTS (NOW TESTABLE):
+  GET /api/intents               # List intents with pagination & filtering ✅ [3 tests]
+  GET /api/intents/{id}          # Get single intent by ID ✅ [2 tests]
+
+ANALYTICS (NOW TESTABLE):
+  POST /api/external/collect     # Record impression/resolution events ✅ [2 tests]
+  GET /api/external/analytics/{intent_id} # Get intent-specific metrics ✅ [1 test]
+  GET /api/external/analytics/totals     # Get aggregated A/B testing data ✅ [1 test]
 
 DOCUMENTS:
   POST /api/documents/upload     # Upload PDF documents (WORKING)
@@ -379,18 +390,16 @@ SLACK:
   GET /api/slack/ping
 ```
 
-#### ❌ **NEEDED FOR BUSINESS LOGIC TESTS** (Not Yet Implemented)
+#### ❌ **STILL NEEDED FOR BUSINESS LOGIC TESTS** (Not Yet Implemented)
 ```
-CLUSTERS (CRITICAL - Required by 3 tests):
+CLUSTERS (CRITICAL - Required by 8 tests):
   GET /api/clusters              # List all clusters [REQUIRED]
   GET /api/clusters/:id          # Get single cluster [REQUIRED]
-
-TICKETS (CRITICAL - Required by 2 tests):
-  GET /api/tickets               # List/search tickets with ?search= param [REQUIRED]
-  GET /api/tickets/:id           # Get single ticket [REQUIRED]
 ```
 
-### Current Infrastructure Tests (8 tests)
+### Current Integration Tests (22 tests total)
+
+#### Infrastructure Tests (8 tests - Existing)
 
 **File: `test_csv_upload_docker.py` (2 tests)**
 - `test_csv_upload_persists_to_mysql` - Verifies CSV data correctly persists to MySQL
@@ -407,10 +416,105 @@ TICKETS (CRITICAL - Required by 2 tests):
 - `test_concurrent_database_operations_and_pooling` - Tests 10 concurrent insert/read/update with pooling
 - `test_database_connection_health` - Verifies connection health, transactions, table existence
 
-### Planned Business Logic Integration Tests
+#### Endpoint Integration Tests (14 tests - New)
 
-**Status:** Ready to implement once teammates complete endpoint implementations
-**Scope:** End-to-end CSV processing flow (stops before Slack approval)
+**File: `test_tickets_endpoints.py` (5 tests)**
+- `test_get_tickets_empty_list` - Tests GET /api/tickets with empty database
+- `test_get_tickets_pagination` - Tests pagination with skip/limit parameters
+- `test_get_ticket_by_id_success` - Tests successful single ticket retrieval
+- `test_get_ticket_by_id_not_found` - Tests 404 error handling for missing tickets
+- `test_csv_upload_then_get_tickets` - End-to-end flow: CSV upload → GET /api/tickets
+
+**File: `test_intents_endpoints.py` (5 tests)**
+- `test_list_intents_empty` - Tests empty database handling
+- `test_list_intents_pagination` - Tests pagination support
+- `test_get_intent_by_id` - Tests single intent retrieval
+- `test_get_intent_by_id_not_found` - Tests 404 error handling
+- `test_filter_intents_by_processed_status` - Tests is_processed filtering
+
+**File: `test_external_analytics.py` (4 tests)**
+- `test_collect_impression_event` - Tests impression event collection and counter increments
+- `test_collect_resolution_event` - Tests resolution event collection
+- `test_get_intent_analytics` - Tests intent-specific A/B testing metrics retrieval
+- `test_get_analytics_totals` - Tests aggregated analytics across all intents
+
+### Still Missing - Blocked Integration Tests (8 tests)
+
+**Status:** BLOCKED - Waiting for GET /api/clusters endpoint implementation
+**Scope:** Clustering cache tests and E2E pipeline validation
+**Impact:** Cannot test clustering without the endpoint
+
+#### Blocked Tests That Will Be Added (8 tests when /api/clusters is implemented)
+- Clustering cache hit/miss performance tests (3 tests)
+- E2E CSV → Clustering → Cache pipeline (3 tests)
+- Concurrent operations and load testing (2 tests)
+
+---
+
+### How to Run All Integration Tests
+
+#### Option 1: Run All Integration Tests with Docker (Recommended)
+```bash
+cd backend
+ENVIRONMENT=test make test-integration-services-docker
+```
+
+This command:
+1. Starts Docker containers (MySQL, Redis, Firebase)
+2. Runs all 22 integration tests (8 infrastructure + 14 endpoint)
+3. Generates coverage report
+4. Cleans up Docker containers
+5. Displays pass/fail summary
+
+**Expected output:** All 22 tests passing with coverage report
+
+#### Option 2: Run Specific Test File
+```bash
+cd backend
+ENVIRONMENT=test pytest tests/integration/test_tickets_endpoints.py -v
+ENVIRONMENT=test pytest tests/integration/test_intents_endpoints.py -v
+ENVIRONMENT=test pytest tests/integration/test_external_analytics.py -v
+```
+
+#### Option 3: Run Single Test
+```bash
+cd backend
+ENVIRONMENT=test pytest tests/integration/test_tickets_endpoints.py::test_get_tickets_empty_list -v
+```
+
+#### Option 4: Run with Coverage Report
+```bash
+cd backend
+ENVIRONMENT=test pytest tests/integration/ \
+  --cov=ai_ticket_platform \
+  --cov-report=term-missing \
+  --cov-report=html
+```
+
+Generates detailed HTML coverage report at `htmlcov/index.html`
+
+#### Option 5: Run Infrastructure Tests Only
+```bash
+cd backend
+ENVIRONMENT=test make test-integration-services-docker
+# Then manually run only these files:
+ENVIRONMENT=test pytest tests/integration/test_csv_upload_docker.py \
+                        tests/integration/test_caching_docker.py \
+                        tests/integration/test_persistence_docker.py -v
+```
+
+#### Option 6: Run Endpoint Tests Only
+```bash
+cd backend
+ENVIRONMENT=test pytest tests/integration/test_tickets_endpoints.py \
+                        tests/integration/test_intents_endpoints.py \
+                        tests/integration/test_external_analytics.py -v
+```
+
+### Planned Business Logic Integration Tests (8 blocked tests)
+
+**Status:** BLOCKED - Waiting for /api/clusters endpoint implementation
+**Scope:** End-to-end CSV processing flow with clustering
 **Approach:** Will test actual business logic workflows using real Docker services
 
 ```
