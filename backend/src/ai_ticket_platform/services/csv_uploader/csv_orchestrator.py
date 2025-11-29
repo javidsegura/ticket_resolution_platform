@@ -54,7 +54,7 @@ async def upload_csv_file(file: UploadFile, db: AsyncSession) -> dict:
         logger.info(f"Parsed CSV: {csv_result['file_info']['tickets_extracted']} tickets extracted")
 
         # Cluster tickets with caching (hash-based deduplication)
-        clustering_result = await cluster_tickets_with_cache(csv_result["tickets"])
+        clustering_result = await cluster_tickets_with_cache(db, csv_result["tickets"])
         logger.info(f"Clustering completed: {clustering_result.get('clusters_created', 0)} clusters")
 
         # Save to database

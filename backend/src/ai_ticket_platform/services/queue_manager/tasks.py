@@ -8,7 +8,7 @@ from ai_ticket_platform.core.settings.app_settings import initialize_settings
 from ai_ticket_platform.database.main import initialize_db_engine
 from ai_ticket_platform.services.csv_uploader.csv_parser import parse_csv_file
 from ai_ticket_platform.database.CRUD.ticket import create_tickets
-from ai_ticket_platform.services.clustering.cluster_service import cluster_and_categorize_tickets
+from ai_ticket_platform.services.clustering.cluster_service import cluster_tickets
 from ai_ticket_platform.core.clients import llm_client
 from ai_ticket_platform.services.content_generation.rag_queue_interface import generate_article_task
 from rq import Queue, Retry, get_current_job
@@ -17,9 +17,20 @@ from rq.job import Job
 logger = logging.getLogger(__name__)
 
 
-redis_client_connector = initialize_redis_client()
-sync_redis_connection = redis_client_connector.get_sync_connection()
-queue = Queue("default", connection=sync_redis_connection)
+# Lazy initialization - only initialize when actually needed
+redis_client_connector = None
+sync_redis_connection = None
+queue = None
+
+
+def _get_queue():
+	"""Get or initialize the RQ queue."""
+	global redis_client_connector, sync_redis_connection, queue
+	if queue is None:
+		redis_client_connector = initialize_redis_client()
+		sync_redis_connection = redis_client_connector.get_sync_connection()
+		queue = Queue("default", connection=sync_redis_connection)
+	return queue
 
 
 def _run_async(coro):
@@ -74,49 +85,98 @@ def process_ticket_stage1(csv_file_path: str) -> Dict[str, Any]:
 		raise  # Will be automatically requeued 
 
 
-def process_ticket_stage2(cluster_data: Dict[str, Any]) -> Dict[str, Any]:
-	"""Stage 2: Create intent and enqueue content generation"""
-	cluster_name = cluster_data.get("cluster_name", "Unknown")
-	logger.info(f"[STAGE2] Creating intent for cluster: {cluster_name}")
+def process_ticket_stage2(ticket_ids: List[int], batch_size: int = 20) -> Dict[str, Any]:
+	"""Stage 2: Cluster all tickets and enqueue Stage 3 for each new intent"""
+	logger.info(f"[STAGE2] Starting clustering for {len(ticket_ids)} tickets")
 
 	try:
-		# Create Intent record in database
-		async def create_intent_record():
-			from ai_ticket_platform.database.CRUD.intents import create_intent
+		# Run clustering using cluster_tickets service
+		async def run_clustering():
+			from ai_ticket_platform.database.CRUD.ticket import get_ticket
 
 			AsyncSessionLocal = initialize_db_engine()
 			async with AsyncSessionLocal() as db:
-				intent = await create_intent(
-					db,
-					name=cluster_data.get("cluster_name", "Untitled Intent"),
-					area=cluster_data.get("category", "General"),
-					description=cluster_data.get("summary", ""),
-					is_processed=False
-				)
-				return intent
+				# Fetch actual Ticket objects from DB
+				ticket_objects = []
+				for ticket_id in ticket_ids:
+					ticket_obj = await get_ticket(db, ticket_id)
+					if ticket_obj:
+						ticket_objects.append(ticket_obj)
 
-		intent = _run_async(create_intent_record())
-		logger.info(f"[STAGE2] Created intent {intent.id} for cluster: {cluster_name}")
+				logger.info(f"[STAGE2] Fetched {len(ticket_objects)} ticket objects from DB")
 
-		# Enqueue Stage 3: Article generation for this intent
-		job = queue.enqueue(
-			process_ticket_stage3,
-			intent.id,
-			cluster_data,
-			retry=Retry(max=3, interval=[10, 30, 60]),
-			job_timeout="15m"
-		)
-		logger.info(f"[STAGE2] Enqueued stage3 job {job.id} for intent {intent.id}")
+				# Run clustering with batch_size
+				result = await cluster_tickets(db, llm_client, ticket_objects, batch_size=batch_size)
+				return result
+
+		clustering_result = _run_async(run_clustering())
+		logger.info(f"[STAGE2] Clustering complete: {clustering_result.get('total_intents', 0)} intents created/matched")
+
+		# Extract intent assignments
+		assignments = clustering_result.get("assignments", [])
+
+		if not assignments:
+			logger.warning("[STAGE2] No intent assignments from clustering")
+			return {
+				"status": "completed",
+				"tickets_clustered": len(ticket_ids),
+				"intents_created": 0,
+				"stage3_enqueued": 0
+			}
+
+		# Group assignments by intent_id to enqueue stage3 once per new intent
+		intent_groups = {}
+		for assignment in assignments:
+			intent_id = assignment.get("intent_id")
+			if intent_id and assignment.get("is_new_intent"):
+				# Only enqueue for newly created intents
+				if intent_id not in intent_groups:
+					intent_groups[intent_id] = {
+						"intent_id": intent_id,
+						"intent_name": assignment.get("intent_name", "Unknown"),
+						"category_l1_name": assignment.get("category_l1_name", "General"),
+						"category_l2_name": assignment.get("category_l2_name", "General"),
+						"category_l3_name": assignment.get("category_l3_name", "General"),
+						"ticket_ids": []
+					}
+				intent_groups[intent_id]["ticket_ids"].append(assignment.get("ticket_id"))
+
+		# Enqueue stage3 ONCE per newly created intent
+		logger.info(f"[STAGE2] Enqueueing stage3 jobs for {len(intent_groups)} new intents")
+		stage3_jobs = []
+		for intent_id, intent_data in intent_groups.items():
+			cluster_data = {
+				"intent_id": intent_id,
+				"cluster_name": intent_data["intent_name"],
+				"category": intent_data["category_l1_name"],
+				"subcategory": intent_data["category_l2_name"],
+				"ticket_count": len(intent_data["ticket_ids"]),
+				"summary": f"Intent for {len(intent_data['ticket_ids'])} tickets"
+			}
+
+			job = _get_queue().enqueue(
+				process_ticket_stage3,
+				intent_id,
+				cluster_data,
+				retry=Retry(max=3, interval=[10, 30, 60]),
+				job_timeout="15m"
+			)
+			stage3_jobs.append(job.id)
+			logger.info(f"[STAGE2] Enqueued stage3 job {job.id} for intent {intent_id}: {intent_data['intent_name']}")
+
+		logger.info(f"[STAGE2] Complete: {len(stage3_jobs)} stage3 jobs enqueued")
 
 		return {
-			"cluster_name": cluster_name,
-			"intent_id": intent.id,
-			"stage3_job_id": job.id,
-			"status": "intent_created"
+			"status": "completed",
+			"tickets_clustered": len(ticket_ids),
+			"intents_created": clustering_result.get("intents_created", 0),
+			"intents_matched": clustering_result.get("intents_matched", 0),
+			"stage3_enqueued": len(stage3_jobs),
+			"stage3_job_ids": stage3_jobs
 		}
 
 	except Exception as e:
-		logger.error(f"[STAGE2] Error creating intent for {cluster_name}: {str(e)}")
+		logger.error(f"[STAGE2] Error during clustering: {str(e)}")
 		raise  # Will be automatically requeued
 
 
@@ -144,7 +204,7 @@ def process_ticket_stage3(intent_id: int, cluster_data: Dict[str, Any]) -> Dict[
 
 
 def batch_finalizer(stage1_job_ids: List[str], batch_size: int = 20) -> Dict[str, Any]:
-	"""Wait for stage1 jobs, then cluster tickets in batches and enqueue stage2"""
+	"""Wait for all stage1 jobs to finish, then enqueue a single stage2 job for clustering"""
 	logger.info(f"[FINALIZER] Starting - checking {len(stage1_job_ids)} stage1 jobs")
 
 	# Fetch all jobs once
@@ -158,7 +218,7 @@ def batch_finalizer(stage1_job_ids: List[str], batch_size: int = 20) -> Dict[str
 		# Not all jobs are done, re-enqueue self to run in 30 seconds
 		current_job = get_current_job()
 		if current_job:
-			queue.enqueue_in(timedelta(seconds=30), batch_finalizer, stage1_job_ids, batch_size, job_id=current_job.id)
+			_get_queue().enqueue_in(timedelta(seconds=30), batch_finalizer, stage1_job_ids, batch_size, job_id=current_job.id)
 			logger.info(f"[FINALIZER] Re-enqueued finalizer job {current_job.id}, {len(finished_jobs)}/{len(stage1_job_ids)} jobs complete. {len(pending_jobs)} pending.")
 			return {
 				"message": f"Re-enqueued finalizer, {len(finished_jobs)}/{len(stage1_job_ids)} jobs complete.",
@@ -170,70 +230,37 @@ def batch_finalizer(stage1_job_ids: List[str], batch_size: int = 20) -> Dict[str
 			logger.error("[FINALIZER] Could not get current job context to re-enqueue.")
 			return {"message": "Error: Could not re-enqueue finalizer.", "status": "failed"}
 
-	# All jobs are finished
-	logger.info(f"[FINALIZER] Phase 1 complete: {len(finished_jobs)}/{len(stage1_job_ids)} jobs processed")
+	# All stage1 jobs are finished
+	logger.info(f"[FINALIZER] All stage1 jobs complete: {len(finished_jobs)}/{len(stage1_job_ids)} processed")
 
-	# Collect all tickets from finished jobs
-	all_tickets = []
+	# Collect all ticket IDs from finished jobs
+	all_ticket_ids = []
 	for job in finished_jobs:
 		if job.result and "tickets" in job.result and "error" not in job.result:
-			all_tickets.extend(job.result["tickets"])
+			# Extract ticket IDs from stage1 results
+			all_ticket_ids.extend([ticket["id"] for ticket in job.result["tickets"]])
 
-	if not all_tickets:
+	if not all_ticket_ids:
 		logger.warning("[FINALIZER] No tickets to cluster")
-		return {"status": "completed", "tickets_clustered": 0, "stage2_enqueued": 0}
+		return {"status": "completed", "tickets_processed": 0, "stage2_enqueued": 0}
 
-	logger.info(f"[FINALIZER] Phase 2: Clustering {len(all_tickets)} tickets in batches of {batch_size}")
+	logger.info(f"[FINALIZER] Enqueueing stage2 job for clustering {len(all_ticket_ids)} tickets")
 
-	# Split into batches
-	batches = [all_tickets[i:i + batch_size] for i in range(0, len(all_tickets), batch_size)]
-	logger.info(f"[FINALIZER] Split into {len(batches)} batches")
+	# Enqueue a single stage2 job that will handle all clustering
+	stage2_job = _get_queue().enqueue(
+		process_ticket_stage2,
+		all_ticket_ids,
+		batch_size,
+		retry=Retry(max=3, interval=[10, 30, 60]),
+		job_timeout="30m"  # Give enough time for clustering all tickets
+	)
 
-	# Cluster each batch and collect results
-	all_clusters = []
-	for batch_idx, batch in enumerate(batches):
-		logger.info(f"[FINALIZER] Clustering batch {batch_idx + 1}/{len(batches)} ({len(batch)} tickets)")
-
-		async def cluster_batch():
-			return await cluster_and_categorize_tickets(batch, llm_client)
-
-		batch_result = _run_async(cluster_batch())
-		clusters = batch_result.get("clusters", [])
-		all_clusters.extend(clusters)
-		logger.info(f"[FINALIZER] Batch {batch_idx + 1} clustered: {len(clusters)} clusters created")
-
-	logger.info(f"[FINALIZER] Phase 2 complete: {len(all_clusters)} total clusters created")
-
-	# Enqueue stage2 ONCE per cluster for content generation
-	logger.info("[FINALIZER] Phase 3: Enqueueing stage2 jobs (one per cluster)")
-	stage2_jobs = []
-	for cluster_idx, cluster in enumerate(all_clusters):
-		# Each cluster becomes an "intent" that needs content generated
-		cluster_data = {
-			"cluster_index": cluster_idx,
-			"cluster_name": cluster.get("topic_name", "Unknown"),
-			"category": cluster.get("product_category", "Unknown"),
-			"subcategory": cluster.get("product_subcategory", "Unknown"),
-			"ticket_count": cluster.get("ticket_count", 0),
-			"tickets": cluster.get("example_tickets", []),
-			"summary": cluster.get("summary", "")
-		}
-
-		job = queue.enqueue(
-			process_ticket_stage2,
-			cluster_data,
-			retry=Retry(max=3, interval=[10, 30, 60]),
-			job_timeout="10m"
-		)
-		stage2_jobs.append(job.id)
-		logger.info(f"[FINALIZER] Enqueued stage2 job {job.id} for cluster: {cluster_data['cluster_name']}")
-
-	logger.info(f"[FINALIZER] Complete: {len(stage2_jobs)} stage2 jobs enqueued")
+	logger.info(f"[FINALIZER] Complete: Enqueued stage2 job {stage2_job.id} for {len(all_ticket_ids)} tickets")
 
 	return {
-		"stage1_processed": len(finished_jobs),
-		"tickets_clustered": len(all_tickets),
-		"clusters_created": len(all_clusters),
-		"stage2_enqueued": len(stage2_jobs),
-		"status": "completed"
+		"status": "completed",
+		"stage1_jobs_processed": len(finished_jobs),
+		"tickets_collected": len(all_ticket_ids),
+		"stage2_job_id": stage2_job.id,
+		"stage2_enqueued": 1
 	}

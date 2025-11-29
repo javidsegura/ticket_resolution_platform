@@ -55,7 +55,7 @@ class RAGWorkflow:
 		# Initialize Gemini LLM
 		self.llm = ChatGoogleGenerativeAI(
 			google_api_key=settings.GEMINI_API_KEY,
-			model=settings.GEMINI_MODEL or "gemini-1.5-pro",
+			model=settings.GEMINI_MODEL or "gemini-1.5-flash",
 			temperature=0.3,
 		)
 

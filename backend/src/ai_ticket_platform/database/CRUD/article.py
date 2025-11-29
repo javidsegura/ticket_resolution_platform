@@ -8,8 +8,9 @@ from ai_ticket_platform.database.generated_models import Article
 async def create_article(
     db: AsyncSession,
     intent_id: int,
-    article_type: str,
-    blob_path: str,
+    title: str,
+    content: str,
+    type: str = "article",
     status: str = "iteration",
     version: int = 1,
     feedback: Optional[str] = None
@@ -20,16 +21,19 @@ async def create_article(
     Args:
         db: Database session
         intent_id: Intent ID (immutable after creation)
-        article_type: Article type (immutable after creation)
-        blob_path: Blob path (immutable after creation)
+        title: Article title
+        content: Article content
+        type: Article type (default 'article')
         status: Article status (default 'iteration')
         version: Version number (default 1)
         feedback: Optional feedback text
+
+    Note: blob_path is set to empty string for now, will be handled later when blob storage is configured.
     """
     db_article = Article(
         intent_id=intent_id,
-        type=article_type,
-        blob_path=blob_path,
+        type=type,
+        blob_path="",  # Empty for now, will be handled after blob storage is configured
         status=status,
         version=version,
         feedback=feedback,

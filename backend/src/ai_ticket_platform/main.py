@@ -32,15 +32,15 @@ async def lifespan(app: FastAPI):
     available for the entire application lifecycle.
     """
     #initialize_firebase()
-    initialize_logger() 
+    initialize_logger()
     settings.app_settings = settings.initialize_settings()
     #clients.s3_client = clients.initialize_aws_s3_client()
     #clients.secrets_manager_client = clients.initialize_aws_secrets_manager_client()
-    clients.redis = clients.initialize_redis_client()
 
-    # Initialize Redis client and cache manager
-    redis_instance = await clients.redis.get_client()
-    clients.cache_manager = CacheManager(redis_instance)
+    # TEMPORARILY DISABLED: Redis not available on Windows
+    # clients.redis = clients.initialize_redis_client()
+    # redis_instance = await clients.redis.get_client()
+    # clients.cache_manager = CacheManager(redis_instance)
 
     # Initialize Azure AI Search for RAG
     logger.info("Initializing Azure AI Search for RAG")

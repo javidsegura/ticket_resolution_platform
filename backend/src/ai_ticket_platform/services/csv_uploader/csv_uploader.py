@@ -10,11 +10,12 @@ from ai_ticket_platform.services.clustering.cluster_service import cluster_ticke
 logger = logging.getLogger(__name__)
 
 
-async def cluster_tickets_with_cache(tickets_data: List[dict]) -> Dict:
+async def cluster_tickets_with_cache(db: AsyncSession, tickets_data: List[dict]) -> Dict:
     """
     Cluster tickets using the LLM with caching for deduplication.
 
     Args:
+        db: Database session
         tickets_data: List of ticket dicts from CSV parser
 
     Returns:
@@ -33,7 +34,8 @@ async def cluster_tickets_with_cache(tickets_data: List[dict]) -> Dict:
 
     try:
         # Call clustering service which handles caching internally
-        clustering_result = await cluster_tickets(tickets_data, llm_client)
+        # Note: cluster_tickets expects (db, llm_client, tickets) arguments
+        clustering_result = await cluster_tickets(db, llm_client, tickets_data)
         logger.info(f"Clustering completed: {clustering_result.get('clusters_created', 0)} clusters created")
         return clustering_result
     except Exception as e:

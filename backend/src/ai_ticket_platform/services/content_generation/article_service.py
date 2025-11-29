@@ -3,9 +3,9 @@ from typing import Dict, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ai_ticket_platform.database.CRUD.articles import create_article, read_article
-from ai_ticket_platform.database.CRUD.intents import read_intent, update_intent
-from ai_ticket_platform.database.CRUD.tickets import list_tickets_by_intent
+from ai_ticket_platform.database.CRUD.article import create_article, get_article_by_id as read_article
+from ai_ticket_platform.database.CRUD.intents import get_intent, update_intent
+from ai_ticket_platform.database.CRUD.ticket import list_tickets_by_intent
 from ai_ticket_platform.core.clients import azure_search
 from ai_ticket_platform.services.content_generation.langgraph_rag_workflow import RAGWorkflow
 
@@ -48,7 +48,7 @@ class ArticleGenerationService:
 
 		try:
 			# 1. Fetch intent
-			intent = await read_intent(db, intent_id)
+			intent = await get_intent(db, intent_id)
 			if not intent:
 				return {"status": "error", "error": "Intent not found"}
 
