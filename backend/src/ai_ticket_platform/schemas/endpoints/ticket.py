@@ -26,9 +26,6 @@ class TicketIntentAssignment(BaseModel):
     intent_id: int = Field(..., ge=1, description="Linked intent ID")
     model_config = {"strict": True}  # Enforce strict integer type validation
 
-# Backward compatibility alias for TicketIntentAssignment
-TicketUpdate = TicketIntentAssignment
-    
 # Response schema for tickets (intent_id is None until clustering assigns it)
 class TicketResponse(TicketBase):
     """Schema for ticket responses"""

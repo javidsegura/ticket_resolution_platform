@@ -27,10 +27,10 @@ def build_labeling_prompt(document_content: str, filename: str) -> str:
         - You can propose any department/area name that makes sense for the document content
 
         EXAMPLES:
-        - "API Integration Guide" → Tech
-        - "Employee Expense Reimbursement Policy" → Finance
-        - "Benefits Enrollment Process" → HR
-        - "Sales Commission Structure" → Sales
+        - "API Integration Guide" = Tech
+        - "Employee Expense Reimbursement Policy" = Finance
+        - "Benefits Enrollment Process" = HR
+        - "Sales Commission Structure" = Sales
     """
 
     return prompt

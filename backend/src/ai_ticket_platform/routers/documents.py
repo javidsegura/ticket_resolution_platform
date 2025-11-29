@@ -6,7 +6,7 @@ import logging
 from ai_ticket_platform.core.clients import initialize_llm_client
 from ai_ticket_platform.dependencies import get_app_settings, get_db
 from ai_ticket_platform.core.settings import Settings
-from ai_ticket_platform.services.labeling.document_processor import process_document
+from ai_ticket_platform.services.labeling.company_doc_processing import process_and_index_document
 
 logger = logging.getLogger(__name__)
 
@@ -20,12 +20,13 @@ async def upload_company_documents(
 	db: Annotated[AsyncSession, Depends(get_db)] = None,
 ):
 	"""
-	Upload company PDF documents: label with LLM and save to database. Only PDF files are accepted.
+	Upload company PDF documents: automatically label + save + index to Azure AI Search.
 	"""
 	llm_client = initialize_llm_client(settings)
 
 	# Process files sequentially to avoid concurrent use of a single AsyncSession
 	results = []
+
 	for file in files:
 		# Validate PDF file type
 		if not file.filename.lower().endswith(".pdf"):
@@ -33,34 +34,33 @@ async def upload_company_documents(
 			results.append({
 				"filename": file.filename,
 				"success": False,
-				"error": "Only PDF files are accepted"
+				"error": "Only PDF files are accepted",
+				"indexed": False
 			})
 			continue
 
 		content = await file.read()
 
-		# Process document using service layer
-		result = await process_document(
+		# Process and index document 
+		result = await process_and_index_document(
 			filename=file.filename,
 			content=content,
 			llm_client=llm_client,
 			db=db,
+			settings=settings
 		)
 
 		results.append(result)
 
 	# Count successes and failures
-	successful_count = 0
-	failed_count = 0
-	for r in results:
-		if r["success"]:
-			successful_count += 1
-		else:
-			failed_count += 1
+	successful_count = sum(1 for r in results if r["success"])
+	failed_count = len(results) - successful_count
+	indexed_count = sum(1 for r in results if r.get("indexed", False))
 
 	return {
 		"total_processed": len(files),
 		"successful": successful_count,
 		"failed": failed_count,
-		"results": list(results)
+		"indexed": indexed_count,
+		"results": results
 	}

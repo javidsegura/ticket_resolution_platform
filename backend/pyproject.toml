@@ -25,7 +25,13 @@ dependencies = [
       "azure-storage-blob>=12.19.0",
       "prometheus-fastapi-instrumentator==7.0.0",
       "rq",
-      "pdfplumber>=0.10.0"
+      "pdfplumber>=0.10.0",
+      "langgraph>=0.2.0",
+      "langchain>=0.3.0",
+      "langchain-google-genai>=2.0.0",
+      "google-generativeai>=0.8.0",
+      "azure-search-documents>=11.4.0",
+      "azure-identity>=1.15.0"
 ]
 
 [project.optional-dependencies]

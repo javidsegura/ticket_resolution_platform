@@ -39,7 +39,7 @@ def build_clustering_prompt(ticket_texts: List[str]) -> str:
                 CLUSTERING INSTRUCTIONS:
                 1. Create SPECIFIC, NARROW clusters - avoid broad groupings
                 2. Each cluster should represent a very specific issue or topic
-                3. Split broad themes into multiple granular clusters based on the Product → Category → Subcategory hierarchy
+                3. Split broad themes into multiple granular clusters based on the Product -> Category -> Subcategory hierarchy
                 4. Group tickets by their specific product/feature first, then by issue type
                 5. Each ticket belongs to exactly ONE cluster
                 6. Aim for 15-30 clusters for 100 tickets (more granular than before)
