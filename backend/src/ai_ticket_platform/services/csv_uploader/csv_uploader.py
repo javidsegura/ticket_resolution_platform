@@ -12,13 +12,20 @@ logger = logging.getLogger(__name__)
 
 async def cluster_tickets_with_cache(tickets_data: List[dict]) -> Dict:
     """
-    Cluster tickets using the LLM with caching for deduplication.
-
-    Args:
-        tickets_data: List of ticket dicts from CSV parser
-
+    Cluster a list of ticket dictionaries and return clustering metadata, using an LLM-backed service with internal caching.
+    
+    Parameters:
+        tickets_data (List[dict]): Parsed ticket dictionaries (e.g., containing `subject`, `id`, `created_at`, `body`).
+    
     Returns:
-        Dict with clustering results including cache hit info
+        Dict: A dictionary with clustering results and metadata:
+            - `total_tickets` (int): Number of tickets considered.
+            - `clusters_created` (int): Number of clusters created in this operation.
+            - `clusters` (List[dict]): List of cluster objects (structure depends on the clustering service).
+            - `cached` (bool): `true` if the returned result was served from cache, `false` otherwise.
+    
+    Raises:
+        RuntimeError: If clustering fails.
     """
     if not tickets_data:
         logger.warning("No tickets to cluster")
@@ -43,19 +50,19 @@ async def cluster_tickets_with_cache(tickets_data: List[dict]) -> Dict:
 
 async def save_tickets_to_db(db: AsyncSession,tickets_data: List[dict]) -> List[Ticket]:
     """
-    Save parsed tickets to database.
+    Save a list of parsed ticket dictionaries to the database and return the created Ticket objects.
     
-    Args:
-        db: Database session
-        tickets_data: List of parsed ticket dicts from CSV parser
-                     Keys: subject, id, created_at, body
+    Parameters:
+        db (AsyncSession): Active asynchronous database session used for insertion.
+        tickets_data (List[dict]): Parsed ticket dictionaries from the CSV parser. Expected keys include
+            `subject`, `id`, `created_at`, and `body`.
     
     Returns:
-        List of created Ticket objects with generated IDs
-        
+        List[Ticket]: The list of Ticket objects created in the database, each containing generated IDs.
+    
     Raises:
-        ValueError: If tickets_data is empty or invalid
-        Exception: Database errors during insertion
+        ValueError: If `tickets_data` is empty.
+        RuntimeError: If a database error occurs while creating tickets; the original exception is chained.
     """
     
     if not tickets_data:
