@@ -158,7 +158,7 @@ test-integration-services-docker: ## Run integration tests with Docker (MySQL, R
 	@echo "$(YELLOW)Starting Docker-based integration test suite...$(RESET)"
 	ENVIRONMENT=test $(MAKE) test-docker-compose-start
 	@echo "$(BLUE)Running integration tests against Docker services...$(RESET)"
-	$(VENV_ACTIVATE) && ENVIRONMENT=test pytest -s -vv --cov=ai_ticket_platform --cov-report=term-missing tests/integration/test_csv_upload_docker.py tests/integration/test_caching_docker.py tests/integration/test_persistence_docker.py || TEST_FAILED=1
+	$(VENV_ACTIVATE) && ENVIRONMENT=test pytest -s -vv --cov=ai_ticket_platform --cov-report=term-missing tests/integration/test_csv_upload_docker.py tests/integration/test_caching_docker.py tests/integration/test_persistence_docker.py tests/integration/test_tickets_endpoints.py tests/integration/test_intents_endpoints.py tests/integration/test_external_analytics.py || TEST_FAILED=1
 	@echo "$(YELLOW)Cleaning up Docker containers...$(RESET)"
 	ENVIRONMENT=test $(MAKE) test-docker-compose-stop
 	@if [ "$$TEST_FAILED" = "1" ]; then echo "$(RED)Tests failed$(RESET)"; exit 1; fi
