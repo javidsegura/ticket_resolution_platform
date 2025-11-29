@@ -22,8 +22,7 @@ class DevSettings(BaseSettings):
 
                   "CLOUD_PROVIDER",
 
-                  
-                  #"OPENAI_API_KEY",  # Required for LLM clustering
+                  "GEMINI_API_KEY",  
                   #"USING_FIREBASE_EMULATOR", "FB_AUTH_EMULATOR_HOST", "FB_PROJECT_ID"
             ]
             
@@ -76,8 +75,8 @@ class DevSettings(BaseSettings):
             self.SLACK_CHANNEL_ID = os.getenv("SLACK_CHANNEL_ID")
 
       def _extract_llm_variables(self):
-            self.OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-            self.OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
+            self.GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+            self.GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
       # def _extract_firebase_variables(self):
       #       self.USING_FIREBASE_EMULATOR = os.getenv("USING_FIREBASE_EMULATOR")
       #       self.FB_AUTH_EMULATOR_HOST= os.getenv("FB_AUTH_EMULATOR_HOST")
