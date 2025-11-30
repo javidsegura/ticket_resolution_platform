@@ -353,7 +353,7 @@ pytest tests/unit/ --timeout=10
 
 Integration tests verify real Docker services (MySQL, Redis, Firebase) and test actual system behavior end-to-end.
 
-**Current Tests:** 8 tests covering infrastructure and data persistence
+**Current Tests:** 28 tests total covering infrastructure, endpoints, and A/B testing
 **Location:** `tests/integration/`
 **Running:** `make test-integration-services-docker` (from backend dir)
 
@@ -390,14 +390,23 @@ SLACK:
   GET /api/slack/ping
 ```
 
-#### ❌ **STILL NEEDED FOR BUSINESS LOGIC TESTS** (Not Yet Implemented)
+#### ✅ **CLUSTERS - NOW IMPLEMENTED** (Using intents endpoints)
 ```
-CLUSTERS (CRITICAL - Required by 8 tests):
-  GET /api/clusters              # List all clusters [REQUIRED]
-  GET /api/clusters/:id          # Get single cluster [REQUIRED]
+CLUSTERS (IMPLEMENTED via intents endpoints):
+  GET /api/intents               # List all clusters (intents) [✅ IMPLEMENTED]
+  GET /api/intents/{id}          # Get single cluster (intent) [✅ IMPLEMENTED]
 ```
 
-### Current Integration Tests (22 tests total)
+#### ❌ **STILL NEEDED FOR BUSINESS LOGIC TESTS** (Not Yet Implemented)
+```
+DRAFTS (NOT YET IMPLEMENTED - Required by business logic tests):
+  POST /api/drafts               # Create draft [NOT IMPLEMENTED]
+  GET /api/drafts/:id            # Retrieve draft [NOT IMPLEMENTED]
+  POST /api/drafts/:id/approve   # Approve draft [NOT IMPLEMENTED]
+  POST /api/drafts/:id/publish   # Publish draft [NOT IMPLEMENTED]
+```
+
+### Current Integration Tests (28 tests total)
 
 #### Infrastructure Tests (8 tests - Existing)
 
@@ -416,7 +425,7 @@ CLUSTERS (CRITICAL - Required by 8 tests):
 - `test_concurrent_database_operations_and_pooling` - Tests 10 concurrent insert/read/update with pooling
 - `test_database_connection_health` - Verifies connection health, transactions, table existence
 
-#### Endpoint Integration Tests (14 tests - New)
+#### Endpoint Integration Tests (20 tests - New)
 
 **File: `test_tickets_endpoints.py` (5 tests)**
 - `test_get_tickets_empty_list` - Tests GET /api/tickets with empty database
@@ -432,22 +441,30 @@ CLUSTERS (CRITICAL - Required by 8 tests):
 - `test_get_intent_by_id_not_found` - Tests 404 error handling
 - `test_filter_intents_by_processed_status` - Tests is_processed filtering
 
+**File: `test_clusters_endpoints.py` (6 tests)**
+- `test_list_clusters_empty` - Tests GET /api/intents with empty database (no clusters)
+- `test_list_clusters_pagination` - Tests pagination with skip/limit parameters for clusters
+- `test_get_cluster_by_id` - Tests single cluster retrieval with A/B testing metrics
+- `test_get_cluster_by_id_not_found` - Tests 404 error handling for non-existent clusters
+- `test_filter_clusters_by_processed_status` - Tests filtering clusters by is_processed status
+- `test_cluster_ab_testing_metrics` - Tests A/B conversion rate calculations from metrics
+
 **File: `test_external_analytics.py` (4 tests)**
 - `test_collect_impression_event` - Tests impression event collection and counter increments
 - `test_collect_resolution_event` - Tests resolution event collection
 - `test_get_intent_analytics` - Tests intent-specific A/B testing metrics retrieval
 - `test_get_analytics_totals` - Tests aggregated analytics across all intents
 
-### Still Missing - Blocked Integration Tests (8 tests)
+### Still Missing - Blocked Integration Tests (Draft/Article Management - 8 tests)
 
-**Status:** BLOCKED - Waiting for GET /api/clusters endpoint implementation
-**Scope:** Clustering cache tests and E2E pipeline validation
-**Impact:** Cannot test clustering without the endpoint
+**Status:** BLOCKED - Waiting for draft/article API endpoint implementation
+**Scope:** Draft creation, approval workflow, publishing pipeline
+**Impact:** Cannot test full business flow without draft management endpoints
 
-#### Blocked Tests That Will Be Added (8 tests when /api/clusters is implemented)
-- Clustering cache hit/miss performance tests (3 tests)
-- E2E CSV → Clustering → Cache pipeline (3 tests)
-- Concurrent operations and load testing (2 tests)
+#### Tests That Will Be Added (8 tests when draft/article endpoints are implemented)
+- Draft creation and state management tests (2 tests)
+- Draft approval workflow tests (3 tests)
+- Publishing and microsite generation tests (3 tests)
 
 ---
 
@@ -461,12 +478,12 @@ ENVIRONMENT=test make test-integration-services-docker
 
 This command:
 1. Starts Docker containers (MySQL, Redis, Firebase)
-2. Runs all 22 integration tests (8 infrastructure + 14 endpoint)
+2. Runs all 28 integration tests (8 infrastructure + 20 endpoint)
 3. Generates coverage report
 4. Cleans up Docker containers
 5. Displays pass/fail summary
 
-**Expected output:** All 22 tests passing with coverage report
+**Expected output:** All 28 tests passing with coverage report
 
 #### Option 2: Run Specific Test File
 ```bash
@@ -508,6 +525,7 @@ ENVIRONMENT=test pytest tests/integration/test_csv_upload_docker.py \
 cd backend
 ENVIRONMENT=test pytest tests/integration/test_tickets_endpoints.py \
                         tests/integration/test_intents_endpoints.py \
+                        tests/integration/test_clusters_endpoints.py \
                         tests/integration/test_external_analytics.py -v
 ```
 
