@@ -1,7 +1,12 @@
 // Auth utility functions that work with both mock and real Firebase
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut as firebaseSignOut, type Auth } from 'firebase/auth';
-import { auth, isMockMode, type MockUser } from '../../firebase';
-import { mockAuth } from '../services/mockAuth';
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  type Auth,
+} from "firebase/auth";
+import { auth, isMockMode, type MockUser } from "../../firebase";
+import { mockAuth } from "../services/mockAuth";
 
 // Type guard to check if auth is Firebase Auth (not mock)
 const isFirebaseAuth = (authInstance: typeof auth): authInstance is Auth => {
@@ -15,10 +20,14 @@ export const signIn = async (email: string, password: string) => {
   } else {
     // Type guard ensures this is Firebase Auth
     if (isFirebaseAuth(auth)) {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password,
+      );
       return userCredential.user;
     }
-    throw new Error('Invalid auth instance');
+    throw new Error("Invalid auth instance");
   }
 };
 
@@ -29,10 +38,14 @@ export const signUp = async (email: string, password: string) => {
   } else {
     // Type guard ensures this is Firebase Auth
     if (isFirebaseAuth(auth)) {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password,
+      );
       return userCredential.user;
     }
-    throw new Error('Invalid auth instance');
+    throw new Error("Invalid auth instance");
   }
 };
 
@@ -45,7 +58,6 @@ export const signOut = async () => {
     if (isFirebaseAuth(auth)) {
       return await firebaseSignOut(auth);
     }
-    throw new Error('Invalid auth instance');
+    throw new Error("Invalid auth instance");
   }
 };
-

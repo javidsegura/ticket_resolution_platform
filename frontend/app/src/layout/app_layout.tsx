@@ -1,16 +1,19 @@
-import { Outlet, Link } from "react-router-dom"
-import { Ticket } from "lucide-react"
-import { useAuth } from "@/hooks/useAuth"
-import UserProfile from "@/components/userProfile"
+import { Outlet, Link } from "react-router-dom";
+import { Ticket } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import UserProfile from "@/components/userProfile";
 
 export default function AppLayout() {
-  const [user] = useAuth()
+  const [user] = useAuth();
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-100">
       <header className="bg-white shadow-md py-4 px-6 flex items-center justify-between">
         <div className="h-max">
-          <Link to="/dashboard" className="text-xl font-bold text-gray-800 tracking-wide flex items-center gap-2">
+          <Link
+            to="/dashboard"
+            className="text-xl font-bold text-gray-800 tracking-wide flex items-center gap-2"
+          >
             <Ticket className="h-6 w-6" />
             Ticket Resolution Platform
           </Link>
