@@ -67,7 +67,14 @@ lint-check: ## Run linting checks (CI)
 	@$(VENV_ACTIVATE) && ruff check  --diff --fix src/ 
 	@echo "$(BLUE)Running security checks with bandit...$(RESET)"
 	@$(VENV_ACTIVATE) && bandit -r src/ 
+format: ## Formats
+	@echo "$(YELLOW)Running CI formatting$(RESET)"
+	@echo "$(BLUE)Checking code formatting with ruff...$(RESET)"
+	@$(VENV_ACTIVATE) && ruff format --check src/
 
+format-fix: ## Format code (for pre-commit)
+	@echo "$(YELLOW)Formatting code with ruff...$(RESET)"
+	$(VENV_ACTIVATE) && ruff format src/
 
 # 3) CD
 ## DB
