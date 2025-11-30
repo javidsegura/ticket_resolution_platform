@@ -41,8 +41,9 @@ install-full: ## Install backend dependices for client + dev usage
 	else \
 		echo "Note: Homebrew not found, skipping k6 installation. Install manually with: brew install k6"; \
 	fi
+	pre-commit install
 
-# 1) Boot-up 
+# 1) Boot-up
 dev: ## Start backend development server. Note, the recommended usage is with make dev-start from parent Makefile. Flaky behavior warned.
 	$(VENV_ACTIVATE) &&  ENVIRONMENT=dev uvicorn $(APP_PATH) --reload --host 0.0.0.0 --port $(PORT)
 
@@ -64,9 +65,9 @@ lint-check: ## Run linting checks (CI)
 	@echo "$(BLUE)Running ruff checks...$(RESET)"
 	@$(VENV_ACTIVATE) && ruff check  src/
 	@echo "$(BLUE)Running ruff checks with diff...$(RESET)"
-	@$(VENV_ACTIVATE) && ruff check  --diff --fix src/ 
+	@$(VENV_ACTIVATE) && ruff check  --diff --fix src/
 	@echo "$(BLUE)Running security checks with bandit...$(RESET)"
-	@$(VENV_ACTIVATE) && bandit -r src/ 
+	@$(VENV_ACTIVATE) && bandit -r src/
 format: ## Formats
 	@echo "$(YELLOW)Running CI formatting$(RESET)"
 	@echo "$(BLUE)Checking code formatting with ruff...$(RESET)"
