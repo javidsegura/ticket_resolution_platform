@@ -36,6 +36,7 @@ src/database/migrations/versions/*__pycache__/
 
 # Local env
 *.env*
+!*.env*.example
 
 # Docker
 *.pid
