@@ -1,14 +1,14 @@
 resource "aws_s3_bucket" "s3_image_bucket" {
-      bucket = "${var.environment}-shorten-url-${random_string.bucket_prefix.result}"
-      force_destroy = true
-  
+  bucket        = "${var.environment}-shorten-url-${random_string.bucket_prefix.result}"
+  force_destroy = true
+
 }
 
 resource "random_string" "bucket_prefix" {
-      length = 9
-      special = false
-      upper = false
-  
+  length  = 9
+  special = false
+  upper   = false
+
 }
 
 resource "aws_s3_bucket_cors_configuration" "configuration_cors" {
