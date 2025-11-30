@@ -1,19 +1,31 @@
-FROM  python:3.11-slim
+FROM python:3.11-slim
 
+# 1. Install curl (for healthcheck)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/*
 
-RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+# 2. Install uv using pip
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
-ENV APP_PATH="src.ai_ticket_platform.main:app"
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONDONTWRITEBYTECODE=1
+# 3. Configure Environment
+ENV  APP_PATH="src.ai_ticket_platform.main:app" \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    UV_SYSTEM_PYTHON=1
 
 WORKDIR /app
 
-COPY ./pyproject.toml ./
+# 4. Install Dependencies (The "Cached" Layer)
+COPY pyproject.toml .
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip install -r pyproject.toml
+
+# 5. Install Application (The "Editable" Layer)
 COPY ./src ./src
-RUN pip3 install --no-cache-dir -e .
+RUN uv pip install -e .
 
-
+# 6. Finalize
 COPY ./alembic.ini ./
 COPY ./scripts ./scripts
 
