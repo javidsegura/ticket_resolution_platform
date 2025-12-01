@@ -8,18 +8,23 @@ logger = logging.getLogger(__name__)
 
 POSSIBLE_ENVIRONMENTS = ["test", "dev", "staging", "production"]
 
+
 class Settings:
 	"""Application settings loaded from environment variables."""
-	
-	def __init__(self):		
+
+	def __init__(self):
 		self.ENVIRONMENT = os.getenv("ENVIRONMENT").lower()
 		logger.debug(f"ENVIRONMENT IS: {self.ENVIRONMENT}")
 		if not self.ENVIRONMENT:
-			raise ValueError("Environment is not provided. \
-				Do export ENVIRONMENT=<value>")
-		if self.ENVIRONMENT not in POSSIBLE_ENVIRONMENTS:  
-			raise ValueError(f"{self.ENVIRONMENT} not an accepted environment. Accepted environment is: {POSSIBLE_ENVIRONMENTS}")
-	
+			raise ValueError(
+				"Environment is not provided. \
+				Do export ENVIRONMENT=<value>"
+			)
+		if self.ENVIRONMENT not in POSSIBLE_ENVIRONMENTS:
+			raise ValueError(
+				f"{self.ENVIRONMENT} not an accepted environment. Accepted environment is: {POSSIBLE_ENVIRONMENTS}"
+			)
+
 	def get_settings(self):
 		return self._extract_all_variables()
 
@@ -29,18 +34,16 @@ class Settings:
 		elif self.ENVIRONMENT in ["staging", "production"]:
 			return DeploymentSettings()
 
-	
 	def _extract_all_variables(self):
 		resolver = self._get_resolve_per_environment()
 
 		resolver.extract_all_variables()
 		resolver.validate_required_vars()
 		return resolver
-		
-	
 
 
 app_settings = None
+
 
 def initialize_settings():
 	global app_settings
@@ -50,6 +53,6 @@ def initialize_settings():
 		app_settings = Settings().get_settings()
 	else:
 		print("Settings already existed")
-	print(f"APP SETTINGS: {dir(app_settings)}") # Delete in prod 
-	print("="*30)
+	print(f"APP SETTINGS: {dir(app_settings)}")  # Delete in prod
+	print("=" * 30)
 	return app_settings

@@ -108,12 +108,6 @@ db-downgrade-prior-version:
 db-downgrade-specific-version:
 	$(VENV_ACTIVATE) && alembic downgrade $(MIGRATION_ID)
 
-# 4) Docker
-push_docker:
-	$(MAKE) check_enviroment_variables
-	docker login
-	docker buildx build -t javidsegura/ai_ticket_platform:$(ENVIRONMENT) -t javidsegura/ai_ticket_platform:latest --platform linux/amd64,linux/arm64 --push -f ./Dockerfile ./
-
 # 5) Tests
 # 5.1 ) Tests set-up
 # 5) Tests set-up
@@ -129,7 +123,7 @@ pytest-run:
 
 unit-test: ## Run all unit tests with coverage
 	@echo "$(YELLOW)Running all tests...$(RESET)"
-	$(VENV_ACTIVATE) && python3 -m pytest test/unit/ -v --cov=src/url_shortener --cov-report=term --cov-report=xml --cov-fail-under=70
+	$(VENV_ACTIVATE) && python3 -m pytest test/unit/ -v --cov=src/ai_ticket_platform --cov-report=term --cov-report=xml --cov-fail-under=70
 
 integration-test: ## Runn all integration tests
 	$(VENV_ACTIVATE) && python3 -m pytest -s -vv test/integration/
@@ -177,9 +171,25 @@ test-integration-widget: ## Run JS widget rendering tests
 	$(VENV_ACTIVATE) && pytest -s -vv tests/integration/test_js_widget.py
 
 # 6) Miscellaneous
-check_enviroment_variables:
+check_environment_variables:
 	@if [ -z "$$ENVIRONMENT" ]; then \
 		echo "Error: ENVIRONMENT must be defined"; \
 		exit 1; \
 	fi
 	echo "Environment is: $(ENVIRONMENT)"
+
+# 7) Docker
+push_docker: ## Push Docker image with version tag
+	$(MAKE) check_environment_variables
+	@if [ -z "$(BACKEND_VERSION)" ]; then \
+		echo "$(RED)ERROR: BACKEND_VERSION required$(RESET)"; \
+		echo "Usage: make push_docker BACKEND_VERSION=v1.0.0"; \
+		exit 1; \
+	fi
+	docker buildx build \
+		-t javidsegura/ai_ticket_platform:$(ENVIRONMENT)-$(BACKEND_VERSION) \
+		-t javidsegura/ai_ticket_platform:$(ENVIRONMENT) \
+		--platform linux/amd64,linux/arm64 \
+		--push \
+		-f ./Dockerfile ./
+	@echo "$(GREEN)✓ Pushed: $(ENVIRONMENT)-$(BACKEND_VERSION)$(RESET)"

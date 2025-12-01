@@ -7,7 +7,7 @@ terraform {
   }
   backend "azurerm" {
     resource_group_name  = "BCSAI2025-DEVOPS-STUDENT-2A"
-    storage_account_name = "urlshortenertfsznytxoti"
+    storage_account_name = "tfstateaiticketznytxoti"
     container_name       = "remote-state-data"
     key                  = "prod/terraform.tfstate"
   }

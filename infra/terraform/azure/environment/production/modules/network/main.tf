@@ -1,7 +1,7 @@
 
 # 1. Virtual Network (VNet) - Equivalent to AWS VPC
 resource "azurerm_virtual_network" "main_vnet" {
-  name                = "main-vnet"
+  name                = "main-vnet-prod"
   address_space       = ["10.0.0.0/16"]
   location            = var.location
   resource_group_name = var.resource_group_name
@@ -35,7 +35,7 @@ resource "azurerm_subnet" "private_subnet" {
 
 # 3. Route Tables (Equivalent to AWS Route Tables)
 resource "azurerm_route_table" "public_route_table" {
-  name                = "public-route-table"
+  name                = "public-route-table-prod"
   location            = var.location
   resource_group_name = var.resource_group_name
 
@@ -47,7 +47,7 @@ resource "azurerm_route_table" "public_route_table" {
 }
 
 resource "azurerm_route_table" "private_route_table" {
-  name                = "private-route-table"
+  name                = "private-route-table-prod"
   location            = var.location
   resource_group_name = var.resource_group_name
 
@@ -66,7 +66,7 @@ resource "azurerm_subnet_route_table_association" "public_rt_assoc" {
 # 5. Network Security Groups (Equivalent to AWS Security Groups)
 # NSG for web application servers
 resource "azurerm_network_security_group" "web_app_nsg" {
-  name                = "web-app-nsg"
+  name                = "web-app-nsg-prod"
   location            = var.location
   resource_group_name = var.resource_group_name
 
@@ -114,14 +114,14 @@ resource "azurerm_network_security_group" "web_app_nsg" {
 
 # Application Security Group - used to reference web app VMs in database NSG rules
 resource "azurerm_application_security_group" "web_app_asg" {
-  name                = "web-app-asg"
+  name                = "web-app-asg-prod"
   location            = var.location
   resource_group_name = var.resource_group_name
 }
 
 # NSG for database servers
 resource "azurerm_network_security_group" "database_nsg" {
-  name                = "database-nsg"
+  name                = "database-nsg-prod"
   location            = var.location
   resource_group_name = var.resource_group_name
 

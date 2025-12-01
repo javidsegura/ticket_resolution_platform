@@ -5,7 +5,7 @@
   vars:
     target_user: "{{ ansible_user_id }}"
     remote_project_path: "/opt/{{ project_name }}"
-    project_name: "url-shortener"
+    project_name: "ai-ticket-platform"
     src_backend_env_synced_path: "../../../backend/env_config/synced/.env.{{ stage_environment }}"
     dest_backend_env_synced_path: "{{ remote_project_path }}/backend/env_config/synced/.env.{{ stage_environment }}"
     backend_image_tag: "production-{{ lookup('env', 'BACKEND_VERSION') | default('production', true) }}"
@@ -176,6 +176,7 @@
       BACKEND_ENV_FILE: "{{ dest_backend_env_synced_path }}"
       SERVER_PUBLIC_IP: "{{ ansible_default_ipv4.address | default(ansible_host) }}"
       BACKEND_IMAGE_TAG: "{{ backend_image_tag }}"
+
 
   # Health check with retries
   - name: Wait for backend dependency health check

@@ -15,7 +15,7 @@ resource "local_file" "private_key" {
 
 # 2. MANAGED IDENTITY (Azure's IAM Role)
 resource "azurerm_user_assigned_identity" "vm_identity" {
-  name                = "vm-managed-identity"
+  name                = "vm-managed-identity-prod"
   location            = var.location
   resource_group_name = var.resource_group_name
 }
@@ -23,7 +23,7 @@ resource "azurerm_user_assigned_identity" "vm_identity" {
 
 # 3. NETWORKING FOR VM
 resource "azurerm_public_ip" "vm_public_ip" {
-  name                = "vm-public-ip"
+  name                = "vm-public-ip-prod"
   location            = var.location
   resource_group_name = var.resource_group_name
   allocation_method   = "Static" # Static IP won't change on VM restart
@@ -32,7 +32,7 @@ resource "azurerm_public_ip" "vm_public_ip" {
 
 # Network interface connects the VM to the subnet and assigns IPs
 resource "azurerm_network_interface" "vm_nic" {
-  name                = "vm-nic"
+  name                = "vm-nic-prod"
   location            = var.location
   resource_group_name = var.resource_group_name
 
@@ -60,7 +60,7 @@ resource "azurerm_network_interface_application_security_group_association" "vm_
 
 # 4. VIRTUAL MACHINE
 resource "azurerm_linux_virtual_machine" "web_app" {
-  name                = "web-app-vm"
+  name                = "web-app-vm-prod"
   location            = var.location
   resource_group_name = var.resource_group_name
   size                = "Standard_B2s" # ~2 vCPU, 4GB RAM (similar to t3.small)

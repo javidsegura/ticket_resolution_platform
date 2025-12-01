@@ -2,23 +2,20 @@ from typing import List
 
 
 def build_clustering_prompt(ticket_texts: List[str]) -> str:
-    """
-    Build optimized prompt for clustering.
+	"""
+	Build optimized prompt for clustering.
 
-    Args:
-        ticket_texts: List of ticket text strings
+	Args:
+	    ticket_texts: List of ticket text strings
 
-    Returns:
-        Formatted prompt string for LLM
-    """
+	Returns:
+	    Formatted prompt string for LLM
+	"""
 
-    # format tickets with indices
-    ticket_list = "\n".join([
-        f"{i}. {text}"
-        for i, text in enumerate(ticket_texts)
-    ])
+	# format tickets with indices
+	ticket_list = "\n".join([f"{i}. {text}" for i, text in enumerate(ticket_texts)])
 
-    prompt = f"""
+	prompt = f"""
                 Analyze the following {len(ticket_texts)} support tickets and cluster them into GRANULAR, SPECIFIC groups based on a hierarchical Product->Category->Subcategory structure.
 
                 TICKETS:
@@ -64,63 +61,61 @@ def build_clustering_prompt(ticket_texts: List[str]) -> str:
                 - Prioritize granularity over simplicity - more specific clusters are better
             """
 
-    return prompt
+	return prompt
 
 
 def get_output_schema() -> dict:
-    """
-    Get the JSON schema for LLM structured output.
-    """
+	"""
+	Get the JSON schema for LLM structured output.
+	"""
 
-    return {
-        "type": "object",
-        "properties": {
-            "clusters": {
-                "type": "array",
-                "description": "List of granular ticket clusters with hierarchical classification",
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "topic_name": {
-                            "type": "string",
-                            "description": "Clear, specific name for this cluster topic (e.g., 'Cannot reset password via email')"
-                        },
-                        "product": {
-                            "type": "string",
-                            "description": "The specific product, service, or feature area (e.g., 'Mobile App', 'Payment Gateway', 'Shopping Cart')"
-                        },
-                        "category": {
-                            "type": "string",
-                            "description": "Functional area within the product (e.g., 'Authentication', 'Checkout Flow', 'Notifications')"
-                        },
-                        "subcategory": {
-                            "type": "string",
-                            "description": "Specific issue type or feature (e.g., 'Password Reset', 'Payment Processing', 'Push Notifications')"
-                        },
-                        "ticket_indices": {
-                            "type": "array",
-                            "description": "Array of ticket indices (integers) belonging to this cluster",
-                            "items": {
-                                "type": "integer"
-                            }
-                        },
-                        "summary": {
-                            "type": "string",
-                            "description": "Brief summary of the specific issue in this cluster"
-                        }
-                    },
-                    "required": [
-                        "topic_name",
-                        "product",
-                        "category",
-                        "subcategory",
-                        "ticket_indices",
-                        "summary"
-                    ],
-                    "additionalProperties": False
-                }
-            }
-        },
-        "required": ["clusters"],
-        "additionalProperties": False
-    }
+	return {
+		"type": "object",
+		"properties": {
+			"clusters": {
+				"type": "array",
+				"description": "List of granular ticket clusters with hierarchical classification",
+				"items": {
+					"type": "object",
+					"properties": {
+						"topic_name": {
+							"type": "string",
+							"description": "Clear, specific name for this cluster topic (e.g., 'Cannot reset password via email')",
+						},
+						"product": {
+							"type": "string",
+							"description": "The specific product, service, or feature area (e.g., 'Mobile App', 'Payment Gateway', 'Shopping Cart')",
+						},
+						"category": {
+							"type": "string",
+							"description": "Functional area within the product (e.g., 'Authentication', 'Checkout Flow', 'Notifications')",
+						},
+						"subcategory": {
+							"type": "string",
+							"description": "Specific issue type or feature (e.g., 'Password Reset', 'Payment Processing', 'Push Notifications')",
+						},
+						"ticket_indices": {
+							"type": "array",
+							"description": "Array of ticket indices (integers) belonging to this cluster",
+							"items": {"type": "integer"},
+						},
+						"summary": {
+							"type": "string",
+							"description": "Brief summary of the specific issue in this cluster",
+						},
+					},
+					"required": [
+						"topic_name",
+						"product",
+						"category",
+						"subcategory",
+						"ticket_indices",
+						"summary",
+					],
+					"additionalProperties": False,
+				},
+			}
+		},
+		"required": ["clusters"],
+		"additionalProperties": False,
+	}
