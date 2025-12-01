@@ -30,11 +30,13 @@ async def upload_company_documents(
 		# Validate PDF file type
 		if not file.filename.lower().endswith(".pdf"):
 			logger.warning(f"Rejected non-PDF file: {file.filename}")
-			results.append({
-				"filename": file.filename,
-				"success": False,
-				"error": "Only PDF files are accepted"
-			})
+			results.append(
+				{
+					"filename": file.filename,
+					"success": False,
+					"error": "Only PDF files are accepted",
+				}
+			)
 			continue
 
 		content = await file.read()
@@ -62,5 +64,5 @@ async def upload_company_documents(
 		"total_processed": len(files),
 		"successful": successful_count,
 		"failed": failed_count,
-		"results": list(results)
+		"results": list(results),
 	}

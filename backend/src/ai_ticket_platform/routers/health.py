@@ -15,17 +15,21 @@ from ai_ticket_platform.core.clients import initialize_redis_client
 import logging
 
 logger = logging.getLogger(__name__)
-from ai_ticket_platform.core.clients.utils.check_clients_connection import test_redis_connection, test_db_connection
+from ai_ticket_platform.core.clients.utils.check_clients_connection import (
+	test_redis_connection,
+	test_db_connection,
+)
 
 
 router = APIRouter(prefix="/health")
+
 
 # Health
 @router.get(path="/dependencies", status_code=status.HTTP_200_OK)
 async def cheeck_backend_health_dependencies_endpoint(
 	db: Annotated[AsyncSession, Depends(get_db)],
 	settings: Annotated[list, Depends(get_app_settings)],
-	sync_redis_connection: Annotated[Redis, Depends(get_sync_redis_connection)]
+	sync_redis_connection: Annotated[Redis, Depends(get_sync_redis_connection)],
 ) -> Dict:
 	"""
 	You could have here the response schema to be service with variables\
@@ -35,9 +39,8 @@ async def cheeck_backend_health_dependencies_endpoint(
 	Simple readiness probe that only returns 200 when all dependencies are OK.
 	"""
 
-
 	checks = {"status": "healthy", "checks": {}}
-    
+
 	# Redis
 	try:
 		redis_connected = await test_redis_connection()
@@ -47,7 +50,7 @@ async def cheeck_backend_health_dependencies_endpoint(
 	except Exception as e:
 		checks["status"] = "unhealthy"
 		checks["checks"]["redis"] = f"failed: {e}"
-	
+
 	# Workers
 	try:
 		workers = Worker.all(connection=sync_redis_connection)
@@ -58,17 +61,16 @@ async def cheeck_backend_health_dependencies_endpoint(
 	except Exception as e:
 		checks["status"] = "unhealthy"
 		checks["checks"]["workers"] = f"failed: {e}"
-	
+
 	if checks["status"] == "unhealthy":
 		raise HTTPException(
 			status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
 			detail=checks,
 		)
-	
+
 	return checks
 
 
 @router.get(path="/ping", status_code=status.HTTP_200_OK)
-async def cheeck_backend_health_endpoint(
-) -> Dict:
+async def cheeck_backend_health_endpoint() -> Dict:
 	return {"response": "pong"}
