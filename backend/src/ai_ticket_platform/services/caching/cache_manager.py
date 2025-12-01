@@ -13,21 +13,22 @@ class CacheManager:
 	"""Async Redis cache manager with helper functions."""
 
 	def __init__(self, redis_client: Redis) -> None:
-		"""Initialize cache manager with Redis client.
-
-		Args:
-			redis_client: Async Redis client instance.
+		"""
+		Create a CacheManager bound to the provided Redis client.
+		
+		Stores the Redis client on the instance for use by the cache operations.
 		"""
 		self.redis = redis_client
 
 	async def get(self, key: str) -> Optional[dict[str, Any]]:
-		"""Get value from cache.
-
-		Args:
-			key: Cache key.
-
+		"""
+		Retrieve a JSON-decoded dictionary stored under the given cache key.
+		
+		Parameters:
+		    key (str): Cache key to fetch.
+		
 		Returns:
-			Parsed JSON value if found, None otherwise.
+		    dict[str, Any] or None: Parsed JSON value if the key exists, otherwise None.
 		"""
 		if not self.redis:
 			return None
@@ -43,15 +44,16 @@ class CacheManager:
 			return None
 
 	async def set(self, key: str, value: dict[str, Any], ttl: int) -> bool:
-		"""Set value in cache with TTL.
-
-		Args:
-			key: Cache key.
-			value: Dictionary value to cache.
-			ttl: Time-to-live in seconds.
-
+		"""
+		Store a dictionary in the cache under the given key with the specified TTL.
+		
+		Parameters:
+		    key (str): Cache key.
+		    value (dict[str, Any]): Dictionary to store (will be serialized).
+		    ttl (int): Time-to-live in seconds.
+		
 		Returns:
-			True if successful, False otherwise.
+		    bool: `True` if the value was stored, `False` otherwise.
 		"""
 		if not self.redis:
 			return False
@@ -65,13 +67,14 @@ class CacheManager:
 			return False
 
 	async def delete(self, key: str) -> bool:
-		"""Delete value from cache.
-
-		Args:
-			key: Cache key.
-
+		"""
+		Deletes the value stored for the given cache key.
+		
+		Parameters:
+		    key (str): Cache key to remove.
+		
 		Returns:
-			True if successful, False otherwise.
+		    True if the key was deleted successfully, False otherwise.
 		"""
 		if not self.redis:
 			return False
@@ -90,24 +93,16 @@ class CacheManager:
 		fetch_fn: Callable[[], Awaitable[dict[str, Any]]],
 		ttl: int,
 	) -> dict[str, Any]:
-		"""Get from cache or fetch and cache result.
-
-		This is the primary helper for cache-aside pattern:
-		1. Try to get from cache
-		2. If miss, call fetch_fn to get data
-		3. Cache the result
-		4. Return data
-
-		Args:
-			key: Cache key.
-			fetch_fn: Async function that returns data to cache.
-			ttl: Time-to-live in seconds.
-
+		"""
+		Retrieve a cached value for a key or fetch, cache, and return fresh data.
+		
+		Parameters:
+		    key (str): Cache key.
+		    fetch_fn (Callable[[], Awaitable[dict[str, Any]]]): Async function that returns the data to cache when there is a cache miss.
+		    ttl (int): Time-to-live for the cached value in seconds.
+		
 		Returns:
-			Cached or freshly fetched data.
-
-		Raises:
-			Exception: If fetch_fn raises an exception.
+		    dict[str, Any]: The cached or freshly fetched data for the given key.
 		"""
 		# Try cache first
 		cached = await self.get(key)
@@ -123,13 +118,14 @@ class CacheManager:
 		return data
 
 	async def invalidate(self, key: str) -> bool:
-		"""Invalidate cache entry.
-
-		Args:
-			key: Cache key.
-
+		"""
+		Invalidate the cache entry for the given key.
+		
+		Parameters:
+		    key (str): Cache key to remove.
+		
 		Returns:
-			True if successful, False otherwise.
+		    True if the key was successfully removed or the delete operation succeeded, False otherwise.
 		"""
 		return await self.delete(key)
 

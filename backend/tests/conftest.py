@@ -44,8 +44,9 @@ TEST_DATABASE_URL = "mysql+aiomysql://root:rootpassword@localhost:3307/ai_ticket
 @pytest_asyncio.fixture(scope="session", loop_scope="session")
 async def setup_test_db():
     """
-    Set up test database before running all tests.
-    Creates all tables and cleans up after.
+    Create and teardown the test database schema used for the test session.
+    
+    Creates all tables defined on Base.metadata before tests run, drops those tables after the session completes, and ensures the underlying async engine is disposed.
     """
     engine = create_async_engine(TEST_DATABASE_URL, echo=False)
 
@@ -66,8 +67,15 @@ async def setup_test_db():
 @pytest_asyncio.fixture(loop_scope="function")
 async def db_session(setup_test_db):
     """
-    Provide a fresh database session for each test.
-    Automatically rolls back changes after test.
+    Provide a fresh database session scoped to a single test.
+    
+    This fixture depends on the session-scoped `setup_test_db` to ensure the test database schema exists. It yields a new database session to the test and rolls back any transaction state after the test completes to keep tests isolated.
+    
+    Parameters:
+        setup_test_db: Session-scoped fixture that creates and later drops all database tables for the test run.
+    
+    Returns:
+        AsyncSession: An asynchronous database session connected to the test database.
     """
     engine = create_async_engine(TEST_DATABASE_URL, echo=False)
     async_session_maker = async_sessionmaker(
@@ -97,7 +105,12 @@ class TestSettings:
 
 @pytest.fixture
 def test_settings():
-    """Provide test settings with mocked values"""
+    """
+    Return a TestSettings instance configured with test configuration values.
+    
+    Returns:
+        TestSettings: An instance containing test settings (ENVIRONMENT, OPENAI_API_KEY, OPENAI_MODEL, SLACK_BOT_TOKEN, SLACK_CHANNEL_ID, DATABASE_URL).
+    """
     return TestSettings()
 
 
@@ -108,15 +121,33 @@ def test_settings():
 @pytest_asyncio.fixture(loop_scope="function")
 async def async_client(db_session, test_settings):
     """
-    Provide an async test client for making requests to the app.
-    Uses the test database session.
+    Create an AsyncClient for testing the FastAPI app with database and settings dependencies overridden for tests.
+    
+    Parameters:
+        db_session (AsyncSession): An async database session to be yielded by the app's `get_db` dependency.
+        test_settings (TestSettings): Test settings instance to be returned by the app's `get_app_settings` dependency.
+    
+    Returns:
+        async_client (httpx.AsyncClient): An AsyncClient configured to send requests to the app using an ASGI transport.
     """
     from httpx import ASGITransport
 
     async def override_get_db():
+        """
+        Provide the per-test database session for dependency overrides.
+        
+        Returns:
+            AsyncSession: The test AsyncSession bound to the test database.
+        """
         yield db_session
 
     async def override_get_settings():
+        """
+        Provide the test settings instance for overriding application settings during tests.
+        
+        Returns:
+            TestSettings: The `TestSettings` instance used by the test suite.
+        """
         return test_settings
 
     app.dependency_overrides[get_db] = override_get_db
@@ -132,10 +163,23 @@ async def async_client(db_session, test_settings):
 @pytest.fixture
 def client(db_session):
     """
-    Provide a synchronous test client for making requests to the app.
-    Uses the test database session.
+    Provide a synchronous TestClient configured to use the per-test database session.
+    
+    Overrides the application's `get_db` dependency to yield the provided `db_session` so requests use the test database, then clears dependency overrides on teardown.
+    
+    Parameters:
+        db_session: The per-test database session to be supplied to request handlers.
+    
+    Returns:
+        test_client: A TestClient instance bound to the FastAPI app.
     """
     async def override_get_db():
+        """
+        Provide the per-test database session for dependency overrides.
+        
+        Returns:
+            AsyncSession: The test AsyncSession bound to the test database.
+        """
         yield db_session
 
     app.dependency_overrides[get_db] = override_get_db
