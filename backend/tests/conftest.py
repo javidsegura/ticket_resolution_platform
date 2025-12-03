@@ -8,10 +8,39 @@ Infrastructure Note:
 - Requires: Colima, Docker, and docker-compose
 """
 
+import os
+
+# ============================================================================
+# Environment Setup for Testing - MUST BE FIRST
+# ============================================================================
+
+# Set test environment BEFORE any imports that trigger initialization
+os.environ.setdefault("ENVIRONMENT", "test")
+os.environ.setdefault("OPENAI_API_KEY", "test-key-123")
+os.environ.setdefault("OPENAI_MODEL", "gpt-4")
+os.environ.setdefault("SLACK_BOT_TOKEN", "xoxb-test-token")
+os.environ.setdefault("SLACK_CHANNEL_ID", "C123456789")
+
+# Database configuration
+os.environ.setdefault("REDIS_URL", "redis://localhost:6379")
+os.environ.setdefault("MYSQL_USER", "root")
+os.environ.setdefault("MYSQL_PASSWORD", "rootpassword")
+os.environ.setdefault("MYSQL_HOST", "localhost")
+os.environ.setdefault("MYSQL_PORT", "3307")
+os.environ.setdefault("MYSQL_DATABASE", "ai_ticket_platform")
+os.environ.setdefault("MYSQL_SYNC_DRIVER", "mysql+pymysql")
+os.environ.setdefault("MYSQL_ASYNC_DRIVER", "mysql+aiomysql")
+
+# AWS configuration (test values)
+os.environ.setdefault("AWS_ACCESS_KEY_ID", "test-key")
+os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "test-secret")
+os.environ.setdefault("AWS_MAIN_REGION", "us-east-1")
+os.environ.setdefault("S3_MAIN_BUCKET_NAME", "test-bucket")
+
+# Now safe to import app after environment is configured
 import pytest
 import pytest_asyncio
 import asyncio
-import os
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
@@ -20,18 +49,6 @@ from ai_ticket_platform.main import app
 from ai_ticket_platform.database.generated_models import Base
 from ai_ticket_platform.dependencies.database import get_db
 from ai_ticket_platform.dependencies.settings import get_app_settings
-
-
-# ============================================================================
-# Environment Setup for Testing
-# ============================================================================
-
-# Set test environment before any app initialization
-os.environ.setdefault("ENVIRONMENT", "test")
-os.environ.setdefault("OPENAI_API_KEY", "test-key-123")
-os.environ.setdefault("OPENAI_MODEL", "gpt-4")
-os.environ.setdefault("SLACK_BOT_TOKEN", "xoxb-test-token")
-os.environ.setdefault("SLACK_CHANNEL_ID", "C123456789")
 
 
 # ============================================================================
