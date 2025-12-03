@@ -3,7 +3,6 @@ from typing import Dict, List
 from sqlalchemy.ext.asyncio import AsyncSession
 import logging
 
-from ai_ticket_platform.database.generated_models import Ticket
 from ai_ticket_platform.database.CRUD import intent as intent_crud
 from ai_ticket_platform.database.CRUD import category as category_crud
 from ai_ticket_platform.database.CRUD import ticket as ticket_crud
@@ -13,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 async def process_match_decision(
 	db: AsyncSession,
-	ticket: Ticket,
+	ticket: Dict,
 	llm_result: Dict,
 	existing_intents: List[Dict],
 	stats: Dict
@@ -23,7 +22,7 @@ async def process_match_decision(
 
 	Args:
 		db: Database session
-		ticket: Original ticket object
+		ticket: Ticket dict with keys: id, subject, body
 		llm_result: Structured output from LLM
 		existing_intents: List of existing intents
 		stats: Statistics dict to update
@@ -32,9 +31,10 @@ async def process_match_decision(
 		Assignment dict with ticket and intent information
 	"""
 	intent_id = llm_result["intent_id"]
+	ticket_id = ticket.get("id")
 
 	if intent_id is None:
-		raise ValueError(f"LLM chose 'match_existing' but didn't provide intent_id for ticket {ticket.id}")
+		raise ValueError(f"LLM chose 'match_existing' but didn't provide intent_id for ticket {ticket_id}")
 
 	# Find the intent in existing_intents
 	matched_intent = next(
@@ -46,20 +46,20 @@ async def process_match_decision(
 		raise ValueError(f"LLM referenced non-existent intent ID: {intent_id}")
 
 	# Update ticket with intent
-	await ticket_crud.update_ticket_intent(db, ticket.id, intent_id)
+	await ticket_crud.update_ticket_intent(db, ticket_id, intent_id)
 
 	# Update statistics
 	stats["intents_matched"] += 1
 
 	logger.info(
-		f"Ticket {ticket.id} matched to existing intent: "
+		f"Ticket {ticket_id} matched to existing intent: "
 		f"{matched_intent['category_l1_name']} > {matched_intent['category_l2_name']} > {matched_intent['category_l3_name']}"
 	)
 
 	return {
-		"ticket_id": ticket.id,
-		"subject": ticket.subject,
-		"body": ticket.body,
+		"ticket_id": ticket_id,
+		"subject": ticket.get("subject"),
+		"body": ticket.get("body"),
 		"decision": "match_existing",
 		"intent_id": intent_id,
 		"intent_name": matched_intent["intent_name"],
@@ -77,7 +77,7 @@ async def process_match_decision(
 
 async def process_create_decision(
 	db: AsyncSession,
-	ticket: Ticket,
+	ticket: Dict,
 	llm_result: Dict,
 	stats: Dict
 ) -> Dict:
@@ -86,7 +86,7 @@ async def process_create_decision(
 
 	Args:
 		db: Database session
-		ticket: Original ticket object
+		ticket: Ticket dict with keys: id, subject, body
 		llm_result: Structured output from LLM
 		stats: Statistics dict to update
 
@@ -97,15 +97,16 @@ async def process_create_decision(
 	cat_l2_name = llm_result.get("category_l2_name")
 	cat_l3_name = llm_result.get("category_l3_name")
 	intent_name_from_llm = llm_result.get("intent_name")
+	ticket_id = ticket.get("id")
 
 	if not cat_l1_name or not cat_l2_name or not cat_l3_name:
 		raise ValueError(
-			f"LLM chose 'create_new' but didn't provide all 3 category names for ticket {ticket.id}"
+			f"LLM chose 'create_new' but didn't provide all 3 category names for ticket {ticket_id}"
 		)
 
 	if not intent_name_from_llm:
 		raise ValueError(
-			f"LLM chose 'create_new' but didn't provide intent_name for ticket {ticket.id}"
+			f"LLM chose 'create_new' but didn't provide intent_name for ticket {ticket_id}"
 		)
 
 	# Create or get Level 1 category
@@ -151,12 +152,12 @@ async def process_create_decision(
 		logger.info(f"Matched to existing intent: {intent_name_from_llm}")
 
 	# Update ticket with intent
-	await ticket_crud.update_ticket_intent(db, ticket.id, intent.id)
+	await ticket_crud.update_ticket_intent(db, ticket_id, intent.id)
 
 	return {
-		"ticket_id": ticket.id,
-		"subject": ticket.subject,
-		"body": ticket.body,
+		"ticket_id": ticket_id,
+		"subject": ticket.get("subject"),
+		"body": ticket.get("body"),
 		"decision": "create_new",
 		"intent_id": intent.id,
 		"intent_name": intent_name_from_llm,

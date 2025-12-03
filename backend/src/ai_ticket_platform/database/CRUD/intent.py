@@ -1,6 +1,7 @@
 # database/CRUD/intent.py
 from typing import List, Optional, Dict
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
@@ -125,6 +126,23 @@ async def get_or_create_intent(
 		await db.rollback()
 		logger.error(f"Error in get_or_create_intent for '{name}': {str(e)}")
 		raise
+
+async def get_intents_processing_status(db: AsyncSession, intent_ids: List[int]) -> Dict[int, bool]:
+	"""
+	Check processing status for multiple intents.
+	"""
+	if not intent_ids:
+		return {}
+
+	result = await db.execute(
+		select(Intent.id, Intent.is_processed)
+		.where(Intent.id.in_(intent_ids))
+	)
+	rows = result.all()
+
+	# Map: intent_id -> is_processed
+	return {intent_id: is_processed for intent_id, is_processed in rows}
+
 
 async def get_all_intents_with_categories(db: AsyncSession) -> List[Dict]:
 	"""

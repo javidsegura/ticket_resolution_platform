@@ -16,16 +16,6 @@ from ai_ticket_platform.services.content_generation.article_service import Artic
 logger = logging.getLogger(__name__)
 
 
-def _run_async(coro):
-	"""Helper to run async functions in sync RQ context."""
-	loop = asyncio.new_event_loop()
-	asyncio.set_event_loop(loop)
-	try:
-		return loop.run_until_complete(coro)
-	finally:
-		loop.close()
-
-
 def generate_article_task(
 	intent_id: int,
 	feedback: Optional[str] = None,
@@ -66,7 +56,7 @@ def generate_article_task(
 				)
 				return result
 
-		result = _run_async(generate())
+		result = asyncio.run(generate())
 
 		logger.info(f"[QUEUE TASK] {action} article for intent {intent_id}: {result['status']}")
 		return result
@@ -98,7 +88,7 @@ def approve_article_task(article_id: int) -> Dict[str, Any]:
 				result = await service.approve_article(article_id, db)
 				return result
 
-		result = _run_async(approve())
+		result = asyncio.run(approve())
 
 		logger.info(f"[QUEUE TASK] Approve article {article_id}: {result['status']}")
 		return result

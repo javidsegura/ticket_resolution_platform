@@ -1,11 +1,14 @@
 # services/clustering/prompt_builder.py
 from typing import List, Dict
-from ai_ticket_platform.database.generated_models import Ticket
 
 
-def build_batch_clustering_prompt(tickets: List[Ticket], existing_intents: List[Dict]) -> str:
+def build_batch_clustering_prompt(tickets: List[Dict], existing_intents: List[Dict]) -> str:
 	"""
 	Build prompt for batch clustering decision.
+
+	Args:
+		tickets: List of ticket dicts with keys: id, subject, body
+		existing_intents: List of existing intent dicts
 	"""
 	# Format existing intents
 	if existing_intents:
@@ -29,7 +32,7 @@ You MUST create NEW intents with all 3 category levels for each ticket.
 
 	# Format tickets
 	ticket_list = "\n".join([
-		f"[{i}] Subject: {ticket.subject}\n    Body: {ticket.body[:200]}{'...' if len(ticket.body) > 200 else ''}"
+		f"[{i}] Subject: {ticket.get('subject', '')}\n    Body: {ticket.get('body', '')[:200]}{'...' if len(ticket.get('body', '')) > 200 else ''}"
 		for i, ticket in enumerate(tickets)
 	])
 
