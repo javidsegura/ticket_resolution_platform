@@ -100,7 +100,7 @@ class AzureBlobStorage(StorageService):
         # The client uploading should set Content-Type header instead
         params = {}
         params.update(kwargs)
-        
+
         return self._generate_url(
             action_type=SasUrlActionsType.PUT,
             blob_name=file_path,
@@ -108,4 +108,56 @@ class AzureBlobStorage(StorageService):
             verify_exists=False,
             **params
         )
+
+    def upload_blob(self, blob_name: str, content: str) -> str:
+        """
+        Upload content directly to Azure Blob Storage.
+
+        Args:
+            blob_name: Name/path of the blob (e.g., 'articles/article-1-v1-micro-2024-01-15T10:30:00Z.md')
+            content: String content to upload
+
+        Returns:
+            blob_name: The blob path for storing in database
+
+        Raises:
+            Exception: If upload fails
+        """
+        try:
+            blob_client = self._blob_service_client.get_blob_client(
+                container=self.container_name,
+                blob=blob_name
+            )
+            blob_client.upload_blob(content, overwrite=True)
+            logger.info(f"Successfully uploaded blob: {self.container_name}/{blob_name}")
+            return blob_name
+        except Exception as e:
+            logger.error(f"Failed to upload blob {blob_name}: {e}", exc_info=True)
+            raise
+
+    def download_blob(self, blob_name: str) -> str:
+        """
+        Download content from Azure Blob Storage.
+
+        Args:
+            blob_name: Name/path of the blob (e.g., 'articles/article-1-v1-micro-2024-01-15T10:30:00Z.md')
+
+        Returns:
+            str: The blob content
+
+        Raises:
+            Exception: If download fails
+        """
+        try:
+            blob_client = self._blob_service_client.get_blob_client(
+                container=self.container_name,
+                blob=blob_name
+            )
+            download_stream = blob_client.download_blob()
+            content = download_stream.readall().decode('utf-8')
+            logger.info(f"Successfully downloaded blob: {self.container_name}/{blob_name}")
+            return content
+        except Exception as e:
+            logger.error(f"Failed to download blob {blob_name}: {e}", exc_info=True)
+            raise
 

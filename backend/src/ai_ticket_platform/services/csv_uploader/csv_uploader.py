@@ -42,35 +42,3 @@ async def cluster_tickets_with_cache(db: AsyncSession, tickets_data: List[dict])
         logger.error(f"Error during clustering: {str(e)}", exc_info=True)
         raise RuntimeError(f"Failed to cluster tickets: {str(e)}") from e
 
-
-async def save_tickets_to_db(db: AsyncSession,tickets_data: List[dict]) -> List[Ticket]:
-    """
-    Save parsed tickets to database.
-    
-    Args:
-        db: Database session
-        tickets_data: List of parsed ticket dicts from CSV parser
-                     Keys: subject, id, created_at, body
-    
-    Returns:
-        List of created Ticket objects with generated IDs
-        
-    Raises:
-        ValueError: If tickets_data is empty or invalid
-        Exception: Database errors during insertion
-    """
-    
-    if not tickets_data:
-        raise ValueError("No tickets data to save")
-    
-    logger.info(f"Saving {len(tickets_data)} tickets to database")
-    
-    try:
-        # CRUD function to insert
-        created_tickets = await create_tickets(db, tickets_data)
-        logger.info(f"Successfully saved {len(created_tickets)} tickets to database")
-        return created_tickets
-    
-    except Exception as e:
-        logger.error(f"Error saving tickets to database: {str(e)}")
-        raise RuntimeError(f"Failed to save tickets: {str(e)}") from e
