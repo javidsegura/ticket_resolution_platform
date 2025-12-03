@@ -164,6 +164,20 @@ test-integration-services-docker: ## Run integration tests with Docker (MySQL, R
 	@if [ "$$TEST_FAILED" = "1" ]; then echo "$(RED)Tests failed$(RESET)"; exit 1; fi
 	@echo "$(GREEN)All integration tests passed!$(RESET)"
 
+test-regression: ## Run regression tests (re-run tests for previously fixed bugs)
+	@echo "$(YELLOW)Running regression tests...$(RESET)"
+	$(VENV_ACTIVATE) && pytest -s -vv --cov=ai_ticket_platform --cov-report=term-missing tests/regression/
+
+test-regression-docker: ## Run regression tests with Docker
+	@echo "$(YELLOW)Starting Docker-based regression test suite...$(RESET)"
+	ENVIRONMENT=test $(MAKE) test-docker-compose-start
+	@echo "$(BLUE)Running regression tests against Docker services...$(RESET)"
+	$(VENV_ACTIVATE) && ENVIRONMENT=test pytest -s -vv --cov=ai_ticket_platform --cov-report=term-missing tests/regression/ || TEST_FAILED=1
+	@echo "$(YELLOW)Cleaning up Docker containers...$(RESET)"
+	ENVIRONMENT=test $(MAKE) test-docker-compose-stop
+	@if [ "$$TEST_FAILED" = "1" ]; then echo "$(RED)Tests failed$(RESET)"; exit 1; fi
+	@echo "$(GREEN)All regression tests passed!$(RESET)"
+
 # 6) Miscellaneous
 check_enviroment_variables:
 	@if [ -z "$$ENVIRONMENT" ]; then \
