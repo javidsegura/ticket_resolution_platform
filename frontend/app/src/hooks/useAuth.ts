@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
-import { onAuthStateChanged, type User, type Auth } from 'firebase/auth';
-import { auth, isMockMode, type MockUser } from "../../firebase"
-import { mockAuth } from "../services/mockAuth"
+import { useState, useEffect } from "react";
+import { onAuthStateChanged, type User, type Auth } from "firebase/auth";
+import { auth, isMockMode, type MockUser } from "../../firebase";
+import { mockAuth } from "../services/mockAuth";
 
 // Unified user type that works with both mock and real Firebase
 type AuthUser = User | MockUser | null;
@@ -18,19 +18,24 @@ export const useAuth = () => {
   useEffect(() => {
     if (isMockMode) {
       // Use mock auth - TypeScript knows this is mockAuth
-      const unsubscribe = mockAuth.onAuthStateChanged((mockUser: MockUser | null) => {
-        setUser(mockUser);
-        setLoading(false);
-      });
+      const unsubscribe = mockAuth.onAuthStateChanged(
+        (mockUser: MockUser | null) => {
+          setUser(mockUser);
+          setLoading(false);
+        },
+      );
 
       return () => unsubscribe();
     } else {
       // Use real Firebase - Type guard ensures this is Firebase Auth
       if (isFirebaseAuth(auth)) {
-        const unsubscribe = onAuthStateChanged(auth, (firebaseUser: User | null) => {
-          setUser(firebaseUser);
-          setLoading(false);
-        });
+        const unsubscribe = onAuthStateChanged(
+          auth,
+          (firebaseUser: User | null) => {
+            setUser(firebaseUser);
+            setLoading(false);
+          },
+        );
 
         return () => unsubscribe();
       }

@@ -7,6 +7,7 @@ from ai_ticket_platform.core.clients.redis import initialize_redis_client
 from ai_ticket_platform.dependencies import get_db
 from ai_ticket_platform.database.generated_models import User
 
+
 # Redis
 async def test_redis_connection() -> bool:
 	redis_client_connector = initialize_redis_client()

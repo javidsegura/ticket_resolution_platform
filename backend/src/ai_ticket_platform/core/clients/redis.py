@@ -14,7 +14,6 @@ class RedisClientConnector:
 		self._client = None
 		self.app_settings = initialize_settings()
 
-
 	async def connect(self) -> Redis:
 		if not self._client:
 			self._client = r.from_url(
@@ -49,7 +48,10 @@ class RedisClientConnector:
 			decode_responses=False,
 		)
 
+
 redis_client = None
+
+
 def initialize_redis_client():
 	global redis_client
 	if not redis_client:

@@ -1,9 +1,15 @@
-import { useEffect, useState } from "react"
-import { useParams, useNavigate } from "react-router-dom"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Download, ArrowLeft, AlertCircle } from "lucide-react"
-import { fetchTicketById, type Ticket as ApiTicket } from "@/services/tickets"
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Download, ArrowLeft, AlertCircle } from "lucide-react";
+import { fetchTicketById, type Ticket as ApiTicket } from "@/services/tickets";
 
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString("en-US", {
@@ -11,22 +17,22 @@ const formatDate = (dateString: string) => {
     day: "numeric",
     year: "numeric",
     hour: "2-digit",
-    minute: "2-digit"
-  })
-}
+    minute: "2-digit",
+  });
+};
 
 // Download handlers
 const handleDownloadMarkdown = (ticket: ApiTicket) => {
-  const markdown = `# ${ticket.subject}\n\n## Ticket Information\n- **ID:** ${ticket.id}\n- **Created:** ${formatDate(ticket.created_at)}\n\n## Customer Message\n\n${ticket.body}`
-  
-  const blob = new Blob([markdown], { type: 'text/markdown' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `ticket-${ticket.id}.md`
-  a.click()
-  URL.revokeObjectURL(url)
-}
+  const markdown = `# ${ticket.subject}\n\n## Ticket Information\n- **ID:** ${ticket.id}\n- **Created:** ${formatDate(ticket.created_at)}\n\n## Customer Message\n\n${ticket.body}`;
+
+  const blob = new Blob([markdown], { type: "text/markdown" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `ticket-${ticket.id}.md`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
 
 const handleDownloadHTML = (ticket: ApiTicket) => {
   const html = `<!DOCTYPE html>
@@ -54,48 +60,48 @@ const handleDownloadHTML = (ticket: ApiTicket) => {
     <p>${ticket.body}</p>
   </div>
 </body>
-</html>`
-  
-  const blob = new Blob([html], { type: 'text/html' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `ticket-${ticket.id}.html`
-  a.click()
-  URL.revokeObjectURL(url)
-}
+</html>`;
+
+  const blob = new Blob([html], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `ticket-${ticket.id}.html`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
 
 export default function TicketDetail() {
-  const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
-  const [ticket, setTicket] = useState<ApiTicket | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [ticket, setTicket] = useState<ApiTicket | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadTicket = async () => {
       if (!id) {
-        setError("Ticket id is missing")
-        setLoading(false)
-        return
+        setError("Ticket id is missing");
+        setLoading(false);
+        return;
       }
 
       try {
-        setLoading(true)
-        const data = await fetchTicketById(id)
-        setTicket(data)
-        setError(null)
+        setLoading(true);
+        const data = await fetchTicketById(id);
+        setTicket(data);
+        setError(null);
       } catch (err) {
-        console.error("Error loading ticket:", err)
-        setError(err instanceof Error ? err.message : "Unable to load ticket")
-        setTicket(null)
+        console.error("Error loading ticket:", err);
+        setError(err instanceof Error ? err.message : "Unable to load ticket");
+        setTicket(null);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    loadTicket()
-  }, [id])
+    loadTicket();
+  }, [id]);
 
   if (loading) {
     return (
@@ -103,7 +109,7 @@ export default function TicketDetail() {
         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600 mb-4" />
         Loading ticket...
       </div>
-    )
+    );
   }
 
   if (error || !ticket) {
@@ -116,7 +122,7 @@ export default function TicketDetail() {
           Back to Dashboard
         </Button>
       </div>
-    )
+    );
   }
 
   return (
@@ -136,7 +142,9 @@ export default function TicketDetail() {
       <Card>
         <CardHeader>
           <CardTitle>Ticket Information</CardTitle>
-          <CardDescription>Metadata pulled directly from the ticket record</CardDescription>
+          <CardDescription>
+            Metadata pulled directly from the ticket record
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2">
@@ -156,7 +164,9 @@ export default function TicketDetail() {
       <Card>
         <CardHeader>
           <CardTitle>Customer Message</CardTitle>
-          <CardDescription>The original question or issue raised by the customer</CardDescription>
+          <CardDescription>
+            The original question or issue raised by the customer
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="prose max-w-none">
@@ -171,18 +181,20 @@ export default function TicketDetail() {
       <Card>
         <CardHeader>
           <CardTitle>Download Ticket</CardTitle>
-          <CardDescription>Export the ticket information in different formats</CardDescription>
+          <CardDescription>
+            Export the ticket information in different formats
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-4">
-            <Button 
+            <Button
               variant="outline"
               onClick={() => handleDownloadMarkdown(ticket)}
             >
               <Download className="mr-2 h-4 w-4" />
               Download as Markdown
             </Button>
-            <Button 
+            <Button
               variant="outline"
               onClick={() => handleDownloadHTML(ticket)}
             >
@@ -193,5 +205,5 @@ export default function TicketDetail() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

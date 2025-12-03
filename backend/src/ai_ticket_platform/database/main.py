@@ -15,11 +15,10 @@ def initialize_db_engine():
 
 	if not AsyncSessionLocal:
 		DATABASE_URL = (
-				f"{app_settings.MYSQL_ASYNC_DRIVER}"
-				f"://{app_settings.MYSQL_USER}:{app_settings.MYSQL_PASSWORD}@{app_settings.MYSQL_HOST}"
-				f":{app_settings.MYSQL_PORT}/{app_settings.MYSQL_DATABASE}"
-			)
-
+			f"{app_settings.MYSQL_ASYNC_DRIVER}"
+			f"://{app_settings.MYSQL_USER}:{app_settings.MYSQL_PASSWORD}@{app_settings.MYSQL_HOST}"
+			f":{app_settings.MYSQL_PORT}/{app_settings.MYSQL_DATABASE}"
+		)
 
 		# Production engine configuration
 		engine = create_async_engine(
@@ -35,4 +34,3 @@ def initialize_db_engine():
 			engine, class_=AsyncSession, expire_on_commit=False
 		)
 	return AsyncSessionLocal
-

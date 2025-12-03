@@ -1,17 +1,67 @@
 repos:
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.5.6
-    hooks:
-      - id: ruff-format
-  - repo: https://github.com/PyCQA/bandit
-    rev: 1.7.9
-    hooks:
-      - id: bandit
-        args: ["-r", "backend/src"]
+  # Generic hygiene
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v5.0.0  # check for latest
     hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
       - id: check-added-large-files
+        args: ["--maxkb=1024"]
       - id: check-merge-conflict
+      - id: debug-statements
+        files: "^backend/.*\\.py$"
       - id: detect-private-key
 
+  # Backend: Format using Makefile
+  - repo: local
+    hooks:
+      - id: backend-format
+        name: Backend format (make format-fix)
+        entry: bash -c 'cd backend && source ../.venv/bin/activate && make format-fix'
+        language: system
+        files: ^backend/.*\.py$
+        pass_filenames: false
+        always_run: false
+
+  # Frontend: Format frontend using Makefile
+  - repo: local
+    hooks:
+      - id: frontend-format
+        name: Frontend format
+        entry: bash -c 'cd frontend && make format'
+        language: system
+        files: ^frontend/app/.*\.*$
+        pass_filenames: false
+        always_run: false
+
+  # Infra: Format Terraform using Makefile
+  - repo: local
+    hooks:
+      - id: terraform-format
+        name: Terraform format (make terraform-fmt-all)
+        entry: bash -c 'cd infra && make terraform-fmt-all'
+        language: system
+        files: ^infra/terraform/.*\.tf$
+        pass_filenames: false
+        always_run: false
+
+  # Tests: unit-tests
+  # - repo: local
+  #   hooks:
+  #     - id: unit-tests
+  #       name: Running unit-tests
+  #       entry: bash -c 'cd backend && make unit-test'
+  #       language: system
+  #       files: ^backend/src/.*\.py$
+  #       pass_filenames: false
+  #       always_run: false
+
+
+  # Secrets: scanning
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.4
+    hooks:
+      - id: gitleaks
+        name: Chechking possible leakage of secrets

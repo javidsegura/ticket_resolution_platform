@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 # Maximum characters to extract from PDF
 MAX_CHARS = 25000
 
+
 def decode_document(filename: str, content: bytes) -> Dict:
 	"""
 	Extract text from PDF document, reading pages until MAX_CHARS limit.
@@ -52,26 +53,24 @@ def decode_document(filename: str, content: bytes) -> Dict:
 					text_content += page_text + "\n"  # Add newline between pages
 					pages_read += 1
 				else:
-					logger.debug(f"Page {pages_read + 1} of {filename} had no extractable text")
+					logger.debug(
+						f"Page {pages_read + 1} of {filename} had no extractable text"
+					)
 					pages_read += 1
 
 		if not text_content.strip():
 			logger.warning(f"No text could be extracted from {filename}")
-			return {
-				"success": False,
-				"error": "No text could be extracted from PDF"
-			}
+			return {"success": False, "error": "No text could be extracted from PDF"}
 
-		logger.info(f"Extracted {len(text_content)} chars from {pages_read} pages of {filename}")
+		logger.info(
+			f"Extracted {len(text_content)} chars from {pages_read} pages of {filename}"
+		)
 		return {
 			"success": True,
 			"content": text_content.strip(),
-			"pages_read": pages_read
+			"pages_read": pages_read,
 		}
 
 	except Exception as e:
 		logger.error(f"Error extracting text from {filename}: {str(e)}")
-		return {
-			"success": False,
-			"error": f"PDF extraction failed: {str(e)}"
-		}
+		return {"success": False, "error": f"PDF extraction failed: {str(e)}"}
