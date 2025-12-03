@@ -16,6 +16,7 @@ from ai_ticket_platform.routers import (
     external_router,
     tickets_router,
     intents_router,
+    articles_router,
 )
 # Removed: drafts, publishing, widget routers - not needed with frontend's Article model
 import logging 
@@ -70,6 +71,7 @@ routers = [
 	tickets_router,
 	external_router,
 	intents_router,
+	articles_router,
 ]
 
 # Serve widget folder

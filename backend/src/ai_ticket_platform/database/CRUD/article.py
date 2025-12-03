@@ -8,32 +8,30 @@ from ai_ticket_platform.database.generated_models import Article
 async def create_article(
     db: AsyncSession,
     intent_id: int,
-    title: str,
-    content: str,
-    type: str = "article",
+    type: str,
+    blob_path: str,
     status: str = "iteration",
     version: int = 1,
     feedback: Optional[str] = None
 ) -> Article:
     """
-    Create a new article.
+    Create a new article with blob reference.
 
     Args:
         db: Database session
         intent_id: Intent ID (immutable after creation)
-        title: Article title
-        content: Article content
-        type: Article type (default 'article')
+        type: Article type ('micro' for summary, 'article' for full content)
+        blob_path: Azure Blob Storage path (e.g., 'articles/article-1-v1-micro-2024-01-15T10:30:00Z.md')
         status: Article status (default 'iteration')
         version: Version number (default 1)
         feedback: Optional feedback text
 
-    Note: blob_path is set to empty string for now, will be handled later when blob storage is configured.
+    Note: Content is stored in Azure Blob Storage, blob_path is reference to blob location.
     """
     db_article = Article(
         intent_id=intent_id,
         type=type,
-        blob_path="",  # Empty for now, will be handled after blob storage is configured
+        blob_path=blob_path,
         status=status,
         version=version,
         feedback=feedback,
