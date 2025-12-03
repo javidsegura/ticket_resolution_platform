@@ -1,11 +1,11 @@
 """
-Complete company document processing: labeling + Azure AI Search indexing.
+Complete company document processing: labeling + ChromaDB indexing.
 
 This service handles the full workflow:
 1. Decode PDF document
 2. Label with LLM (determine area/category)
 3. Save to database
-4. Index to Azure AI Search with embeddings
+4. Index to ChromaDB with embeddings
 """
 
 import asyncio
@@ -17,7 +17,7 @@ from ai_ticket_platform.core.clients import LLMClient
 from ai_ticket_platform.services.labeling.document_decoder import decode_document
 from ai_ticket_platform.services.labeling.label_service import label_document
 from ai_ticket_platform.database.CRUD.company_file import create_company_file
-from ai_ticket_platform.core.clients.azure_search import initialize_azure_search_indexer
+from ai_ticket_platform.core.clients.chroma_client import get_chroma_vectorstore
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ async def process_and_index_document(
 	1. Decode PDF
 	2. Label with LLM
 	3. Save to database
-	4. Index to Azure AI Search
+	4. Index to ChromaDB
 	"""
 	# Step 1: Decode PDF
 	logger.info(f"[DOC PROCESSING] Step 1: Decoding {filename}")
@@ -72,13 +72,13 @@ async def process_and_index_document(
 
 		logger.info(f"[DOC PROCESSING] Saved {filename} (ID: {db_file.id})")
 
-		# Step 4: Index to Azure AI Search
-		logger.info(f"[DOC PROCESSING] Step 4: Indexing {filename} to Azure AI Search")
+		# Step 4: Index to ChromaDB
+		logger.info(f"[DOC PROCESSING] Step 4: Indexing {filename} to ChromaDB")
 
 		try:
-			document_indexer = initialize_azure_search_indexer(settings)
+			vectorstore = get_chroma_vectorstore()
 
-			indexing_result = await document_indexer.index_document(
+			indexing_result = await vectorstore.index_document(
 				file_id=db_file.id,
 				filename=filename,
 				content=text_content,

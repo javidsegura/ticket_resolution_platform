@@ -45,7 +45,7 @@ class DevSettings(BaseSettings):
             self._extract_app_logic_variables()
             self._extract_slack_variables()
             self._extract_llm_variables()
-            self._extract_azure_search_variables()
+            self._extract_chroma_variables()
             #self._extract_firebase_variables()
       def _extract_database_variables(self):
             self.REDIS_URL = os.getenv("REDIS_URL")
@@ -79,11 +79,11 @@ class DevSettings(BaseSettings):
             self.GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
             self.GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
 
-      def _extract_azure_search_variables(self):
-            """Extract Azure AI Search variables (optional for RAG)."""
-            self.AZURE_SEARCH_ENDPOINT = os.getenv("AZURE_SEARCH_ENDPOINT", "https://mock-search.search.windows.net")
-            self.AZURE_SEARCH_INDEX_NAME = os.getenv("AZURE_SEARCH_INDEX_NAME", "company-docs")
-            self.AZURE_SEARCH_KEY = os.getenv("AZURE_SEARCH_KEY", "")
+      def _extract_chroma_variables(self):
+            """Extract ChromaDB variables for RAG."""
+            self.CHROMA_HOST = os.getenv("CHROMA_HOST", "chromadb")
+            self.CHROMA_PORT = int(os.getenv("CHROMA_PORT", "8000"))
+            self.CHROMA_COLLECTION_NAME = os.getenv("CHROMA_COLLECTION_NAME", "company-docs")
 
       # def _extract_firebase_variables(self):
       #       self.USING_FIREBASE_EMULATOR = os.getenv("USING_FIREBASE_EMULATOR")

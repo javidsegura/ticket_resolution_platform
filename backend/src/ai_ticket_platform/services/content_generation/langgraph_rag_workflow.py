@@ -8,7 +8,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.graph import END, StateGraph
 from langgraph.graph.message import add_messages
 
-from ai_ticket_platform.core.clients.azure_search import AzureSearchVectorStore
+from ai_ticket_platform.core.clients.chroma_client import ChromaVectorStore
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ class RAGState(TypedDict):
 class RAGWorkflow:
 	"""Simplified LangGraph RAG workflow - retrieve and generate only."""
 
-	def __init__(self, vector_store: AzureSearchVectorStore, settings):
+	def __init__(self, vector_store: ChromaVectorStore, settings):
 		"""
 		Initialize RAG workflow.
 		"""
@@ -67,7 +67,7 @@ class RAGWorkflow:
 		Build the LangGraph workflow.
 
 		Steps:
-		1. retrieve: Retrieve relevant documents from Azure AI Search
+		1. retrieve: Retrieve relevant documents from ChromaDB
 		2. generate_article: Generate/regenerate article (with feedback if iteration)
 		"""
 		workflow = StateGraph(RAGState)
@@ -84,7 +84,7 @@ class RAGWorkflow:
 		return workflow.compile()
 
 	async def _retrieve_documents(self, state: RAGState) -> RAGState:
-		"""Retrieve relevant documents from Azure AI Search."""
+		"""Retrieve relevant documents from ChromaDB."""
 		logger.info(f"Retrieving documents for intent: {state['intent_name']}")
 
 		# Build query from intent name + ticket summaries
@@ -93,25 +93,25 @@ class RAGWorkflow:
 			state["ticket_summaries"],
 		)
 
-		# Retrieve from Azure AI Search
+		# Retrieve from ChromaDB
 		results = await self.vector_store.similarity_search(
 			query=query,
 			k=5,
 			area_filter=state.get("area"),
 		)
 
-		# Format retrieved documents
+		# Format retrieved documents (results are already dicts with the right structure)
 		retrieved_docs = [
 			{
-				"content": metadata.get("content", ""),
-				"filename": metadata.get("filename", "Unknown"),
-				"area": metadata.get("area", "Unknown"),
-				"relevance_score": score,
+				"content": doc.get("content", ""),
+				"filename": doc.get("filename", "Unknown"),
+				"area": doc.get("area", "Unknown"),
+				"relevance_score": doc.get("relevance_score", 0.0),
 			}
-			for metadata, score in results
+			for doc in results
 		]
 
-		logger.info(f"Retrieved {len(retrieved_docs)} documents from Azure AI Search")
+		logger.info(f"Retrieved {len(retrieved_docs)} documents from ChromaDB")
 
 		# Build context from retrieved docs
 		context = self._build_context(retrieved_docs) if retrieved_docs else ""

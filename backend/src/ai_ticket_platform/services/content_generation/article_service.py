@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ai_ticket_platform.database.CRUD.article import create_article, get_article_by_id as read_article
 from ai_ticket_platform.database.CRUD.intents import get_intent, update_intent
 from ai_ticket_platform.database.CRUD.ticket import list_tickets_by_intent
-from ai_ticket_platform.core.clients import azure_search
+from ai_ticket_platform.core.clients.chroma_client import get_chroma_vectorstore
 from ai_ticket_platform.services.content_generation.langgraph_rag_workflow import RAGWorkflow
 
 logger = logging.getLogger(__name__)
@@ -23,7 +23,8 @@ class ArticleGenerationService:
 		    settings: Application settings
 		"""
 		self.settings = settings
-		self.rag_workflow = RAGWorkflow(azure_search, settings)
+		chroma_vectorstore = get_chroma_vectorstore()
+		self.rag_workflow = RAGWorkflow(chroma_vectorstore, settings)
 
 	async def generate_article(
 		self,

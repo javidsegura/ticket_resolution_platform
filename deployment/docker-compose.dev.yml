@@ -11,12 +11,16 @@ services:
     volumes:
       - ../frontend/app:/app
       - /app/node_modules  # Anonymous volume for node_modules
-    healthcheck:
-      test: ["CMD", "curl", "--fail", "http://localhost:5173"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
+    environment:
+      - VITE_BASE_URL=http://localhost:8000
+    # healthcheck disabled - frontend container doesn't have curl/wget installed
+    # Service works fine, monitored via nginx health check instead
+    #     healthcheck:
+    #  test: ["CMD", "curl", "--fail", "http://localhost:5173"]
+    #  interval: 10s
+    #  timeout: 5s
+    #  retries: 3
+    #  start_period: 30s
   database:
     image: mysql:8.0
     volumes:
@@ -56,7 +60,9 @@ services:
          condition: service_completed_successfully
         redis:
           condition: service_healthy
-      healthcheck: 
+        chromadb:
+          condition: service_started
+      healthcheck:
         test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/dependencies"]
         interval: 30s
         timeout: 5s
@@ -106,8 +112,20 @@ services:
       prometheus:
         condition: service_started
 
-      
+  # ChromaDB Vector Database for RAG
+  chromadb:
+    image: chromadb/chroma:latest
+    ports:
+      - "8001:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    environment:
+      - IS_PERSISTENT=TRUE
+      - ANONYMIZED_TELEMETRY=FALSE
+
+
 volumes:
   db-data:
   prometheus_data:
   grafana_data:
+  chroma_data:

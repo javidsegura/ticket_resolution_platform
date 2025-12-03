@@ -42,9 +42,9 @@ async def lifespan(app: FastAPI):
     # redis_instance = await clients.redis.get_client()
     # clients.cache_manager = CacheManager(redis_instance)
 
-    # Initialize Azure AI Search for RAG
-    logger.info("Initializing Azure AI Search for RAG")
-    clients.azure_search = clients.initialize_azure_search(settings.app_settings)
+    # Initialize ChromaDB for RAG
+    logger.info("Initializing ChromaDB for RAG")
+    clients.chroma_vectorstore = clients.initialize_chroma_vectorstore(settings.app_settings)
 
     yield
 
