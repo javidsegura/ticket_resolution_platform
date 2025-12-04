@@ -16,4 +16,3 @@ routers = [
     articles_router,
 ]
 # widget router removed - requires PublishedArticle model not yet implemented
-

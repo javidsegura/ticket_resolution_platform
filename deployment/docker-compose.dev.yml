@@ -25,7 +25,7 @@ services:
     image: mysql:8.0
     volumes:
       - db-data:/var/lib/mysql
-    ports: 
+    ports:
       - "3307:3306"
     environment:
       MYSQL_ROOT_PASSWORD: "rootpassword"
@@ -84,7 +84,14 @@ services:
         condition: service_started
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost/nginx-health"]
-  
+
+  worker:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    volumes:
+      - ../backend/src:/app/src
+
   #Telemetry section
   prometheus:
     image: prom/prometheus:latest
@@ -96,7 +103,7 @@ services:
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
-  
+
   grafana:
     image: grafana/grafana
     ports:

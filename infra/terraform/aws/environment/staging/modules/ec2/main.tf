@@ -1,40 +1,40 @@
 
 
-# EC2 instance 
+# EC2 instance
 resource "aws_instance" "web_app" {
-  ami = "ami-08982f1c5bf93d976" # Standard AWS Linux 2023
-  instance_type = var.instance_type_web_app
-  subnet_id = var.private_subnet_sever_id
+  ami                    = "ami-08982f1c5bf93d976" # Standard AWS Linux 2023
+  instance_type          = var.instance_type_web_app
+  subnet_id              = var.private_subnet_sever_id
   vpc_security_group_ids = [var.web_app_sg_id]
 
   iam_instance_profile = aws_iam_instance_profile.web_app_profile.name
-  key_name = aws_key_pair.key_pair_ssh.key_name
-  
+  key_name             = aws_key_pair.key_pair_ssh.key_name
+
   root_block_device {
-    volume_size = 8
+    volume_size           = 8
     delete_on_termination = true
 
   }
   tags = {
-    Name = "Web server" 
+    Name = "Web server"
   }
 }
 
-resource "aws_instance" "bastion_host" { # Make this a weaker instance 
-  ami = "ami-00ca32bbc84273381" # Standard AWS Linux 2023
-  instance_type = var.instance_type_bastion
-  subnet_id = var.public_subnet_id
+resource "aws_instance" "bastion_host" {           # Make this a weaker instance
+  ami                    = "ami-00ca32bbc84273381" # Standard AWS Linux 2023
+  instance_type          = var.instance_type_bastion
+  subnet_id              = var.public_subnet_id
   vpc_security_group_ids = [var.bastion_sg_id]
 
   key_name = aws_key_pair.key_pair_ssh.key_name
-  
+
   root_block_device {
-    volume_size = 8
+    volume_size           = 8
     delete_on_termination = true
   }
 
   tags = {
-    Name = "Bastion server" 
+    Name = "Bastion server"
   }
 }
 
@@ -42,16 +42,16 @@ resource "aws_instance" "bastion_host" { # Make this a weaker instance
 # SSH KEYS
 resource "tls_private_key" "priv_key" {
   algorithm = "RSA"
-  rsa_bits = 4096
+  rsa_bits  = 4096
 }
 resource "aws_key_pair" "key_pair_ssh" {
-  key_name = "ssh_key"
-  public_key = tls_private_key.priv_key.public_key_openssh  
+  key_name   = "ssh_key"
+  public_key = tls_private_key.priv_key.public_key_openssh
 }
 
 resource "local_file" "private_key" {
-  content = tls_private_key.priv_key.private_key_pem
-  filename = var.ssh_key_local_path
+  content         = tls_private_key.priv_key.private_key_pem
+  filename        = var.ssh_key_local_path
   file_permission = "0400"
 }
 
@@ -62,7 +62,7 @@ data "aws_iam_policy_document" "assume_role" {
   statement {
     sid = "AllowEC2ToAssumeRole"
     principals {
-      type = "Service"
+      type        = "Service"
       identifiers = ["ec2.amazonaws.com"]
     }
     actions = ["sts:AssumeRole"]
@@ -71,7 +71,7 @@ data "aws_iam_policy_document" "assume_role" {
 
 # IAM Role for EC2 instance
 resource "aws_iam_role" "app_server_role_staging" {
-  name = "app_server_role"
+  name               = "app_server_role"
   assume_role_policy = data.aws_iam_policy_document.assume_role.json
 }
 
@@ -132,4 +132,3 @@ resource "aws_iam_role_policy_attachment" "ssm_managed_instance_core" {
   role       = aws_iam_role.app_server_role_staging.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
-

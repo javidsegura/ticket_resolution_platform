@@ -27,37 +27,36 @@ router = APIRouter(prefix="/tickets", tags=["tickets"])
 logger = logging.getLogger(__name__)
 
 
-
 @router.get("/", response_model=TicketListResponse)
 async def get_tickets(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=500),
-    db: AsyncSession = Depends(get_db),
+	skip: int = Query(0, ge=0),
+	limit: int = Query(100, ge=1, le=500),
+	db: AsyncSession = Depends(get_db),
 ):
-    """
-    Return a paginated list of tickets.
-    """
-    tickets = await crud_list_tickets(db, skip=skip, limit=limit)
-    total_count = await crud_count_tickets(db)
-    ticket_models = [TicketResponse.model_validate(ticket) for ticket in tickets]
-    return TicketListResponse(
-        total=total_count,
-        skip=skip,
-        limit=limit,
-        tickets=ticket_models,
-    )
+	"""
+	Return a paginated list of tickets.
+	"""
+	tickets = await crud_list_tickets(db, skip=skip, limit=limit)
+	total_count = await crud_count_tickets(db)
+	ticket_models = [TicketResponse.model_validate(ticket) for ticket in tickets]
+	return TicketListResponse(
+		total=total_count,
+		skip=skip,
+		limit=limit,
+		tickets=ticket_models,
+	)
 
 
 @router.get("/{ticket_id}", response_model=TicketResponse)
 async def get_ticket_by_id(ticket_id: int, db: AsyncSession = Depends(get_db)):
-    """
-    Retrieve a single ticket by ID.
-    """
-    ticket = await crud_get_ticket(db, ticket_id)
-    if not ticket:
-        raise HTTPException(status_code=404, detail="Ticket not found")
+	"""
+	Retrieve a single ticket by ID.
+	"""
+	ticket = await crud_get_ticket(db, ticket_id)
+	if not ticket:
+		raise HTTPException(status_code=404, detail="Ticket not found")
 
-    return TicketResponse.model_validate(ticket)
+	return TicketResponse.model_validate(ticket)
 
 
 @router.post("/upload-csv-with-queue")
@@ -175,5 +174,3 @@ async def upload_csv_with_queue(
 			except Exception:
 				pass
 		raise HTTPException(500, str(e))
-
-

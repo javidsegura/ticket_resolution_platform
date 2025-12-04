@@ -14,6 +14,7 @@ from ai_ticket_platform.services.caching.ttl_config import CacheTTL
 
 logger = logging.getLogger(__name__)
 
+
 def _compute_clustering_hash(ticket_texts: List[str]) -> str:
 	"""
 	Compute SHA256 hash of sorted ticket titles for deduplication.

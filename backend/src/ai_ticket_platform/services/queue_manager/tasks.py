@@ -68,19 +68,19 @@ def process_ticket_stage1(ticket_batch: List[Dict[str, Any]]) -> List[Dict[str, 
 
 
 def process_ticket_stage2(ticket_data: Dict[str, Any]) -> Dict[str, Any]:
-    """Stage 2: Generate content"""
-    ticket_id = ticket_data.get("id")
-    cluster = ticket_data.get("cluster")
-    logger.info(f"[STAGE2] Processing ticket {ticket_id} from cluster {cluster}")
-    
-    try:
-        logger.info(f"[STAGE2] Calling generate_content for {ticket_id}")
-        result = generate_content(ticket_data)
-        logger.info(f"[STAGE2] Completed {ticket_id}")
-        return {"ticket_id": ticket_id, "result": result}
-    except Exception:
-        logger.error(f"[STAGE2] Error for {ticket_id}, will retry")
-        raise # Will be automatically requequed 
+	"""Stage 2: Generate content"""
+	ticket_id = ticket_data.get("id")
+	cluster = ticket_data.get("cluster")
+	logger.info(f"[STAGE2] Processing ticket {ticket_id} from cluster {cluster}")
+
+	try:
+		logger.info(f"[STAGE2] Calling generate_content for {ticket_id}")
+		result = generate_content(ticket_data)
+		logger.info(f"[STAGE2] Completed {ticket_id}")
+		return {"ticket_id": ticket_id, "result": result}
+	except Exception:
+		logger.error(f"[STAGE2] Error for {ticket_id}, will retry")
+		raise  # Will be automatically requequed
 
 
 def batch_finalizer(stage1_job_ids: List[str]) -> Dict[str, Any]:

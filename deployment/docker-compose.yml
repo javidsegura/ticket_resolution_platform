@@ -1,9 +1,9 @@
 services:
   redis:
     image: redis:7.2-alpine
-    ports: 
+    ports:
       - "6379:6379"
-    volumes: 
+    volumes:
       - redis-data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -11,14 +11,9 @@ services:
       timeout: 3s
       retries: 5
   worker:
-    build:
-      context: ../backend
-      dockerfile: Dockerfile
     depends_on:
       redis:
         condition: service_healthy
-    volumes:
-        - ../backend/src:/app/src
     env_file:
       - ${BACKEND_ENV_FILE}
     environment:
@@ -35,7 +30,7 @@ services:
       - ${BACKEND_ENV_FILE}
     restart: "no"
     environment:
-      ENVIRONMENT: ${ENVIRONMENT}  
+      ENVIRONMENT: ${ENVIRONMENT}
   nginx:
     image: nginx:alpine
     ports:

@@ -35,3 +35,6 @@ build-local: ## Build and preview frontend locally
 	cd ./app; \
 	npm run build; \
 	npm run preview
+
+format: ## Format frontend code using Prettier
+	cd ./app && npm run format

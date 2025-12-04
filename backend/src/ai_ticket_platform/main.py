@@ -18,12 +18,14 @@ from ai_ticket_platform.routers import (
     intents_router,
     articles_router,
 )
+
 # Removed: drafts, publishing, widget routers - not needed with frontend's Article model
-import logging 
+import logging
 from prometheus_fastapi_instrumentator import Instrumentator
 
 
 logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -32,18 +34,16 @@ async def lifespan(app: FastAPI):
     This is the recommended way to manage resources that need to be
     available for the entire application lifecycle.
     """
-    #initialize_firebase()
+    # initialize_firebase()
     initialize_logger()
     settings.app_settings = settings.initialize_settings()
-    #clients.s3_client = clients.initialize_aws_s3_client()
-    #clients.secrets_manager_client = clients.initialize_aws_secrets_manager_client()
+    # clients.s3_client = clients.initialize_aws_s3_client()
+    # clients.secrets_manager_client = clients.initialize_aws_secrets_manager_client()
+    clients.redis = clients.initialize_redis_client()
 
-    # TEMPORARILY DISABLED: Redis not available on Windows
-    # clients.redis = clients.initialize_redis_client()
-    # redis_instance = await clients.redis.get_client()
-    # clients.cache_manager = CacheManager(redis_instance)
-
-    # Initialize ChromaDB for RAG
+    # Initialize Redis client and cache manager
+    redis_instance = await clients.redis.get_client()
+    clients.cache_manager = CacheManager(redis_instance)
     logger.info("Initializing ChromaDB for RAG")
     clients.chroma_vectorstore = clients.initialize_chroma_vectorstore(settings.app_settings)
 
@@ -52,6 +52,7 @@ async def lifespan(app: FastAPI):
     # --- Shutdown ---
     # You can add any cleanup code here, like closing database connections.
     logger.debug("INFO:     Application shutdown complete.")
+
 
 app = FastAPI(title="AI Ticket Platform", lifespan=lifespan)
 
@@ -82,4 +83,3 @@ for router in routers:
 	app.include_router(router, prefix="/api")
 
 Instrumentator().instrument(app).expose(app)
-

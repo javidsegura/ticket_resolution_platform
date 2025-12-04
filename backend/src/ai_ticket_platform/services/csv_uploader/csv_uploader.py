@@ -27,7 +27,7 @@ async def cluster_tickets_with_cache(db: AsyncSession, tickets_data: List[dict])
             "total_tickets": 0,
             "clusters_created": 0,
             "clusters": [],
-            "cached": False
+            "cached": False,
         }
 
     logger.info(f"Starting clustering for {len(tickets_data)} tickets (with cache)")
@@ -41,4 +41,3 @@ async def cluster_tickets_with_cache(db: AsyncSession, tickets_data: List[dict])
     except Exception as e:
         logger.error(f"Error during clustering: {str(e)}", exc_info=True)
         raise RuntimeError(f"Failed to cluster tickets: {str(e)}") from e
-
