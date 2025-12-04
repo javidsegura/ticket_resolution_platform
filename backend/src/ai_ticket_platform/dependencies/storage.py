@@ -1,6 +1,6 @@
 from typing import Annotated
 from fastapi import Depends
-from ai_ticket_platform.services.storage.storage import (
+from ai_ticket_platform.services.infra.storage.storage import (
 	StorageService,
 	get_storage_service,
 )
