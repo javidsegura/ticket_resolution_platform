@@ -1,34 +1,12 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import {
-  Ticket,
-  TrendingUp,
-  Clock,
-  CheckCircle,
-  Upload,
-  Layers,
-  AlertCircle,
-  ChevronDown,
-  ChevronUp,
-  Maximize2,
-  X,
-  Search,
-  FlaskConical,
-} from "lucide-react";
-import { fetchClusters, type Cluster } from "@/services/clusters";
-import {
-  fetchABTestingTotals,
-  type ABTestingTotals,
-} from "@/services/analytics";
-import { fetchTickets, type Ticket as ApiTicket } from "@/services/tickets";
+import { useState, useEffect, type ChangeEvent, type DragEvent } from "react"
+import { Link } from "react-router-dom"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Ticket, TrendingUp, Clock, CheckCircle, Upload, Layers, AlertCircle, ChevronDown, ChevronUp, Maximize2, X, Search, FlaskConical } from "lucide-react"
+import { fetchClusters, type Cluster } from "@/services/clusters"
+import { fetchABTestingTotals, type ABTestingTotals } from "@/services/analytics"
+import { fetchTickets, type Ticket as ApiTicket, uploadTicketsCsv, type CsvUploadResponse } from "@/services/tickets"
+import { uploadCompanyDocuments, type DocumentUploadResponse } from "@/services/documents"
 
 const dummyStats = {
   totalTickets: 24,
@@ -48,18 +26,6 @@ const formatDate = (dateString: string) => {
 };
 
 // Dummy handlers for manual uploads
-const handleTicketDropIn = () => {
-  console.log("API Call: Ticket Drop In (CSV)");
-  // TODO: Replace with actual API call
-  alert("Ticket Drop In (CSV) - This will upload a CSV file with tickets.");
-};
-
-const handleCompanyDocsDropIn = () => {
-  console.log("API Call: Company Docs Drop In (PDF only)");
-  // TODO: Replace with actual API call and PDF file picker restriction
-  alert("Company Docs Drop In - Only PDF files are accepted in this upload.");
-};
-
 const getClusterStatusBadge = (status: string) => {
   const styles = {
     active: "bg-blue-100 text-blue-800",
@@ -76,12 +42,24 @@ const getClusterStatusBadge = (status: string) => {
 };
 
 export default function Dashboard() {
-  const [clusters, setClusters] = useState<Cluster[]>([]);
-  const [clustersLoading, setClustersLoading] = useState(true);
-  const [clustersExpanded, setClustersExpanded] = useState(false);
-  const [clustersExpandedModal, setClustersExpandedModal] = useState(false);
-  const [ticketsExpandedModal, setTicketsExpandedModal] = useState(false);
-
+  const [clusters, setClusters] = useState<Cluster[]>([])
+  const [clustersLoading, setClustersLoading] = useState(true)
+  const [clustersExpanded, setClustersExpanded] = useState(false)
+  const [clustersExpandedModal, setClustersExpandedModal] = useState(false)
+  const [ticketsExpandedModal, setTicketsExpandedModal] = useState(false)
+  const [documentsModalOpen, setDocumentsModalOpen] = useState(false)
+  const [documentsDraggedOver, setDocumentsDraggedOver] = useState(false)
+  const [selectedDocuments, setSelectedDocuments] = useState<File[]>([])
+  const [documentsUploading, setDocumentsUploading] = useState(false)
+  const [documentsUploadError, setDocumentsUploadError] = useState<string | null>(null)
+  const [documentsUploadResult, setDocumentsUploadResult] = useState<DocumentUploadResponse | null>(null)
+  const [ticketCsvModalOpen, setTicketCsvModalOpen] = useState(false)
+  const [ticketCsvDraggedOver, setTicketCsvDraggedOver] = useState(false)
+  const [ticketCsvFile, setTicketCsvFile] = useState<File | null>(null)
+  const [ticketCsvUploading, setTicketCsvUploading] = useState(false)
+  const [ticketCsvError, setTicketCsvError] = useState<string | null>(null)
+  const [ticketCsvResult, setTicketCsvResult] = useState<CsvUploadResponse | null>(null)
+  
   // Filter states for compact view clusters
   const [clusterSearch, setClusterSearch] = useState("");
   const clusterStatusFilter = "all";
@@ -119,6 +97,177 @@ export default function Dashboard() {
     setTicketsExpandedModal(false);
     setTicketModalSearch("");
   };
+
+  const openTicketCsvModal = () => {
+    setTicketCsvModalOpen(true)
+    setTicketCsvFile(null)
+    setTicketCsvError(null)
+    setTicketCsvResult(null)
+  }
+
+  const closeTicketCsvModal = () => {
+    setTicketCsvModalOpen(false)
+    setTicketCsvFile(null)
+    setTicketCsvError(null)
+    setTicketCsvResult(null)
+    setTicketCsvDraggedOver(false)
+  }
+
+  const handleTicketCsvInputChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      if (file.type !== "text/csv" && file.type !== "application/csv" && !file.name.toLowerCase().endsWith(".csv")) {
+        setTicketCsvError("Only CSV files are allowed")
+        setTicketCsvFile(null)
+      } else {
+        setTicketCsvFile(file)
+        setTicketCsvError(null)
+      }
+    } else {
+      setTicketCsvFile(null)
+    }
+    event.target.value = ""
+  }
+
+  const handleTicketCsvDrop = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    event.stopPropagation()
+    setTicketCsvDraggedOver(false)
+    const file = event.dataTransfer.files?.[0]
+    if (file) {
+      if (file.type !== "text/csv" && file.type !== "application/csv" && !file.name.toLowerCase().endsWith(".csv")) {
+        setTicketCsvError("Only CSV files are allowed")
+        setTicketCsvFile(null)
+      } else {
+        setTicketCsvFile(file)
+        setTicketCsvError(null)
+      }
+    }
+  }
+
+  const handleTicketCsvDragOver = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    event.stopPropagation()
+    if (!ticketCsvDraggedOver) {
+      setTicketCsvDraggedOver(true)
+    }
+  }
+
+  const handleTicketCsvDragLeave = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    event.stopPropagation()
+    setTicketCsvDraggedOver(false)
+  }
+
+  const clearTicketCsvSelection = () => {
+    setTicketCsvFile(null)
+    setTicketCsvResult(null)
+    setTicketCsvError(null)
+  }
+
+  const handleTicketCsvUpload = async () => {
+    if (!ticketCsvFile) {
+      setTicketCsvError("Select a CSV file before uploading")
+      return
+    }
+    setTicketCsvError(null)
+    setTicketCsvResult(null)
+    try {
+      setTicketCsvUploading(true)
+      const response = await uploadTicketsCsv(ticketCsvFile)
+      setTicketCsvResult(response)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to upload CSV"
+      setTicketCsvError(message)
+    } finally {
+      setTicketCsvUploading(false)
+    }
+  }
+
+  const openDocumentsModal = () => {
+    setDocumentsModalOpen(true)
+    setSelectedDocuments([])
+    setDocumentsUploadError(null)
+    setDocumentsUploadResult(null)
+  }
+
+  const closeDocumentsModal = () => {
+    setDocumentsModalOpen(false)
+    setSelectedDocuments([])
+    setDocumentsUploadError(null)
+    setDocumentsUploadResult(null)
+    setDocumentsDraggedOver(false)
+  }
+
+  const filterPdfFiles = (incomingFiles: File[]) => {
+    const pdfs = incomingFiles.filter((file) => file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf"))
+    if (pdfs.length !== incomingFiles.length) {
+      setDocumentsUploadError("Only PDF files are accepted")
+    } else {
+      setDocumentsUploadError(null)
+    }
+    const deduped = [...selectedDocuments]
+    pdfs.forEach((file) => {
+      const alreadyAdded = deduped.some((existing) => existing.name === file.name && existing.size === file.size)
+      if (!alreadyAdded) {
+        deduped.push(file)
+      }
+    })
+    setSelectedDocuments(deduped)
+  }
+
+  const handleDocumentsInputChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? [])
+    if (files.length) {
+      filterPdfFiles(files)
+    }
+    event.target.value = ""
+  }
+
+  const handleDocumentsDrop = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    event.stopPropagation()
+    setDocumentsDraggedOver(false)
+    const files = Array.from(event.dataTransfer.files ?? [])
+    if (files.length) {
+      filterPdfFiles(files)
+    }
+  }
+
+  const handleDocumentsDragOver = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    event.stopPropagation()
+    if (!documentsDraggedOver) {
+      setDocumentsDraggedOver(true)
+    }
+  }
+
+  const handleDocumentsDragLeave = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    event.stopPropagation()
+    setDocumentsDraggedOver(false)
+  }
+
+  const clearSelectedDocuments = () => {
+    setSelectedDocuments([])
+    setDocumentsUploadError(null)
+    setDocumentsUploadResult(null)
+  }
+
+  const handleDocumentsUpload = async () => {
+    setDocumentsUploadError(null)
+    setDocumentsUploadResult(null)
+    try {
+      setDocumentsUploading(true)
+      const response = await uploadCompanyDocuments(selectedDocuments)
+      setDocumentsUploadResult(response)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to upload documents"
+      setDocumentsUploadError(message)
+    } finally {
+      setDocumentsUploading(false)
+    }
+  }
 
   useEffect(() => {
     const loadClusters = async () => {
@@ -391,15 +540,15 @@ export default function Dashboard() {
                 </div>
               )}
           </div>
-
-          <Button onClick={handleTicketDropIn} variant="outline">
-            <Upload className="mr-2 h-4 w-4" />
-            Ticket Drop In (CSV)
-          </Button>
-          <Button onClick={handleCompanyDocsDropIn} variant="outline">
-            <Upload className="mr-2 h-4 w-4" />
-            Company Docs (PDF)
-          </Button>
+          
+        <Button onClick={openTicketCsvModal} variant="outline">
+          <Upload className="mr-2 h-4 w-4" />
+          Ticket Drop In (CSV)
+        </Button>
+        <Button onClick={openDocumentsModal} variant="outline">
+          <Upload className="mr-2 h-4 w-4" />
+          Company Docs (PDF)
+        </Button>
         </div>
       </div>
 
@@ -936,6 +1085,237 @@ export default function Dashboard() {
                 )}
               </div>
             </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Document Upload Modal */}
+      {documentsModalOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={closeDocumentsModal}
+        >
+          <Card 
+            className="w-full max-w-2xl max-h-[90vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <CardHeader className="pb-3 border-b">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-xl">
+                    <Upload className="h-5 w-5" />
+                    Upload Company Documents
+                  </CardTitle>
+                  <CardDescription className="mt-1">
+                    Upload one or more PDF files for processing
+                  </CardDescription>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={closeDocumentsModal}
+                  className="h-8 w-8 p-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-4 flex-1 overflow-auto">
+              <div
+                onDrop={handleDocumentsDrop}
+                onDragOver={handleDocumentsDragOver}
+                onDragLeave={handleDocumentsDragLeave}
+                className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
+                  documentsDraggedOver ? "border-primary-500 bg-primary-50" : "border-gray-300 bg-gray-50"
+                }`}
+              >
+                <p className="text-2xl font-semibold mb-2">Choose Files or Drag them In</p>
+                <p className="text-sm text-gray-600 mb-4">PDF files only. Upload multiple documents at once.</p>
+                <label className="inline-flex items-center justify-center px-5 py-2 rounded-md bg-primary-600 text-white text-sm font-medium cursor-pointer hover:bg-primary-700 transition-colors">
+                  Browse PDF files
+                  <input
+                    type="file"
+                    accept="application/pdf,.pdf"
+                    multiple
+                    className="sr-only"
+                    onChange={handleDocumentsInputChange}
+                  />
+                </label>
+              </div>
+
+              {selectedDocuments.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold text-gray-700">
+                      Selected files ({selectedDocuments.length})
+                    </p>
+                    <Button variant="ghost" size="sm" onClick={clearSelectedDocuments} className="text-xs h-7">
+                      Clear list
+                    </Button>
+                  </div>
+                  <ul className="max-h-48 overflow-y-auto rounded-lg border bg-white text-sm">
+                    {selectedDocuments.map((file) => (
+                      <li
+                        key={`${file.name}-${file.size}`}
+                        className="flex items-center justify-between px-4 py-2 border-b last:border-b-0"
+                      >
+                        <span className="truncate pr-4">{file.name}</span>
+                        <span className="text-xs text-gray-500">{(file.size / (1024 * 1024)).toFixed(2)} MB</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {documentsUploadError && (
+                <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+                  {documentsUploadError}
+                </div>
+              )}
+
+              {documentsUploadResult && (
+                <div className="rounded-lg border px-4 py-3 text-sm space-y-2">
+                  <p className="font-semibold text-gray-800">
+                    Uploaded {documentsUploadResult.successful} of {documentsUploadResult.total_processed} files
+                  </p>
+                  <ul className="space-y-1">
+                    {documentsUploadResult.results.map((result) => (
+                      <li key={result.filename} className="flex items-center justify-between text-xs">
+                        <span className="truncate pr-4">{result.filename}</span>
+                        <span className={result.success ? "text-green-600" : "text-red-600"}>
+                          {result.success ? "Success" : result.error ?? "Failed"}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </CardContent>
+            <div className="flex items-center justify-end gap-2 border-t px-6 py-4">
+              <Button variant="ghost" onClick={closeDocumentsModal}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleDocumentsUpload}
+                disabled={documentsUploading || selectedDocuments.length === 0}
+              >
+                {documentsUploading ? "Uploading..." : "Upload PDF(s)"}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Ticket CSV Upload Modal */}
+      {ticketCsvModalOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={closeTicketCsvModal}
+        >
+          <Card
+            className="w-full max-w-2xl max-h-[90vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <CardHeader className="pb-3 border-b">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-xl">
+                    <Upload className="h-5 w-5" />
+                    Upload Ticket CSV
+                  </CardTitle>
+                  <CardDescription className="mt-1">
+                    Upload a CSV with ticket data (one file per upload)
+                  </CardDescription>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={closeTicketCsvModal}
+                  className="h-8 w-8 p-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-4 flex-1 overflow-auto">
+              <div
+                onDrop={handleTicketCsvDrop}
+                onDragOver={handleTicketCsvDragOver}
+                onDragLeave={handleTicketCsvDragLeave}
+                className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
+                  ticketCsvDraggedOver ? "border-primary-500 bg-primary-50" : "border-gray-300 bg-gray-50"
+                }`}
+              >
+                <p className="text-2xl font-semibold mb-2">Choose CSV or Drag it In</p>
+                <p className="text-sm text-gray-600 mb-4">Only one CSV file can be uploaded at a time.</p>
+                <label className="inline-flex items-center justify-center px-5 py-2 rounded-md bg-primary-600 text-white text-sm font-medium cursor-pointer hover:bg-primary-700 transition-colors">
+                  Browse CSV file
+                  <input
+                    type="file"
+                    accept=".csv,text/csv"
+                    className="sr-only"
+                    onChange={handleTicketCsvInputChange}
+                  />
+                </label>
+              </div>
+
+              {ticketCsvFile && (
+                <div className="rounded-lg border bg-white px-4 py-3 text-sm flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-gray-800">{ticketCsvFile.name}</p>
+                    <p className="text-xs text-gray-500">{(ticketCsvFile.size / (1024 * 1024)).toFixed(2)} MB</p>
+                  </div>
+                  {!ticketCsvResult && (
+                    <Button variant="ghost" size="sm" onClick={clearTicketCsvSelection} className="text-xs h-7">
+                      Remove
+                    </Button>
+                  )}
+                </div>
+              )}
+
+              {ticketCsvError && (
+                <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+                  {ticketCsvError}
+                </div>
+              )}
+
+              {ticketCsvResult && (
+                <div className="rounded-lg border px-4 py-3 text-sm space-y-2">
+                  <p className="font-semibold text-gray-800">
+                    {ticketCsvResult.success
+                      ? `Upload Complete: ${ticketCsvResult.tickets_created} ticket(s) uploaded successfully`
+                      : `Upload finished with issues while processing ${ticketCsvResult.file_info.filename}`}
+                  </p>
+                  <div className="text-xs text-gray-600">
+                    <p>Rows processed: {ticketCsvResult.file_info.rows_processed}</p>
+                    <p>Rows skipped: {ticketCsvResult.file_info.rows_skipped}</p>
+                    <p>Tickets created: {ticketCsvResult.tickets_created}</p>
+                    <p>Clusters updated: {ticketCsvResult.clustering.clusters_created}</p>
+                  </div>
+                  {ticketCsvResult.errors.length > 0 && (
+                    <div className="mt-2">
+                      <p className="font-semibold text-xs text-red-600 mb-1">Errors:</p>
+                      <ul className="list-disc pl-5 space-y-1 text-xs text-red-600">
+                        {ticketCsvResult.errors.map((error) => (
+                          <li key={error}>{error}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+            <div className="flex items-center justify-end gap-2 border-t px-6 py-4">
+              <Button variant="ghost" onClick={closeTicketCsvModal}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleTicketCsvUpload}
+                disabled={ticketCsvUploading || !ticketCsvFile}
+              >
+                {ticketCsvUploading ? "Uploading..." : "Upload CSV"}
+              </Button>
+            </div>
           </Card>
         </div>
       )}
