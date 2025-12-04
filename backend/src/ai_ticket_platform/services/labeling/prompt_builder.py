@@ -1,9 +1,9 @@
 def build_labeling_prompt(document_content: str, filename: str) -> str:
-    """
-    Build prompt for document labeling.
-    Content is already truncated by the decoder (max 25,000 chars from sequential pages).
-    """
-    prompt = f"""
+	"""
+	Build prompt for document labeling.
+	Content is already truncated by the decoder (max 25,000 chars from sequential pages).
+	"""
+	prompt = f"""
         Analyze the following company document and identify the primary department or area it belongs to.
 
         DOCUMENT FILENAME: {filename}
@@ -33,33 +33,33 @@ def build_labeling_prompt(document_content: str, filename: str) -> str:
         - "Sales Commission Structure" → Sales
     """
 
-    return prompt
+	return prompt
 
 
 def get_output_schema() -> dict:
-    """
-    Get the JSON schema for LLM structured output for document labeling.
-    """
+	"""
+	Get the JSON schema for LLM structured output for document labeling.
+	"""
 
-    return {
-        "type": "object",
-        "properties": {
-            "department_area": {
-                "type": "string",
-                "description": "Single keyword representing the primary department or area (1-2 words max)"
-            }
-        },
-        "required": ["department_area"],
-        "additionalProperties": False
-    }
+	return {
+		"type": "object",
+		"properties": {
+			"department_area": {
+				"type": "string",
+				"description": "Single keyword representing the primary department or area (1-2 words max)",
+			}
+		},
+		"required": ["department_area"],
+		"additionalProperties": False,
+	}
 
 
 def get_task_config() -> dict:
-    return {
-        "system_prompt": (
-            "You are a document classification expert. "
-            "Analyze company documents and identify the primary department or area they belong to. "
-            "This classification helps route support tickets to the correct professionals."
-            ),
-        "schema_name": "document_department_classification"
-    }
+	return {
+		"system_prompt": (
+			"You are a document classification expert. "
+			"Analyze company documents and identify the primary department or area they belong to. "
+			"This classification helps route support tickets to the correct professionals."
+		),
+		"schema_name": "document_department_classification",
+	}

@@ -11,42 +11,45 @@ import ai_ticket_platform.core.settings as settings
 from ai_ticket_platform.services.caching import CacheManager
 from ai_ticket_platform.routers import (
 	health_router,
-    slack_router,
-    documents_router,
-    external_router,
-    tickets_router,
-    intents_router,
+	slack_router,
+	documents_router,
+	external_router,
+	tickets_router,
+	intents_router,
 )
+
 # Removed: drafts, publishing, widget routers - not needed with frontend's Article model
-import logging 
+import logging
 from prometheus_fastapi_instrumentator import Instrumentator
 
 
 logger = logging.getLogger(__name__)
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """
-    Context manager to handle application startup and shutdown events.
-    This is the recommended way to manage resources that need to be
-    available for the entire application lifecycle.
-    """
-    #initialize_firebase()
-    initialize_logger() 
-    settings.app_settings = settings.initialize_settings()
-    #clients.s3_client = clients.initialize_aws_s3_client()
-    #clients.secrets_manager_client = clients.initialize_aws_secrets_manager_client()
-    clients.redis = clients.initialize_redis_client()
+	"""
+	Context manager to handle application startup and shutdown events.
+	This is the recommended way to manage resources that need to be
+	available for the entire application lifecycle.
+	"""
+	# initialize_firebase()
+	initialize_logger()
+	settings.app_settings = settings.initialize_settings()
+	# clients.s3_client = clients.initialize_aws_s3_client()
+	# clients.secrets_manager_client = clients.initialize_aws_secrets_manager_client()
+	clients.redis = clients.initialize_redis_client()
 
-    # Initialize Redis client and cache manager
-    redis_instance = await clients.redis.get_client()
-    clients.cache_manager = CacheManager(redis_instance)
+	# Initialize Redis client and cache manager
+	redis_instance = await clients.redis.get_client()
+	clients.cache_manager = CacheManager(redis_instance)
 
-    yield
+	yield
 
-    # --- Shutdown ---
-    # You can add any cleanup code here, like closing database connections.
-    logger.debug("INFO:     Application shutdown complete.")
+	# --- Shutdown ---
+	# You can add any cleanup code here, like closing database connections.
+	logger.debug("INFO:     Application shutdown complete.")
+
 
 app = FastAPI(title="AI Ticket Platform", lifespan=lifespan)
 
@@ -76,4 +79,3 @@ for router in routers:
 	app.include_router(router, prefix="/api")
 
 Instrumentator().instrument(app).expose(app)
-

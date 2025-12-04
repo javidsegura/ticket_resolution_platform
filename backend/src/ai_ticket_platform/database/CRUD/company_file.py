@@ -4,7 +4,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ai_ticket_platform.database.generated_models import CompanyFile
 
 
-async def create_company_file(db: AsyncSession, blob_path: str, original_filename: str, area: Optional[str] = None) -> CompanyFile:
+async def create_company_file(
+	db: AsyncSession, blob_path: str, original_filename: str, area: Optional[str] = None
+) -> CompanyFile:
 	"""
 	Create a new company file record in the database.
 	"""
@@ -19,7 +21,9 @@ async def create_company_file(db: AsyncSession, blob_path: str, original_filenam
 	return db_file
 
 
-async def get_company_file_by_id(db: AsyncSession, file_id: int) -> Optional[CompanyFile]:
+async def get_company_file_by_id(
+	db: AsyncSession, file_id: int
+) -> Optional[CompanyFile]:
 	"""
 	Retrieve a company file by its ID.
 	"""
@@ -27,12 +31,15 @@ async def get_company_file_by_id(db: AsyncSession, file_id: int) -> Optional[Com
 	return result.scalar_one_or_none()
 
 
-async def get_all_company_files(db: AsyncSession, skip: int = 0, limit: int = 100) -> List[CompanyFile]:
+async def get_all_company_files(
+	db: AsyncSession, skip: int = 0, limit: int = 100
+) -> List[CompanyFile]:
 	"""
 	Retrieve all company files.
 	"""
 	result = await db.execute(select(CompanyFile).offset(skip).limit(limit))
 	return result.scalars().all()
+
 
 async def delete_company_file(db: AsyncSession, file_id: int) -> bool:
 	"""

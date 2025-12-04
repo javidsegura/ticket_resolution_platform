@@ -10,7 +10,7 @@ from contextlib import contextmanager
 from pythonjsonlogger import jsonlogger
 
 from .colorfulFormatter import ColoredJSONFormatter
-import logging 
+import logging
 
 logger = logging.getLogger(__name__)
 
@@ -145,6 +145,7 @@ def add_context_to_log(**kwargs):
 		yield
 	finally:
 		LOG_CONTEXT.reset(token)
+
 
 def initialize_logger():
 	logger.debug("Firebase initialized")

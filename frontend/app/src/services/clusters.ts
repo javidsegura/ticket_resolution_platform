@@ -1,66 +1,66 @@
 // Cluster API service
-import { config } from "@/core/config"
+import { config } from "@/core/config";
 
 type CategoryRef = {
-  id: number
-  name: string
-}
+  id: number;
+  name: string;
+};
 
 export interface Cluster {
-  id: string
-  title: string
-  summary: string
-  createdAt: string
-  updatedAt: string
-  mainTopics: string[]
-  status: "active" | "resolved" | "pending"
-  resolution?: string // AI-generated resolution in markdown format
-  area?: string | null
-  isProcessed?: boolean
+  id: string;
+  title: string;
+  summary: string;
+  createdAt: string;
+  updatedAt: string;
+  mainTopics: string[];
+  status: "active" | "resolved" | "pending";
+  resolution?: string; // AI-generated resolution in markdown format
+  area?: string | null;
+  isProcessed?: boolean;
   categories?: {
-    level1?: CategoryRef
-    level2?: CategoryRef
-    level3?: CategoryRef
-  }
-  variantAImpressions?: number
-  variantBImpressions?: number
-  variantAResolutions?: number
-  variantBResolutions?: number
+    level1?: CategoryRef;
+    level2?: CategoryRef;
+    level3?: CategoryRef;
+  };
+  variantAImpressions?: number;
+  variantBImpressions?: number;
+  variantAResolutions?: number;
+  variantBResolutions?: number;
 }
 
 type IntentResponse = {
-  id: number
-  name: string
-  area: string | null
-  is_processed: boolean
-  created_at: string
-  updated_at: string
-  category_level_1?: CategoryRef
-  category_level_2?: CategoryRef
-  category_level_3?: CategoryRef
-  variant_a_impressions?: number
-  variant_b_impressions?: number
-  variant_a_resolutions?: number
-  variant_b_resolutions?: number
-}
+  id: number;
+  name: string;
+  area: string | null;
+  is_processed: boolean;
+  created_at: string;
+  updated_at: string;
+  category_level_1?: CategoryRef;
+  category_level_2?: CategoryRef;
+  category_level_3?: CategoryRef;
+  variant_a_impressions?: number;
+  variant_b_impressions?: number;
+  variant_a_resolutions?: number;
+  variant_b_resolutions?: number;
+};
 
 const buildApiBaseUrl = () => {
-  const baseUrl = config.BASE_API_URL?.replace(/\/+$/, "")
+  const baseUrl = config.BASE_API_URL?.replace(/\/+$/, "");
 
   if (!baseUrl) {
-    return null
+    return null;
   }
 
-  const needsApiPrefix = !/\/api(\/|$)/.test(baseUrl)
-  return needsApiPrefix ? `${baseUrl}/api` : baseUrl
-}
+  const needsApiPrefix = !/\/api(\/|$)/.test(baseUrl);
+  return needsApiPrefix ? `${baseUrl}/api` : baseUrl;
+};
 
 const mapIntentToCluster = (intent: IntentResponse): Cluster => {
   const categoryNames = [
     intent.category_level_1?.name,
     intent.category_level_2?.name,
-    intent.category_level_3?.name
-  ].filter((name): name is string => Boolean(name))
+    intent.category_level_3?.name,
+  ].filter((name): name is string => Boolean(name));
 
   return {
     id: String(intent.id),
@@ -75,27 +75,28 @@ const mapIntentToCluster = (intent: IntentResponse): Cluster => {
     categories: {
       level1: intent.category_level_1,
       level2: intent.category_level_2,
-      level3: intent.category_level_3
+      level3: intent.category_level_3,
     },
     variantAImpressions: intent.variant_a_impressions ?? 0,
     variantBImpressions: intent.variant_b_impressions ?? 0,
     variantAResolutions: intent.variant_a_resolutions ?? 0,
-    variantBResolutions: intent.variant_b_resolutions ?? 0
-  }
-}
+    variantBResolutions: intent.variant_b_resolutions ?? 0,
+  };
+};
 
 // Dummy clusters data - will be replaced with API calls
 const dummyClusters: Cluster[] = [
   {
     id: "cluster-1",
     title: "Password Reset Issues",
-    summary: "Multiple customers are experiencing difficulties with password reset functionality. Common issues include missing reset links, unclear instructions, and login page discoverability problems.",
+    summary:
+      "Multiple customers are experiencing difficulties with password reset functionality. Common issues include missing reset links, unclear instructions, and login page discoverability problems.",
     createdAt: "2024-01-10T08:00:00Z",
     updatedAt: "2024-01-15T14:30:00Z",
     mainTopics: [
       "Password reset link location",
       "Email delivery issues",
-      "Reset instructions clarity"
+      "Reset instructions clarity",
     ],
     status: "active",
     resolution: `**Website Improvement Recommendation:**
@@ -198,88 +199,93 @@ The ultimate goal is to create a self-service password reset experience that is:
 - Accessible on all devices
 - Well-documented and discoverable
 
-By implementing these recommendations, we expect to see a 60-80% reduction in password reset-related support tickets, freeing up support staff to handle more complex issues.`
+By implementing these recommendations, we expect to see a 60-80% reduction in password reset-related support tickets, freeing up support staff to handle more complex issues.`,
   },
   {
     id: "cluster-2",
     title: "Order History Navigation",
-    summary: "Users frequently cannot locate their order history. The feature appears to be buried in submenus and lacks prominent placement in the account dashboard.",
+    summary:
+      "Users frequently cannot locate their order history. The feature appears to be buried in submenus and lacks prominent placement in the account dashboard.",
     createdAt: "2024-01-08T10:15:00Z",
     updatedAt: "2024-01-14T09:20:00Z",
     mainTopics: [
       "Account dashboard layout",
       "Navigation menu structure",
-      "Order tracking visibility"
+      "Order tracking visibility",
     ],
-    status: "active"
+    status: "active",
   },
   {
     id: "cluster-3",
     title: "Return Policy Inquiries",
-    summary: "High volume of questions about return policies, refund timelines, and return process. Customers are seeking clear, accessible information about returns and exchanges.",
+    summary:
+      "High volume of questions about return policies, refund timelines, and return process. Customers are seeking clear, accessible information about returns and exchanges.",
     createdAt: "2024-01-05T12:00:00Z",
     updatedAt: "2024-01-13T16:45:00Z",
     mainTopics: [
       "Return policy documentation",
       "Refund process clarity",
-      "Return window information"
+      "Return window information",
     ],
-    status: "pending"
+    status: "pending",
   },
   {
     id: "cluster-4",
     title: "Customer Support Contact",
-    summary: "Customers cannot find contact information for customer support. Missing phone numbers, email addresses, and support links are causing frustration and delays.",
+    summary:
+      "Customers cannot find contact information for customer support. Missing phone numbers, email addresses, and support links are causing frustration and delays.",
     createdAt: "2024-01-03T09:30:00Z",
     updatedAt: "2024-01-12T11:00:00Z",
     mainTopics: [
       "Contact page visibility",
       "Support information placement",
-      "Multiple contact methods"
+      "Multiple contact methods",
     ],
-    status: "active"
+    status: "active",
   },
   {
     id: "cluster-5",
     title: "Shipping Information Access",
-    summary: "Users are asking about shipping options, delivery times, and tracking information. This information needs to be more prominently displayed during checkout and order process.",
+    summary:
+      "Users are asking about shipping options, delivery times, and tracking information. This information needs to be more prominently displayed during checkout and order process.",
     createdAt: "2024-01-12T14:00:00Z",
     updatedAt: "2024-01-15T10:00:00Z",
     mainTopics: [
       "Shipping policy visibility",
       "Delivery time estimates",
-      "Order tracking integration"
+      "Order tracking integration",
     ],
-    status: "active"
+    status: "active",
   },
   {
     id: "cluster-6",
     title: "Payment Method Issues",
-    summary: "Customers experiencing problems with payment processing, including declined cards, missing payment options, and unclear error messages during checkout.",
+    summary:
+      "Customers experiencing problems with payment processing, including declined cards, missing payment options, and unclear error messages during checkout.",
     createdAt: "2024-01-09T11:20:00Z",
     updatedAt: "2024-01-14T15:30:00Z",
     mainTopics: [
       "Payment error messaging",
       "Accepted payment methods",
-      "Checkout process clarity"
+      "Checkout process clarity",
     ],
-    status: "resolved"
-  }
-]
+    status: "resolved",
+  },
+];
 
 /**
  * Fetch all clusters from the backend API
  * @returns Promise<Cluster[]> Array of clusters
  */
 export const fetchClusters = async (): Promise<Cluster[]> => {
-  const apiBase = buildApiBaseUrl()
+  const apiBase = buildApiBaseUrl();
 
   // If no API URL is configured, return dummy data
   if (!apiBase) {
-    console.warn("BASE_API_URL not configured, using dummy cluster data")
+    console.warn("BASE_API_URL not configured, using dummy cluster data");
     // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 300))
-    return dummyClusters
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    return dummyClusters;
   }
 
   try {
@@ -290,35 +296,37 @@ export const fetchClusters = async (): Promise<Cluster[]> => {
         // TODO: Add authorization header when auth is implemented
         // "Authorization": `Bearer ${token}`
       },
-    })
+    });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch clusters: ${response.statusText}`)
+      throw new Error(`Failed to fetch clusters: ${response.statusText}`);
     }
 
-    const data = await response.json() as IntentResponse[]
-    return data.map(mapIntentToCluster)
+    const data = (await response.json()) as IntentResponse[];
+    return data.map(mapIntentToCluster);
   } catch (error) {
-    console.error("Error fetching clusters:", error)
+    console.error("Error fetching clusters:", error);
     // Fallback to dummy data on error
-    console.warn("Falling back to dummy cluster data due to API error")
-    return dummyClusters
+    console.warn("Falling back to dummy cluster data due to API error");
+    return dummyClusters;
   }
-}
+};
 
 /**
  * Fetch a single cluster by ID
  * @param clusterId - The ID of the cluster to fetch
  * @returns Promise<Cluster | null> The cluster or null if not found
  */
-export const fetchClusterById = async (clusterId: string): Promise<Cluster | null> => {
-  const apiBase = buildApiBaseUrl()
+export const fetchClusterById = async (
+  clusterId: string,
+): Promise<Cluster | null> => {
+  const apiBase = buildApiBaseUrl();
 
   // If no API URL is configured, return dummy data
   if (!apiBase) {
-    console.warn("BASE_API_URL not configured, using dummy cluster data")
-    await new Promise(resolve => setTimeout(resolve, 300))
-    return dummyClusters.find(c => c.id === clusterId) || null
+    console.warn("BASE_API_URL not configured, using dummy cluster data");
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    return dummyClusters.find((c) => c.id === clusterId) || null;
   }
 
   try {
@@ -329,22 +337,21 @@ export const fetchClusterById = async (clusterId: string): Promise<Cluster | nul
         // TODO: Add authorization header when auth is implemented
         // "Authorization": `Bearer ${token}`
       },
-    })
+    });
 
     if (!response.ok) {
       if (response.status === 404) {
-        return null
+        return null;
       }
-      throw new Error(`Failed to fetch cluster: ${response.statusText}`)
+      throw new Error(`Failed to fetch cluster: ${response.statusText}`);
     }
 
-    const data = await response.json() as IntentResponse
-    return mapIntentToCluster(data)
+    const data = (await response.json()) as IntentResponse;
+    return mapIntentToCluster(data);
   } catch (error) {
-    console.error("Error fetching cluster:", error)
+    console.error("Error fetching cluster:", error);
     // Fallback to dummy data on error
-    const cluster = dummyClusters.find(c => c.id === clusterId)
-    return cluster || null
+    const cluster = dummyClusters.find((c) => c.id === clusterId);
+    return cluster || null;
   }
-}
-
+};

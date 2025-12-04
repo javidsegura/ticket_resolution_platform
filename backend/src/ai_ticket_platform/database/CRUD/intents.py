@@ -8,11 +8,11 @@ from ai_ticket_platform.schemas.endpoints.intent import IntentCreate, IntentUpda
 async def create_intent(db: AsyncSession, intent_data: IntentCreate) -> Intent:
 	"""
 	Create a new intent.
-	
+
 	Args:
 		db: Database session
 		intent_data: IntentCreate schema with intent data
-		
+
 	Returns:
 		Created Intent object
 	"""
@@ -28,22 +28,22 @@ async def create_intent(db: AsyncSession, intent_data: IntentCreate) -> Intent:
 		variant_a_resolutions=intent_data.variant_a_resolutions,
 		variant_b_resolutions=intent_data.variant_b_resolutions,
 	)
-	
+
 	db.add(db_intent)
 	await db.commit()
 	await db.refresh(db_intent)
-	
+
 	return db_intent
 
 
 async def get_intent(db: AsyncSession, intent_id: int) -> Intent | None:
 	"""
 	Fetch a single intent by ID.
-	
+
 	Args:
 		db: Database session
 		intent_id: Intent ID
-		
+
 	Returns:
 		Intent object or None if not found
 	"""
@@ -59,21 +59,21 @@ async def list_intents(
 ) -> List[Intent]:
 	"""
 	Fetch all intents with pagination and optional filtering.
-	
+
 	Args:
 		db: Database session
 		skip: Number of intents to skip
 		limit: Maximum number of intents to return
 		is_processed: Optional filter by is_processed status
-		
+
 	Returns:
 		List of Intent objects
 	"""
 	query = select(Intent)
-	
+
 	if is_processed is not None:
 		query = query.where(Intent.is_processed == is_processed)
-	
+
 	result = await db.execute(
 		query.offset(skip).limit(limit).order_by(Intent.created_at.desc())
 	)
@@ -85,20 +85,20 @@ async def update_intent(
 ) -> Intent | None:
 	"""
 	Update an intent.
-	
+
 	Args:
 		db: Database session
 		intent_id: Intent ID
 		intent_data: IntentUpdate schema with fields to update
-		
+
 	Returns:
 		Updated Intent object or None if not found
 	"""
 	intent = await get_intent(db, intent_id)
-	
+
 	if not intent:
 		return None
-	
+
 	# Build update dict with only provided fields
 	update_dict = {}
 	if intent_data.name is not None:
@@ -121,14 +121,14 @@ async def update_intent(
 		update_dict["variant_a_resolutions"] = intent_data.variant_a_resolutions
 	if intent_data.variant_b_resolutions is not None:
 		update_dict["variant_b_resolutions"] = intent_data.variant_b_resolutions
-	
+
 	if not update_dict:
 		return intent
-	
+
 	stmt = update(Intent).where(Intent.id == intent_id).values(**update_dict)
 	await db.execute(stmt)
 	await db.commit()
-	
+
 	# Fetch updated intent
 	await db.refresh(intent)
 	return intent
@@ -137,75 +137,79 @@ async def update_intent(
 async def delete_intent(db: AsyncSession, intent_id: int) -> bool:
 	"""
 	Delete an intent by ID.
-	
+
 	Args:
 		db: Database session
 		intent_id: Intent ID
-		
+
 	Returns:
 		True if deleted, False if not found
 	"""
 	intent = await get_intent(db, intent_id)
-	
+
 	if not intent:
 		return False
-	
+
 	await db.delete(intent)
 	await db.commit()
-	
+
 	return True
 
 
-async def increment_variant_impressions(db: AsyncSession, intent_id: int, variant: str) -> bool:
+async def increment_variant_impressions(
+	db: AsyncSession, intent_id: int, variant: str
+) -> bool:
 	"""
 	Increment the impressions count for a variant.
-	
+
 	Args:
 		db: Database session
 		intent_id: Intent ID
 		variant: Variant ("A" or "B")
-		
+
 	Returns:
 		True if incremented, False if not found
 	"""
 	intent = await get_intent(db, intent_id)
 	if not intent:
 		return False
-	
+
 	if variant == "A":
 		intent.variant_a_impressions += 1
 	elif variant == "B":
 		intent.variant_b_impressions += 1
 	else:
 		return False
-	
+
 	await db.commit()
 	return True
 
 
-async def increment_variant_resolutions(db: AsyncSession, intent_id: int, variant: str) -> bool:
+async def increment_variant_resolutions(
+	db: AsyncSession, intent_id: int, variant: str
+) -> bool:
 	"""
 	Increment the resolutions count for a variant.
-	
+
 	Args:
 		db: Database session
 		intent_id: Intent ID
 		variant: Variant ("A" or "B")
-		
+
 	Returns:
 		True if incremented, False if not found
 	"""
 	intent = await get_intent(db, intent_id)
 	if not intent:
 		return False
-	
+
 	if variant == "A":
 		intent.variant_a_resolutions += 1
 	elif variant == "B":
 		intent.variant_b_resolutions += 1
 	else:
 		return False
-	
+
 	await db.commit()
 	return True
 
@@ -215,10 +219,18 @@ async def get_ab_testing_totals(db: AsyncSession) -> dict[str, int]:
 	Return summed impressions and resolutions across all intents.
 	"""
 	query = select(
-		func.coalesce(func.sum(Intent.variant_a_impressions), 0).label("variant_a_impressions"),
-		func.coalesce(func.sum(Intent.variant_b_impressions), 0).label("variant_b_impressions"),
-		func.coalesce(func.sum(Intent.variant_a_resolutions), 0).label("variant_a_resolutions"),
-		func.coalesce(func.sum(Intent.variant_b_resolutions), 0).label("variant_b_resolutions"),
+		func.coalesce(func.sum(Intent.variant_a_impressions), 0).label(
+			"variant_a_impressions"
+		),
+		func.coalesce(func.sum(Intent.variant_b_impressions), 0).label(
+			"variant_b_impressions"
+		),
+		func.coalesce(func.sum(Intent.variant_a_resolutions), 0).label(
+			"variant_a_resolutions"
+		),
+		func.coalesce(func.sum(Intent.variant_b_resolutions), 0).label(
+			"variant_b_resolutions"
+		),
 	)
 	result = await db.execute(query)
 	row = result.one()
