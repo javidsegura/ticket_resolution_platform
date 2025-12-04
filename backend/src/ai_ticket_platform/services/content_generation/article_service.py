@@ -9,6 +9,7 @@ from ai_ticket_platform.database.CRUD.article import create_article, get_article
 from ai_ticket_platform.database.CRUD.intents import get_intent, update_intent
 from ai_ticket_platform.database.CRUD.ticket import list_tickets_by_intent
 from ai_ticket_platform.database.generated_models import Article
+from ai_ticket_platform.schemas.endpoints.intent import IntentUpdate
 from ai_ticket_platform.core.clients.chroma_client import get_chroma_vectorstore
 from ai_ticket_platform.services.content_generation.langgraph_rag_workflow import RAGWorkflow
 from ai_ticket_platform.services.storage.azure import AzureBlobStorage
@@ -27,8 +28,9 @@ class ArticleGenerationService:
 		    settings: Application settings
 		"""
 		self.settings = settings
-		chroma_vectorstore = get_chroma_vectorstore()
-		self.rag_workflow = RAGWorkflow(chroma_vectorstore, settings)
+		chroma_vectorstore = get_chroma_vectorstore(settings)
+		self.rag_workflow = RAGWorkflow(chroma_vectorstore, self.settings)
+		logger.debug("Initialized RAG workflow with ChromaDB")
 
 	async def generate_article(
 		self,
@@ -85,8 +87,6 @@ class ArticleGenerationService:
 				if previous_article:
 					# Note: Content is stored in Azure Blob, need to download BOTH micro and article
 					try:
-						storage = AzureBlobStorage("articles")
-
 						# Get the version of the previous article
 						prev_version = previous_article.version
 
@@ -110,6 +110,9 @@ class ArticleGenerationService:
 								micro_article = art
 							elif art.type == "article":
 								article_article = art
+
+						# Azure Blob Storage download
+						storage = AzureBlobStorage("articles")
 
 						# Download and parse MICRO (summary)
 						if micro_article:
@@ -159,15 +162,17 @@ class ArticleGenerationService:
 				if previous_article:
 					version = previous_article.version + 1
 
-			# 6. Prepare Azure Blob Storage uploads
+			# 6. Upload to Azure Blob Storage
 			try:
-				storage = AzureBlobStorage("articles")
 				timestamp = datetime.utcnow().isoformat() + "Z"
 
 				# Extract RAG output
 				article_title = rag_result.get("article_title", "Untitled Article")
 				article_summary = rag_result.get("article_summary", "")
 				article_content = rag_result.get("article_content", "")
+
+				# Azure Blob Storage
+				storage = AzureBlobStorage("articles")
 
 				# 6a. Upload MICRO (summary)
 				blob_name_micro = f"articles/article-{intent_id}-v{version}-micro-{timestamp}.md"
@@ -213,9 +218,7 @@ class ArticleGenerationService:
 			await update_intent(
 				db,
 				intent_id,
-				{
-					"is_processed": True,
-				},
+				IntentUpdate(is_processed=True),
 			)
 
 			logger.info(f"Updated intent {intent_id}: is_processed=True")

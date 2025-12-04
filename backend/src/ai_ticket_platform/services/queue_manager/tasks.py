@@ -99,14 +99,15 @@ def batch_finalizer(stage1_job_ids: List[str]) -> Dict[str, Any]:
 		# Not all jobs are done, re-enqueue self to run in 30 seconds
 		current_job = get_current_job()
 		if current_job:  # Ensure we have a job context to re-enqueue
-			# Re-enqueue with the same job_id to ensure RQ treats this as a continuation
-			queue.enqueue_in(timedelta(seconds=30), batch_finalizer, stage1_job_ids, job_id=current_job.id)
-			logger.info(f"[FINALIZER] Re-enqueued finalizer job {current_job.id}, {len(finished_jobs)}/{len(stage1_job_ids)} batch jobs complete. {len(pending_jobs)} pending.")
+			# Re-enqueue as a new job (don't reuse job_id or RQ will silently ignore it)
+			new_job = queue.enqueue_in(timedelta(seconds=30), batch_finalizer, stage1_job_ids)
+			logger.info(f"[FINALIZER] Re-enqueued finalizer as new job {new_job.id}, {len(finished_jobs)}/{len(stage1_job_ids)} batch jobs complete. {len(pending_jobs)} pending.")
 			return {
 				"message": f"Re-enqueued finalizer, {len(finished_jobs)}/{len(stage1_job_ids)} batch jobs complete.",
 				"status": "pending",
 				"finished_count": len(finished_jobs),
-				"total_count": len(stage1_job_ids)
+				"total_count": len(stage1_job_ids),
+				"next_check_job_id": new_job.id
 			}
 		else:
 			logger.error("[FINALIZER] Could not get current job context to re-enqueue. This should not happen in an RQ worker.")
@@ -156,7 +157,7 @@ def batch_finalizer(stage1_job_ids: List[str]) -> Dict[str, Any]:
 
 	# Check processing status using CRUD operation
 	from ai_ticket_platform.database.CRUD.intent import get_intents_processing_status
-	import asyncio
+	from ai_ticket_platform.services.queue_manager.async_helper import _run_async
 
 	AsyncSessionLocal = initialize_db_engine()
 
@@ -164,7 +165,7 @@ def batch_finalizer(stage1_job_ids: List[str]) -> Dict[str, Any]:
 		async with AsyncSessionLocal() as db:
 			return await get_intents_processing_status(db, intent_ids)
 
-	intent_status = asyncio.run(get_status())
+	intent_status = _run_async(get_status())
 
 	# Filter clusters_map to only include intents that need processing (is_processed=False)
 	clusters_needing_articles = {

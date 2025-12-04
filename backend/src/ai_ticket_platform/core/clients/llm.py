@@ -87,7 +87,7 @@ class LLMClient:
 
 def initialize_llm_client(settings):
 	"""
-	Initialize the global LLM client instance
+	Initialize the global LLM client instance (singleton pattern).
 
 	Args:
 		settings: Application settings object containing LLM configuration
@@ -95,8 +95,31 @@ def initialize_llm_client(settings):
 	Returns: LLMClient instance
 	"""
 	global llm_client
-	logger.debug("Initializing LLM client")
 	if not llm_client:
-		logger.debug("Instantiate LLM client for the first time")
+		logger.debug("Initializing LLM client for the first time")
 		llm_client = LLMClient(settings)
+	else:
+		logger.debug("Returning existing LLM client instance")
+	return llm_client
+
+
+def get_llm_client(settings=None):
+	"""
+	Get or initialize the LLM client (convenience function with lazy initialization).
+
+	This function can be called without settings if the client has already been initialized.
+	If not initialized and no settings provided, it will initialize settings automatically.
+
+	Args:
+		settings: Optional application settings object. If None, will auto-initialize.
+
+	Returns: LLMClient instance
+	"""
+	global llm_client
+	if llm_client is None:
+		if settings is None:
+			# Auto-initialize settings if not provided
+			from ai_ticket_platform.core.settings.app_settings import initialize_settings
+			settings = initialize_settings()
+		llm_client = initialize_llm_client(settings)
 	return llm_client

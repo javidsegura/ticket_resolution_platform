@@ -223,10 +223,24 @@ def initialize_chroma_vectorstore(settings) -> ChromaVectorStore:
 	return chroma_vectorstore
 
 
-def get_chroma_vectorstore() -> ChromaVectorStore:
-	"""Get the initialized ChromaDB vector store instance."""
-	if not chroma_vectorstore:
-		raise RuntimeError(
-			"ChromaDB not initialized. Call initialize_chroma_vectorstore first."
-		)
+def get_chroma_vectorstore(settings=None) -> ChromaVectorStore:
+	"""
+	Get or initialize the ChromaDB vector store (convenience function with lazy initialization).
+
+	This function can be called without settings if the client has already been initialized.
+	If not initialized and no settings provided, it will initialize settings automatically.
+
+	Args:
+		settings: Optional application settings object. If None, will auto-initialize.
+
+	Returns:
+		ChromaVectorStore instance
+	"""
+	global chroma_vectorstore
+	if chroma_vectorstore is None:
+		if settings is None:
+			# Auto-initialize settings if not provided
+			from ai_ticket_platform.core.settings.app_settings import initialize_settings
+			settings = initialize_settings()
+		chroma_vectorstore = initialize_chroma_vectorstore(settings)
 	return chroma_vectorstore

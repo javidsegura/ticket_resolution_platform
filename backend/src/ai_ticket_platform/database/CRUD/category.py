@@ -89,7 +89,13 @@ async def get_or_create_category(
 	)
 
 	result = await db.execute(query)
-	category = result.scalar_one_or_none()
+	try:
+		category = result.scalar_one_or_none()
+	except Exception as e:
+		# Handle case where multiple rows exist (shouldn't happen, but just in case)
+		logger.warning(f"Multiple categories found for name='{name}', level={level}, parent_id={parent_id}. Using first one.")
+		result = await db.execute(query)
+		category = result.scalars().first()
 
 	if category:
 		logger.debug(f"Found existing category: {name} (id={category.id})")

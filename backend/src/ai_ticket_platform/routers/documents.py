@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, File, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 import logging
 
-from ai_ticket_platform.core.clients import initialize_llm_client
+from ai_ticket_platform.core.clients.llm import get_llm_client
 from ai_ticket_platform.dependencies import get_app_settings, get_db
 from ai_ticket_platform.core.settings import Settings
 from ai_ticket_platform.services.labeling.company_doc_processing import process_and_index_document
@@ -22,7 +22,7 @@ async def upload_company_documents(
 	"""
 	Upload company PDF documents: automatically label + save + index to Azure AI Search.
 	"""
-	llm_client = initialize_llm_client(settings)
+	llm_client = get_llm_client(settings)
 
 	# Process files sequentially to avoid concurrent use of a single AsyncSession
 	results = []

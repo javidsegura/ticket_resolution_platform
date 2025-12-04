@@ -5,13 +5,14 @@ These are NOT the core queue processing logic - they are called by the main
 ticket processing pipeline in services/queue_manager/tasks.py.
 """
 
-import asyncio
 import logging
 from typing import Any, Dict, List, Optional
 
 from ai_ticket_platform.core.settings.app_settings import initialize_settings
 from ai_ticket_platform.database.main import initialize_db_engine
+from ai_ticket_platform.core.clients.chroma_client import get_chroma_vectorstore
 from ai_ticket_platform.services.content_generation.article_service import ArticleGenerationService
+from ai_ticket_platform.services.queue_manager.async_helper import _run_async
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +46,9 @@ def generate_article_task(
 		settings = initialize_settings()
 		AsyncSessionLocal = initialize_db_engine()
 
+		# Initialize ChromaDB for this worker (lazy initialization)
+		get_chroma_vectorstore(settings)
+
 		async def generate():
 			async with AsyncSessionLocal() as db:
 				service = ArticleGenerationService(settings)
@@ -56,7 +60,7 @@ def generate_article_task(
 				)
 				return result
 
-		result = asyncio.run(generate())
+		result = _run_async(generate())
 
 		logger.info(f"[QUEUE TASK] {action} article for intent {intent_id}: {result['status']}")
 		return result
@@ -88,7 +92,7 @@ def approve_article_task(article_id: int) -> Dict[str, Any]:
 				result = await service.approve_article(article_id, db)
 				return result
 
-		result = asyncio.run(approve())
+		result = _run_async(approve())
 
 		logger.info(f"[QUEUE TASK] Approve article {article_id}: {result['status']}")
 		return result

@@ -18,9 +18,9 @@ class SasUrlActionsType(Enum):
 
 class AzureBlobStorage(StorageService):
     """Azure Blob Storage implementation."""
-    
+
     def __init__(self, container_name: str):
-        from url_shortener.core.clients.azure import initialize_azure_blob_service_client
+        from ai_ticket_platform.core.clients.azure import initialize_azure_blob_service_client
         self.container_name = container_name
         self._blob_service_client = initialize_azure_blob_service_client()
         self._account_name = os.getenv("AZURE_STORAGE_ACCOUNT_NAME")

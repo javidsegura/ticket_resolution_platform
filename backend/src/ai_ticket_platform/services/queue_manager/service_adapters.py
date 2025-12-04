@@ -1,18 +1,20 @@
-import asyncio
 import logging
 from typing import Dict, Any, List
 
 from ai_ticket_platform.database.main import initialize_db_engine
 from ai_ticket_platform.database.CRUD.ticket import create_tickets
 from ai_ticket_platform.services.clustering.cluster_service import cluster_tickets
-from ai_ticket_platform.core.clients import llm_client
+from ai_ticket_platform.core.clients.llm import get_llm_client
 from ai_ticket_platform.services.content_generation.rag_queue_interface import generate_article_task
+from ai_ticket_platform.services.queue_manager.async_helper import _run_async
 
 logger = logging.getLogger(__name__)
 
 
 def filter_ticket(ticket_data: Dict[str, Any]) -> Dict[str, Any]:
 	"""Filter and validate ticket data, then create in database.
+
+	Uses async CRUD operations via _run_async helper.
 	"""
 	csv_id = ticket_data.get("id", "unknown")
 	logger.info(f"[FILTER] Filtering ticket with CSV id {csv_id}")
@@ -23,16 +25,14 @@ def filter_ticket(ticket_data: Dict[str, Any]) -> Dict[str, Any]:
 		if field not in ticket_data or not ticket_data[field]:
 			raise ValueError(f"Missing required field: {field}")
 
-	# Create ticket in database
+	# Create ticket in database using async CRUD
 	async def create_in_db():
 		AsyncSessionLocal = initialize_db_engine()
-
 		async with AsyncSessionLocal() as db:
 			tickets = await create_tickets(db, [ticket_data])
-			ticket = tickets[0]
-			return ticket
+			return tickets[0]
 
-	db_ticket = asyncio.run(create_in_db())
+	db_ticket = _run_async(create_in_db())
 
 	# Return enriched ticket data with DB id
 	result = {
@@ -63,6 +63,9 @@ def cluster_ticket(tickets_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 	ticket_ids = [t.get("id") for t in tickets_data]
 	logger.info(f"[CLUSTER] Clustering batch of {len(tickets_data)} tickets: {ticket_ids}")
 
+	# Initialize LLM client for this worker
+	llm = get_llm_client()
+
 	async def run_clustering():
 		AsyncSessionLocal = initialize_db_engine()
 
@@ -72,7 +75,7 @@ def cluster_ticket(tickets_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 			# Run clustering on the entire batch
 			clustering_result = await cluster_tickets(
 				db=db,
-				llm_client=llm_client,
+				llm_client=llm,
 				tickets=tickets_data
 			)
 
@@ -82,7 +85,7 @@ def cluster_ticket(tickets_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
 			return clustering_result["assignments"]
 
-	assignments = asyncio.run(run_clustering())
+	assignments = _run_async(run_clustering())
 
 	# Map assignments back to ticket_data
 	# Create a mapping of ticket_id -> assignment

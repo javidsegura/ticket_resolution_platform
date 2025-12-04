@@ -10,7 +10,6 @@ import tempfile
 import os
 
 from ai_ticket_platform.dependencies import get_db
-from ai_ticket_platform.services.csv_uploader.csv_orchestrator import upload_csv_file
 from ai_ticket_platform.schemas.endpoints.ticket import ( 
 	CSVUploadResponse,
 	TicketListResponse,
