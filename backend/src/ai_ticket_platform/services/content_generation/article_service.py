@@ -1,6 +1,8 @@
 import logging
+import os
 from typing import Dict, Optional
 from datetime import datetime
+import asyncio
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,7 +14,7 @@ from ai_ticket_platform.database.generated_models import Article
 from ai_ticket_platform.schemas.endpoints.intent import IntentUpdate
 from ai_ticket_platform.core.clients.chroma_client import get_chroma_vectorstore
 from ai_ticket_platform.services.content_generation.langgraph_rag_workflow import RAGWorkflow
-from ai_ticket_platform.services.storage.azure import AzureBlobStorage
+from ai_ticket_platform.services.infra.storage.storage import get_storage_service
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +33,34 @@ class ArticleGenerationService:
 		chroma_vectorstore = get_chroma_vectorstore(settings)
 		self.rag_workflow = RAGWorkflow(chroma_vectorstore, self.settings)
 		logger.debug("Initialized RAG workflow with ChromaDB")
+
+	async def _verify_blob_exists(self, storage, blob_name: str, max_wait_seconds: int = 30) -> bool:
+		"""
+		Poll Azure blob storage to verify blob exists.
+
+		Waits up to max_wait_seconds for the blob to appear. This gives the client
+		time to upload the content to the presigned URL before we verify.
+
+		Args:
+		    storage: AzureBlobStorage instance
+		    blob_name: Name of blob to check
+		    max_wait_seconds: Maximum seconds to wait
+
+		Returns:
+		    True if blob exists, False if timeout
+		"""
+		start_time = datetime.utcnow()
+		while True:
+			try:
+				storage.download_blob(blob_name)
+				logger.info(f"Blob verified to exist: {blob_name}")
+				return True
+			except Exception:
+				elapsed = (datetime.utcnow() - start_time).total_seconds()
+				if elapsed > max_wait_seconds:
+					logger.warning(f"Timeout waiting for blob {blob_name} (waited {elapsed:.1f}s)")
+					return False
+				await asyncio.sleep(1)  # Wait 1 second before retrying
 
 	async def generate_article(
 		self,
@@ -112,7 +142,7 @@ class ArticleGenerationService:
 								article_article = art
 
 						# Azure Blob Storage download
-						storage = AzureBlobStorage("articles")
+						storage = get_storage_service()
 
 						# Download and parse MICRO (summary)
 						if micro_article:
@@ -162,7 +192,7 @@ class ArticleGenerationService:
 				if previous_article:
 					version = previous_article.version + 1
 
-			# 6. Upload to Azure Blob Storage
+			# 6. Generate presigned URLs for Azure Blob Storage
 			try:
 				timestamp = datetime.utcnow().isoformat() + "Z"
 
@@ -172,22 +202,28 @@ class ArticleGenerationService:
 				article_content = rag_result.get("article_content", "")
 
 				# Azure Blob Storage
-				storage = AzureBlobStorage("articles")
+				storage = get_storage_service()
 
-				# 6a. Upload MICRO (summary)
+				# 6a. Upload MICRO (summary) content
 				blob_name_micro = f"articles/article-{intent_id}-v{version}-micro-{timestamp}.md"
-				content_micro = f"# {article_title}\n\n{article_summary}"
-				blob_path_micro = storage.upload_blob(blob_name_micro, content_micro)
-				logger.info(f"Uploaded MICRO blob: {blob_path_micro}")
+				# Format: "# Title\n\nSummary Content"
+				micro_content = f"# {article_title}\n\n{article_summary}"
+				storage.upload_blob(blob_name_micro, micro_content)
+				blob_path_micro = blob_name_micro
+				presigned_url_micro = storage.put_presigned_url(blob_name_micro)
+				logger.info(f"Uploaded and generated presigned URL for MICRO blob: {blob_name_micro}")
 
-				# 6b. Upload ARTICLE (full content)
+				# 6b. Upload ARTICLE (full content) content
 				blob_name_article = f"articles/article-{intent_id}-v{version}-article-{timestamp}.md"
-				content_article = f"# {article_title}\n\n{article_content}"
-				blob_path_article = storage.upload_blob(blob_name_article, content_article)
-				logger.info(f"Uploaded ARTICLE blob: {blob_path_article}")
+				# Format: "# Title\n\nFull Article Content"
+				article_blob_content = f"# {article_title}\n\n{article_content}"
+				storage.upload_blob(blob_name_article, article_blob_content)
+				blob_path_article = blob_name_article
+				presigned_url_article = storage.put_presigned_url(blob_name_article)
+				logger.info(f"Uploaded and generated presigned URL for ARTICLE blob: {blob_name_article}")
 
 			except Exception as e:
-				logger.error(f"Failed to upload blobs to Azure: {e}", exc_info=True)
+				logger.error(f"Failed to upload articles and generate presigned URLs: {e}", exc_info=True)
 				raise
 
 			# 7. Create new Article records in database (MICRO) - new versions have NO feedback initially
@@ -231,6 +267,10 @@ class ArticleGenerationService:
 				"version": version,
 				"is_iteration": is_iteration,
 				"confidence_score": rag_result.get("confidence_score", 0.0),
+				"presigned_urls": {
+					"micro": presigned_url_micro,
+					"article": presigned_url_article,
+				},
 			}
 
 		except Exception as e:

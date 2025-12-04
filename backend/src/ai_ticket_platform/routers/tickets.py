@@ -59,7 +59,7 @@ async def get_ticket_by_id(ticket_id: int, db: AsyncSession = Depends(get_db)):
 	return TicketResponse.model_validate(ticket)
 
 
-@router.post("/upload-csv-with-queue")
+@router.post("/upload-csv")
 async def upload_csv_with_queue(
 	file: UploadFile = File(...),
 	queue: Queue = Depends(get_queue),

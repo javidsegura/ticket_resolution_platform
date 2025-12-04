@@ -113,3 +113,47 @@ class AzureBlobStorage(StorageService):
 			verify_exists=False,
 			**params,
 		)
+
+	def upload_blob(self, blob_name: str, content: str) -> str:
+		"""
+		Upload content directly to Azure Blob Storage using backend credentials.
+
+		Args:
+		    blob_name: Name/path of the blob
+		    content: String content to upload
+
+		Returns:
+		    blob_name (for consistency with expected return value)
+		"""
+		try:
+			blob_client = self._blob_service_client.get_blob_client(
+				container=self.container_name, blob=blob_name
+			)
+			blob_client.upload_blob(content, overwrite=True)
+			logger.info(f"Successfully uploaded blob: {self.container_name}/{blob_name}")
+			return blob_name
+		except Exception as e:
+			logger.error(f"Failed to upload blob {blob_name}: {e}", exc_info=True)
+			raise
+
+	def download_blob(self, blob_name: str) -> str:
+		"""
+		Download content from Azure Blob Storage.
+
+		Args:
+		    blob_name: Name/path of the blob
+
+		Returns:
+		    String content of the blob
+		"""
+		try:
+			blob_client = self._blob_service_client.get_blob_client(
+				container=self.container_name, blob=blob_name
+			)
+			download_stream = blob_client.download_blob()
+			content = download_stream.readall()
+			logger.info(f"Successfully downloaded blob: {self.container_name}/{blob_name}")
+			return content.decode('utf-8')
+		except Exception as e:
+			logger.error(f"Failed to download blob {blob_name}: {e}", exc_info=True)
+			raise
