@@ -2,10 +2,10 @@ import logging
 import os
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Optional
+from typing import Optional, Union
 
 from azure.core.exceptions import ResourceNotFoundError
-from azure.storage.blob import BlobSasPermissions, generate_blob_sas
+from azure.storage.blob import BlobSasPermissions, generate_blob_sas, ContentSettings
 
 from .storage import StorageService
 
@@ -114,13 +114,14 @@ class AzureBlobStorage(StorageService):
 			**params,
 		)
 
-	def upload_blob(self, blob_name: str, content: str) -> str:
+	def upload_blob(self, blob_name: str, content: Union[str, bytes], content_type: Optional[str] = None) -> str:
 		"""
-		Upload content directly to Azure Blob Storage using backend credentials.
+		Upload content (string or binary) directly to Azure Blob Storage using backend credentials.
 
 		Args:
 		    blob_name: Name/path of the blob
-		    content: String content to upload
+		    content: String or binary content to upload
+		    content_type: Optional MIME type (e.g., 'application/pdf')
 
 		Returns:
 		    blob_name (for consistency with expected return value)
@@ -129,7 +130,11 @@ class AzureBlobStorage(StorageService):
 			blob_client = self._blob_service_client.get_blob_client(
 				container=self.container_name, blob=blob_name
 			)
-			blob_client.upload_blob(content, overwrite=True)
+			upload_kwargs = {"overwrite": True}
+			if content_type:
+				upload_kwargs["content_settings"] = ContentSettings(content_type=content_type)
+
+			blob_client.upload_blob(content, **upload_kwargs)
 			logger.info(f"Successfully uploaded blob: {self.container_name}/{blob_name}")
 			return blob_name
 		except Exception as e:

@@ -1,11 +1,12 @@
 """
-Complete company document processing: labeling + ChromaDB indexing.
+Complete company document processing: labeling + Azure upload + ChromaDB indexing.
 
 This service handles the full workflow:
 1. Decode PDF document
 2. Label with LLM (determine area/category)
-3. Save to database
-4. Index to ChromaDB with embeddings
+3. Upload PDF to Azure Blob Storage (company-docs/{area}/{filename}.pdf)
+4. Save to database with blob_path
+5. Index to ChromaDB with embeddings
 """
 
 import asyncio
@@ -18,6 +19,7 @@ from ai_ticket_platform.services.labeling.document_decoder import decode_documen
 from ai_ticket_platform.services.labeling.label_service import label_document
 from ai_ticket_platform.database.CRUD.company_file import create_company_file
 from ai_ticket_platform.core.clients.chroma_client import get_chroma_vectorstore
+from ai_ticket_platform.services.infra.storage.storage import get_storage_service
 
 logger = logging.getLogger(__name__)
 
@@ -63,17 +65,40 @@ async def process_and_index_document(
 
 	area = label_result.get("department_area", "Unknown")
 
-	# Step 3: Save to database
-	logger.info(f"[DOC PROCESSING] Step 3: Saving {filename} to database (area: {area})")
+	# Step 3: Upload PDF to Azure Blob Storage
+	logger.info(f"[DOC PROCESSING] Step 3: Uploading {filename} to Azure Blob Storage")
+	blob_path = ""
+	try:
+		storage = get_storage_service()
+		# Generate blob name: company-docs/{area}/{filename}
+		blob_name = f"company-docs/{area}/{filename}"
+
+		# Upload PDF with binary content and content type
+		blob_path = await asyncio.to_thread(
+			storage.upload_blob,
+			blob_name,
+			content,  # Original binary PDF content
+			"application/pdf"
+		)
+		logger.info(f"[DOC PROCESSING] Successfully uploaded {filename} to Azure: {blob_path}")
+	except Exception as azure_error:
+		logger.warning(
+			f"[DOC PROCESSING] Failed to upload {filename} to Azure: {azure_error}. "
+			f"Document will be saved to DB without blob, but indexing will proceed."
+		)
+		blob_path = ""  # Save with empty blob_path if upload fails
+
+	# Step 4: Save to database
+	logger.info(f"[DOC PROCESSING] Step 4: Saving {filename} to database (area: {area})")
 	try:
 		db_file = await create_company_file(
-			db=db, blob_path="", original_filename=filename, area=area
+			db=db, blob_path=blob_path, original_filename=filename, area=area
 		)
 
 		logger.info(f"[DOC PROCESSING] Saved {filename} (ID: {db_file.id})")
 
-		# Step 4: Index to ChromaDB
-		logger.info(f"[DOC PROCESSING] Step 4: Indexing {filename} to ChromaDB")
+		# Step 5: Index to ChromaDB
+		logger.info(f"[DOC PROCESSING] Step 5: Indexing {filename} to ChromaDB")
 
 		try:
 			vectorstore = get_chroma_vectorstore()
