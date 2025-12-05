@@ -152,7 +152,8 @@ class RAGWorkflow:
 
 							Output format:
 							TITLE: [Article title]
-							SUMMARY: [1-2 sentence summary]
+							SUMMARY: [A couple sentences summarising the main insights of the article so that the user is able to 
+       									get an overview on how to fix the issue without needing to read the article]
 							CONTENT: [Full article in markdown]
 							"""
 
