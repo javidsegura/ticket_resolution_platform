@@ -210,7 +210,7 @@ class ArticleGenerationService:
 				micro_content = f"# {article_title}\n\n{article_summary}"
 				storage.upload_blob(blob_name_micro, micro_content)
 				blob_path_micro = blob_name_micro
-				presigned_url_micro = storage.put_presigned_url(blob_name_micro)
+				presigned_url_micro = storage.get_presigned_url(blob_name_micro)
 				logger.info(f"Uploaded and generated presigned URL for MICRO blob: {blob_name_micro}")
 
 				# 6b. Upload ARTICLE (full content) content
@@ -219,7 +219,7 @@ class ArticleGenerationService:
 				article_blob_content = f"# {article_title}\n\n{article_content}"
 				storage.upload_blob(blob_name_article, article_blob_content)
 				blob_path_article = blob_name_article
-				presigned_url_article = storage.put_presigned_url(blob_name_article)
+				presigned_url_article = storage.get_presigned_url(blob_name_article)
 				logger.info(f"Uploaded and generated presigned URL for ARTICLE blob: {blob_name_article}")
 
 			except Exception as e:
