@@ -98,16 +98,25 @@ async def cluster_tickets(
 
 	# Call LLM once for entire batch (wrapped in thread pool to avoid blocking)
 	logger.debug(f"Calling LLM for batch of {len(tickets)} tickets")
-	llm_result = await asyncio.to_thread(
-		llm_client.call_llm_structured,
-		prompt=prompt,
-		output_schema=schema,
-		task_config=task_config,
-		temperature=0.2
-	)
-
+	try:
+		llm_result = await asyncio.wait_for(
+			asyncio.to_thread(
+				llm_client.call_llm_structured,
+				prompt=prompt,
+				output_schema=schema,
+				task_config=task_config,
+				temperature=0.2
+			),
+			timeout=120.0  # Adjust based on expected response time
+		)
+	except asyncio.TimeoutError:
+		logger.error(f"LLM call timed out for batch of {len(tickets)} tickets")
+		raise
+	except Exception as e:
+		logger.error(f"LLM call failed: {e}")
+		raise
 	# Validate we got assignments for all tickets
-	llm_assignments = llm_result["assignments"]
+	llm_assignments = llm_result.get("assignments")
 	if len(llm_assignments) != len(tickets):
 		raise ValueError(
 			f"LLM returned {len(llm_assignments)} assignments, expected {len(tickets)}"

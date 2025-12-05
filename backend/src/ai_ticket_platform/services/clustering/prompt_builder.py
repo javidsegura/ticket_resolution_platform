@@ -13,8 +13,8 @@ def build_batch_clustering_prompt(tickets: List[Dict], existing_intents: List[Di
 	# Format existing intents
 	if existing_intents:
 		intent_list = "\n".join([
-			f"ID: {intent['intent_id']} | {intent['intent_name']} | "
-			f"({intent['category_l1_name']} > {intent['category_l2_name']} > {intent['category_l3_name']})"
+			f"ID: {intent.get('intent_id', 'N/A')} | {intent.get('intent_name', 'Unnamed')} | "
+			f"({intent.get('category_l1_name', 'N/A')} > {intent.get('category_l2_name', 'N/A')} > {intent.get('category_l3_name', 'N/A')})"
 			for intent in existing_intents
 		])
 		intent_section = f"""

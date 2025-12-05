@@ -44,7 +44,6 @@ async def lifespan(app: FastAPI):
     # Initialize Redis client and cache manager
     redis_instance = await clients.redis.get_client()
     clients.cache_manager = CacheManager(redis_instance)
-    logger.info("Initializing ChromaDB for RAG")
     clients.chroma_vectorstore = clients.initialize_chroma_vectorstore(settings.app_settings)
 
     yield

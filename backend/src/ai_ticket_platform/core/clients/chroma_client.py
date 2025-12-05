@@ -1,6 +1,8 @@
 """ChromaDB client wrapper for RAG document storage and retrieval."""
 
+import asyncio
 import logging
+import threading
 from typing import Dict, List, Optional
 
 import chromadb
@@ -98,6 +100,14 @@ class ChromaVectorStore:
 					}
 				)
 
+			# Remove existing chunks for this file before re-indexing to prevent stale chunks
+			collection = self.get_or_create_collection()
+			try:
+				collection.delete(where={"file_id": str(file_id)})
+				logger.info(f"Deleted existing chunks for file_id {file_id} before re-indexing")
+			except Exception as e:
+				logger.debug(f"No existing chunks to delete for file_id {file_id}: {e}")
+
 			# Use LangChain Chroma to handle embedding and indexing
 			vectorstore = Chroma(
 				client=self.client,
@@ -105,9 +115,11 @@ class ChromaVectorStore:
 				embedding_function=self.embeddings,
 			)
 
-			# Add documents with embeddings
+			# Add documents with embeddings (run in thread to avoid blocking event loop)
 			ids = [f"{file_id}-{i}" for i in range(len(chunks))]
-			vectorstore.add_texts(texts=texts, metadatas=metadatas, ids=ids)
+			await asyncio.to_thread(
+				vectorstore.add_texts, texts=texts, metadatas=metadatas, ids=ids
+			)
 
 			logger.info(f"Successfully indexed {len(chunks)} chunks for {filename}")
 
@@ -157,8 +169,9 @@ class ChromaVectorStore:
 			# Build filter for area if provided
 			filter_dict = {"area": area_filter} if area_filter else None
 
-			# Perform similarity search with scores
-			results = vectorstore.similarity_search_with_score(
+			# Perform similarity search with scores (run in thread to avoid blocking event loop)
+			results = await asyncio.to_thread(
+				vectorstore.similarity_search_with_score,
 				query=query, k=k, filter=filter_dict
 			)
 
@@ -204,6 +217,7 @@ class ChromaVectorStore:
 
 # Global vector store instance (initialized in lifespan)
 chroma_vectorstore = None
+_init_lock = threading.Lock()
 
 
 def initialize_chroma_vectorstore(settings) -> ChromaVectorStore:
@@ -230,6 +244,8 @@ def get_chroma_vectorstore(settings=None) -> ChromaVectorStore:
 	This function can be called without settings if the client has already been initialized.
 	If not initialized and no settings provided, it will initialize settings automatically.
 
+	Thread-safe using double-checked locking pattern.
+
 	Args:
 		settings: Optional application settings object. If None, will auto-initialize.
 
@@ -238,9 +254,12 @@ def get_chroma_vectorstore(settings=None) -> ChromaVectorStore:
 	"""
 	global chroma_vectorstore
 	if chroma_vectorstore is None:
-		if settings is None:
-			# Auto-initialize settings if not provided
-			from ai_ticket_platform.core.settings.app_settings import initialize_settings
-			settings = initialize_settings()
-		chroma_vectorstore = initialize_chroma_vectorstore(settings)
+		with _init_lock:
+			# Double-check inside lock to prevent race condition
+			if chroma_vectorstore is None:
+				if settings is None:
+					# Auto-initialize settings if not provided
+					from ai_ticket_platform.core.settings.app_settings import initialize_settings
+					settings = initialize_settings()
+				chroma_vectorstore = initialize_chroma_vectorstore(settings)
 	return chroma_vectorstore

@@ -55,7 +55,7 @@ def generate_article_task(
 
 		result = _run_async(generate())
 
-		logger.info(f"[QUEUE TASK] {action} article for intent {intent_id}: {result['status']}")
+		logger.info(f"[QUEUE TASK] {action} article for intent {intent_id}: {result.get('status', 'unknown')}")
 		return result
 
 	except Exception as e:
@@ -87,7 +87,7 @@ def approve_article_task(article_id: int) -> Dict[str, Any]:
 
 		result = _run_async(approve())
 
-		logger.info(f"[QUEUE TASK] Approve article {article_id}: {result['status']}")
+		logger.info(f"[QUEUE TASK] Approve article {article_id}: {result.get('status', 'unknown')}")
 		return result
 
 	except Exception as e:

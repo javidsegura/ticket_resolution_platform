@@ -1,12 +1,11 @@
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from ai_ticket_platform.database.generated_models import Category
 import logging
 
 logger = logging.getLogger(__name__)
-
 
 async def get_level_1_categories(db: AsyncSession) -> List[Category]:
 	"""

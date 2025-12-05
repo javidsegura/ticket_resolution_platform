@@ -15,11 +15,10 @@ def build_labeling_prompt(document_content: str, filename: str) -> str:
         Identify the PRIMARY department or area this document belongs to.
         This classification will be used to route support tickets to the correct professionals in the company.
 
-        Return a SINGLE keyword that best represents the department/area.
+        Return 1-2 words that best represent the department/area.
 
         GUIDELINES:
-        - Use 1-2 words maximum (e.g., "Tech", "Finance", "HR", "Marketing", "Legal", "Operations")
-        - Be specific and clear
+        - Use 1-2 words maximum (e.g., "Tech", "Finance", "HR", "Marketing", "Legal", "Operations")        - Be specific and clear
         - If the document covers technical aspects, use "Tech"
         - If it's finance-related (budgets, expenses, accounting), use "Finance"
         - If it's about employees, hiring, or benefits, use "HR"

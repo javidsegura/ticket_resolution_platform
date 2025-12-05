@@ -96,8 +96,7 @@ async def iterate_article(
 	Returns:
 	    Success response with new generation job details
 	"""
-	logger.info(f"[ARTICLE ITERATE] Starting iteration for article {article_id} with feedback: {request.feedback[:50]}...")
-
+	logger.info(f"[ARTICLE ITERATE] Starting iteration for article {article_id}")
 	try:
 		# Verify article exists
 		article = await get_article_by_id(db, article_id)
@@ -107,22 +106,8 @@ async def iterate_article(
 		intent_id = article.intent_id
 		version = article.version
 
-		# Update the article with feedback
-		updated_article = await update_article(
-			db,
-			article_id,
-			feedback=request.feedback
-		)
-
-		if not updated_article:
-			raise HTTPException(status_code=500, detail="Failed to update article with feedback")
-
-		logger.info(
-			f"[ARTICLE ITERATE] Updated article {article_id} with feedback. "
-			f"Will generate version {version + 1} for intent {intent_id}"
-		)
-
-		# Enqueue generation job for new version
+		# Enqueue generation job FIRST to ensure task is queued before DB update
+		# This prevents inconsistent state if enqueue fails after DB update
 		generation_job = queue.enqueue(
 			generate_article_task,
 			intent_id=intent_id,
@@ -133,8 +118,27 @@ async def iterate_article(
 
 		logger.info(
 			f"[ARTICLE ITERATE] Enqueued generation job {generation_job.id} "
-			f"for intent {intent_id} with feedback"
+			f"for intent {intent_id}. Will generate version {version + 1}"
 		)
+
+		# Update the article with feedback AFTER successful enqueue
+		updated_article = await update_article(
+			db,
+			article_id,
+			feedback=request.feedback
+		)
+
+		if not updated_article:
+			logger.error(
+				f"[ARTICLE ITERATE] Failed to update article {article_id} with feedback "
+				f"after enqueuing job {generation_job.id}. Job will still process."
+			)
+			raise HTTPException(
+				status_code=500,
+				detail="Generation job queued but failed to save feedback to article"
+			)
+
+		logger.info(f"[ARTICLE ITERATE] Updated article {article_id} with feedback")
 
 		return {
 			"status": "success",

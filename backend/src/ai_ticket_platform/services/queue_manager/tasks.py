@@ -12,6 +12,8 @@ from ai_ticket_platform.services.queue_manager.service_adapters import (
 )
 from rq import Queue, Retry, get_current_job
 from rq.job import Job
+from ai_ticket_platform.database.CRUD.intent import get_intents_processing_status
+from ai_ticket_platform.services.queue_manager.async_helper import _run_async
 
 
 logger = logging.getLogger(__name__)
@@ -64,8 +66,9 @@ def process_ticket_stage1(ticket_batch: List[Dict[str, Any]]) -> List[Dict[str, 
 
 	except Exception as e:
 		logger.error(f"[STAGE1] Unexpected error processing batch: {str(e)}", exc_info=True)
-		raise  # Will be automatically requeued 
-
+		# Return partial results with error indicator
+		results.append({"error": f"Batch processing failed: {str(e)}", "partial_results": True})
+		return results
 
 def process_ticket_stage2(ticket_data: Dict[str, Any]) -> Dict[str, Any]:
 	"""Stage 2: Generate content"""
@@ -155,9 +158,7 @@ def batch_finalizer(stage1_job_ids: List[str]) -> Dict[str, Any]:
 	logger.info("[FINALIZER] Phase 2.5: Checking which intents need article generation")
 	intent_ids = [ticket_data.get("intent_id") for ticket_data in clusters_map.values() if ticket_data.get("intent_id")]
 
-	# Check processing status using CRUD operation
-	from ai_ticket_platform.database.CRUD.intent import get_intents_processing_status
-	from ai_ticket_platform.services.queue_manager.async_helper import _run_async
+	# Check processing status using CRUD operations
 
 	AsyncSessionLocal = initialize_db_engine()
 

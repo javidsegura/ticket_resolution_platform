@@ -41,7 +41,12 @@ class StorageService(ABC):
 		content: Union[str, bytes],
 		content_type: Optional[str] = None,
 	) -> str:
-		"""Upload content (string or binary) directly to storage."""
+		"""
+		Upload content (string or binary) directly to storage.
+
+		Returns:
+			The URL or path of the uploaded blob.
+		"""
 		pass
 
 

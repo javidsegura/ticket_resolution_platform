@@ -12,7 +12,7 @@ services:
       - ../frontend/app:/app
       - /app/node_modules  # Anonymous volume for node_modules
     environment:
-      - VITE_BASE_URL=http://localhost:8002
+      - VITE_BASE_URL=http://localhost:8000
     # healthcheck disabled - frontend container doesn't have curl/wget installed
     # Service works fine, monitored via nginx health check instead
     #     healthcheck:
@@ -51,7 +51,7 @@ services:
         dockerfile: Dockerfile
       image: backend:dev
       ports:
-        - "8002:8000"
+        - "8000:8000"
       volumes:
         - ../backend/src:/app/src
       command: ["sh", "-c", "uvicorn src.ai_ticket_platform.main:app --reload --host 0.0.0.0 --port 8000"]

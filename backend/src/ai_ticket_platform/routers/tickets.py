@@ -173,4 +173,4 @@ async def upload_csv_with_queue(
 				os.unlink(tmp_path)
 			except Exception:
 				pass
-		raise HTTPException(500, str(e))
+		raise HTTPException(500, detail="Failed to process CSV upload. Please try again.")

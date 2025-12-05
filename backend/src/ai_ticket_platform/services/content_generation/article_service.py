@@ -335,4 +335,5 @@ class ArticleGenerationService:
 
 		except Exception as e:
 			logger.error(f"Error approving article {article_id}: {e}", exc_info=True)
+			await db.rollback()
 			return {"status": "error", "error": str(e)}

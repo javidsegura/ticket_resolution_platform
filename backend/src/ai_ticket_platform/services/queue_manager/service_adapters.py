@@ -30,6 +30,8 @@ def save_tickets(ticket_data: Dict[str, Any]) -> Dict[str, Any]:
 		AsyncSessionLocal = initialize_db_engine()
 		async with AsyncSessionLocal() as db:
 			tickets = await create_tickets(db, [ticket_data])
+			if not tickets:
+				raise RuntimeError(f"Failed to create ticket with CSV id {csv_id}")
 			return tickets[0]
 
 	db_ticket = _run_async(create_in_db())
@@ -102,18 +104,30 @@ def cluster_ticket(tickets_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 		assignment = assignment_map.get(ticket_id)
 
 		if assignment:
-			# Add clustering results to ticket_data
-			ticket_data["cluster"] = assignment["intent_name"]
-			ticket_data["intent_id"] = assignment["intent_id"]
-			ticket_data["category_l1_id"] = assignment.get("category_l1_id")
-			ticket_data["category_l1_name"] = assignment.get("category_l1_name")
-			ticket_data["category_l2_id"] = assignment.get("category_l2_id")
-			ticket_data["category_l2_name"] = assignment.get("category_l2_name")
-			ticket_data["category_l3_id"] = assignment.get("category_l3_id")
-			ticket_data["category_l3_name"] = assignment.get("category_l3_name")
+			# Validate required fields from clustering service
+			intent_name = assignment.get("intent_name")
+			intent_id = assignment.get("intent_id")
 
-			logger.info(f"[CLUSTER] Ticket {ticket_id} assigned to intent: {ticket_data['cluster']} (ID: {ticket_data['intent_id']})")
-			enriched_tickets.append(ticket_data)
+			if not intent_name or not intent_id:
+				logger.error(
+					f"[CLUSTER] Invalid assignment for ticket {ticket_id}: "
+					f"missing intent_name or intent_id. Assignment: {assignment}"
+				)
+				continue
+
+			# Create enriched copy to avoid mutating input
+			enriched = ticket_data.copy()
+			enriched["cluster"] = intent_name
+			enriched["intent_id"] = intent_id
+			enriched["category_l1_id"] = assignment.get("category_l1_id")
+			enriched["category_l1_name"] = assignment.get("category_l1_name")
+			enriched["category_l2_id"] = assignment.get("category_l2_id")
+			enriched["category_l2_name"] = assignment.get("category_l2_name")
+			enriched["category_l3_id"] = assignment.get("category_l3_id")
+			enriched["category_l3_name"] = assignment.get("category_l3_name")
+
+			logger.info(f"[CLUSTER] Ticket {ticket_id} assigned to intent: {intent_name} (ID: {intent_id})")
+			enriched_tickets.append(enriched)
 		else:
 			logger.warning(f"[CLUSTER] No assignment found for ticket {ticket_id}")
 
@@ -131,12 +145,14 @@ def generate_content(ticket_data: Dict[str, Any]) -> Dict[str, Any]:
 	intent_id = ticket_data.get("intent_id")
 	cluster = ticket_data.get("cluster")
 
+	if not intent_id:
+		raise ValueError(f"Missing intent_id for ticket {ticket_id} - cannot generate content")
+
 	logger.info(f"[GENERATE] Generating article for intent '{cluster}' (ID: {intent_id}) - representative ticket: {ticket_id}")
 
 	# Call the RAG article generation task
 	# This function is already sync-compatible (uses _run_async internally)
 	result = generate_article_task(intent_id=intent_id)
-
 	logger.info(f"[GENERATE] Article generation for intent {intent_id}: {result.get('status')}")
 
 	return {

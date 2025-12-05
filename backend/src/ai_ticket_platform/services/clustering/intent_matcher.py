@@ -32,7 +32,9 @@ async def process_match_decision(
 	"""
 	intent_id = llm_result["intent_id"]
 	ticket_id = ticket.get("id")
-
+	
+	if ticket_id is None:
+		raise ValueError("Ticket dict missing required 'id' field")
 	if intent_id is None:
 		raise ValueError(f"LLM chose 'match_existing' but didn't provide intent_id for ticket {ticket_id}")
 
@@ -49,7 +51,7 @@ async def process_match_decision(
 	await ticket_crud.update_ticket_intent(db, ticket_id, intent_id)
 
 	# Update statistics
-	stats["intents_matched"] += 1
+	stats["intents_matched"] = stats.get("intents_matched", 0) + 1
 
 	logger.info(
 		f"Ticket {ticket_id} matched to existing intent: "
@@ -98,6 +100,9 @@ async def process_create_decision(
 	cat_l3_name = llm_result.get("category_l3_name")
 	intent_name_from_llm = llm_result.get("intent_name")
 	ticket_id = ticket.get("id")
+	
+	if ticket_id is None:
+		raise ValueError("Ticket dict missing required 'id' field")
 
 	if not cat_l1_name or not cat_l2_name or not cat_l3_name:
 		raise ValueError(
@@ -106,14 +111,14 @@ async def process_create_decision(
 
 	if not intent_name_from_llm:
 		raise ValueError(
-			f"LLM chose 'create_new' but didn't provide intent_name for ticket {ticket_id}"
+			f"LLM chose 'create_new' but didn't provide intent name for ticket {ticket_id}"
 		)
 
-	# Create or get Level 1 category
 	category_l1, is_l1_new = await category_crud.get_or_create_category(
 		db, name=cat_l1_name, level=1, parent_id=None
 	)
 	if is_l1_new:
+		stats.setdefault("categories_created", {}).setdefault("l1", 0)
 		stats["categories_created"]["l1"] += 1
 		logger.info(f"Created new L1 category: {cat_l1_name}")
 
@@ -122,6 +127,7 @@ async def process_create_decision(
 		db, name=cat_l2_name, level=2, parent_id=category_l1.id
 	)
 	if is_l2_new:
+		stats.setdefault("categories_created", {}).setdefault("l2", 0)
 		stats["categories_created"]["l2"] += 1
 		logger.info(f"Created new L2 category: {cat_l2_name} under {cat_l1_name}")
 
@@ -129,6 +135,10 @@ async def process_create_decision(
 	category_l3, is_l3_new = await category_crud.get_or_create_category(
 		db, name=cat_l3_name, level=3, parent_id=category_l2.id
 	)
+	if is_l3_new:
+		stats.setdefault("categories_created", {}).setdefault("l3", 0)
+		stats["categories_created"]["l3"] += 1
+		logger.info(f"Created new L3 category: {cat_l3_name} under {cat_l1_name} > {cat_l2_name}")	
 	if is_l3_new:
 		stats["categories_created"]["l3"] += 1
 		logger.info(f"Created new L3 category: {cat_l3_name} under {cat_l1_name} > {cat_l2_name}")
@@ -145,12 +155,11 @@ async def process_create_decision(
 
 	# Update statistics based on whether intent was newly created
 	if is_new_intent:
-		stats["intents_created"] += 1
+		stats["intents_created"] = stats.get("intents_created", 0) + 1
 		logger.info(f"Created new intent: {intent_name_from_llm}")
 	else:
-		stats["intents_matched"] += 1
+		stats["intents_matched"] = stats.get("intents_matched", 0) + 1
 		logger.info(f"Matched to existing intent: {intent_name_from_llm}")
-
 	# Update ticket with intent
 	await ticket_crud.update_ticket_intent(db, ticket_id, intent.id)
 
