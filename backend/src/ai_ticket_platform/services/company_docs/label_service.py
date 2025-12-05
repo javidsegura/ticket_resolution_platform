@@ -2,7 +2,7 @@ from typing import Dict
 import logging
 
 from ai_ticket_platform.core.clients import LLMClient
-from ai_ticket_platform.services.labeling import prompt_builder
+from ai_ticket_platform.services.company_docs import prompt_builder
 
 logger = logging.getLogger(__name__)
 

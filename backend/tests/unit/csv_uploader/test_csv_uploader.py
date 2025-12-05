@@ -22,7 +22,7 @@ class TestClusterTicketsWithCache:
         assert result["clusters_created"] == 0
         assert result["clusters"] == []
 
-    async def test_cluster_tickets_calls_cluster_service(self):
+    async def test_cluster_tickets_calls_cluster_interface(self):
         """Test that cluster_tickets_with_cache processes tickets."""
         tickets = [{"subject": "Bug 1"}, {"subject": "Bug 2"}]
         mock_llm_client = MagicMock()

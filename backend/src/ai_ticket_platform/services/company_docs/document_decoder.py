@@ -1,10 +1,3 @@
-"""
-Document decoder service.
-
-Extracts text from PDF documents using pdfplumber.
-Reads pages sequentially until MAX_CHARS limit is reached.
-"""
-
 import logging
 from typing import Dict
 from io import BytesIO

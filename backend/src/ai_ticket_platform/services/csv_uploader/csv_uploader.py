@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ai_ticket_platform.database.generated_models import Ticket
 from ai_ticket_platform.database.CRUD.ticket import create_tickets
 from ai_ticket_platform.core.clients import llm_client
-from ai_ticket_platform.services.clustering.cluster_service import cluster_tickets
+from ai_ticket_platform.services.clustering.cluster_interface import cluster_tickets
 
 logger = logging.getLogger(__name__)
 

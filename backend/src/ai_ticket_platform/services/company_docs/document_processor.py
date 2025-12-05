@@ -1,18 +1,11 @@
-"""
-Document processor service.
-
-Orchestrates the complete document processing workflow:
-decode -> label -> store to database
-"""
-
 import asyncio
 import logging
 from typing import Dict
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ai_ticket_platform.core.clients import LLMClient
-from ai_ticket_platform.services.labeling.document_decoder import decode_document
-from ai_ticket_platform.services.labeling.label_service import label_document
+from ai_ticket_platform.services.company_docs.document_decoder import decode_document
+from ai_ticket_platform.services.company_docs.label_service import label_document
 from ai_ticket_platform.database.CRUD.company_file import create_company_file
 
 logger = logging.getLogger(__name__)
@@ -44,8 +37,6 @@ async def process_document(
 
 	area = label_result.get("department_area", "Unknown")
 
-	# save to database
-	# TODO: upload content to blob storage and persist its path
 	try:
 		db_file = await create_company_file(
 			db=db, blob_path="", original_filename=filename, area=area

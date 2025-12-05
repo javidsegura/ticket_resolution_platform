@@ -3,16 +3,16 @@ from typing import Dict, Any, List
 
 from ai_ticket_platform.database.main import initialize_db_engine
 from ai_ticket_platform.database.CRUD.ticket import create_tickets
-from ai_ticket_platform.services.clustering.cluster_service import cluster_tickets
+from ai_ticket_platform.services.clustering.cluster_interface import cluster_tickets
 from ai_ticket_platform.core.clients.llm import get_llm_client
-from ai_ticket_platform.services.content_generation.rag_queue_interface import generate_article_task
+from ai_ticket_platform.services.content_generation.content_generation_interface import generate_article_task
 from ai_ticket_platform.services.queue_manager.async_helper import _run_async
 
 logger = logging.getLogger(__name__)
 
 
-def filter_ticket(ticket_data: Dict[str, Any]) -> Dict[str, Any]:
-	"""Filter and validate ticket data, then create in database.
+def save_tickets(ticket_data: Dict[str, Any]) -> Dict[str, Any]:
+	"""Validate ticket data, then create in database.
 
 	Uses async CRUD operations via _run_async helper.
 	"""

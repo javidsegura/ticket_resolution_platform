@@ -1,10 +1,3 @@
-"""RQ queue interface for RAG-based article generation and approval.
-
-This module provides queue task wrappers that interface with the RAG service.
-These are NOT the core queue processing logic - they are called by the main
-ticket processing pipeline in services/queue_manager/tasks.py.
-"""
-
 import logging
 from typing import Any, Dict, List, Optional
 

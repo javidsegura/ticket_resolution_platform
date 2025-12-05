@@ -7,7 +7,7 @@ from rq import Queue
 from ai_ticket_platform.dependencies import get_db
 from ai_ticket_platform.dependencies.queue import get_queue
 from ai_ticket_platform.database.CRUD.article import get_article_by_id, update_article
-from ai_ticket_platform.services.content_generation.rag_queue_interface import (
+from ai_ticket_platform.services.content_generation.content_generation_interface import (
 	approve_article_task,
 	generate_article_task,
 )

@@ -1,10 +1,10 @@
 import pytest
 from unittest.mock import Mock, AsyncMock, patch
-from ai_ticket_platform.services.clustering.cluster_service import cluster_tickets
+from ai_ticket_platform.services.clustering.cluster_interface import cluster_tickets
 
 
 class TestClusterService:
-	"""Test suite for cluster_service module."""
+	"""Test suite for cluster_interface module."""
 
 	@pytest.fixture
 	def mock_db(self):
@@ -45,9 +45,9 @@ class TestClusterService:
 	):
 		"""Test clustering processes all tickets in a single batch."""
 		with patch(
-			"ai_ticket_platform.services.clustering.cluster_service.intent_crud.get_all_intents_with_categories"
+			"ai_ticket_platform.services.clustering.cluster_interface.intent_crud.get_all_intents_with_categories"
 		) as mock_get_intents, patch(
-			"ai_ticket_platform.services.clustering.cluster_service.intent_matcher.process_create_decision"
+			"ai_ticket_platform.services.clustering.cluster_interface.intent_matcher.process_create_decision"
 		) as mock_process_create, patch(
 			"asyncio.to_thread"
 		) as mock_to_thread:
@@ -100,9 +100,9 @@ class TestClusterService:
 	):
 		"""Test clustering can match tickets to existing intents."""
 		with patch(
-			"ai_ticket_platform.services.clustering.cluster_service.intent_crud.get_all_intents_with_categories"
+			"ai_ticket_platform.services.clustering.cluster_interface.intent_crud.get_all_intents_with_categories"
 		) as mock_get_intents, patch(
-			"ai_ticket_platform.services.clustering.cluster_service.intent_matcher.process_match_decision"
+			"ai_ticket_platform.services.clustering.cluster_interface.intent_matcher.process_match_decision"
 		) as mock_process_match, patch(
 			"asyncio.to_thread"
 		) as mock_to_thread:

@@ -1,22 +1,11 @@
-"""
-Complete company document processing: labeling + Azure upload + ChromaDB indexing.
-
-This service handles the full workflow:
-1. Decode PDF document
-2. Label with LLM (determine area/category)
-3. Upload PDF to Azure Blob Storage (company-docs/{area}/{filename}.pdf)
-4. Save to database with blob_path
-5. Index to ChromaDB with embeddings
-"""
-
 import asyncio
 import logging
 from typing import Dict
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ai_ticket_platform.core.clients import LLMClient
-from ai_ticket_platform.services.labeling.document_decoder import decode_document
-from ai_ticket_platform.services.labeling.label_service import label_document
+from ai_ticket_platform.services.company_docs.document_decoder import decode_document
+from ai_ticket_platform.services.company_docs.label_service import label_document
 from ai_ticket_platform.database.CRUD.company_file import create_company_file
 from ai_ticket_platform.core.clients.chroma_client import get_chroma_vectorstore
 from ai_ticket_platform.services.infra.storage.storage import get_storage_service

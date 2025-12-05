@@ -103,7 +103,7 @@ Focuses on the three main services, showing the 97% coverage achievement.
   - Database saving operations
 
 ### Clustering Tests (35 tests)
-- **test_cluster_service.py** (11 tests)
+- **test_cluster_interface.py** (11 tests)
   - Hash computation for deduplication
   - Ticket text extraction
   - Cache hit/miss scenarios

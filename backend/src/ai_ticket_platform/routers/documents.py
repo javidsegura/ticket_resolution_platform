@@ -6,7 +6,7 @@ import logging
 from ai_ticket_platform.core.clients.llm import get_llm_client
 from ai_ticket_platform.dependencies import get_app_settings, get_db
 from ai_ticket_platform.core.settings import Settings
-from ai_ticket_platform.services.labeling.company_doc_processing import process_and_index_document
+from ai_ticket_platform.services.company_docs.company_doc_processing import process_and_index_document
 
 logger = logging.getLogger(__name__)
 

@@ -1,4 +1,4 @@
-# services/clustering/cluster_service.py
+# services/clustering/cluster_interface.py
 from typing import List, Dict
 from sqlalchemy.ext.asyncio import AsyncSession
 import logging

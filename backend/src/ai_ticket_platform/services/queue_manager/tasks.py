@@ -6,7 +6,7 @@ from ai_ticket_platform.core.clients.redis import initialize_redis_client
 from ai_ticket_platform.core.settings.app_settings import initialize_settings
 from ai_ticket_platform.database.main import initialize_db_engine
 from ai_ticket_platform.services.queue_manager.service_adapters import (
-	filter_ticket,
+	save_tickets,
 	cluster_ticket,
 	generate_content
 )
@@ -34,7 +34,7 @@ def process_ticket_stage1(ticket_batch: List[Dict[str, Any]]) -> List[Dict[str, 
 		filtered_tickets = []
 		for ticket_data in ticket_batch:
 			try:
-				filtered = filter_ticket(ticket_data)
+				filtered = save_tickets(ticket_data)
 				filtered_tickets.append(filtered)
 			except ValueError as e:
 				# Validation error - skip this ticket but continue with others
