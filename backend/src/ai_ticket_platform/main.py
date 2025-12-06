@@ -16,6 +16,7 @@ from ai_ticket_platform.routers import (
 	external_router,
 	tickets_router,
 	intents_router,
+	articles_router,
 )
 
 # Removed: drafts, publishing, widget routers - not needed with frontend's Article model
@@ -43,6 +44,9 @@ async def lifespan(app: FastAPI):
 	# Initialize Redis client and cache manager
 	redis_instance = await clients.redis.get_client()
 	clients.cache_manager = CacheManager(redis_instance)
+	clients.chroma_vectorstore = clients.initialize_chroma_vectorstore(
+		settings.app_settings
+	)
 
 	yield
 
@@ -69,6 +73,7 @@ routers = [
 	tickets_router,
 	external_router,
 	intents_router,
+	articles_router,
 ]
 
 # Serve widget folder

@@ -180,6 +180,13 @@ resource "aws_security_group" "web_app_sg" {
     protocol        = "tcp"
     security_groups = [aws_security_group.bastion_host_sg.id]
   }
+  ingress {
+    from_port       = 3000
+    to_port         = 3000
+    protocol        = "tcp"
+    security_groups = [aws_security_group.bastion_host_sg.id]
+    description     = "Grafana access from bastion"
+  }
   egress {
     from_port   = 0
     to_port     = 0

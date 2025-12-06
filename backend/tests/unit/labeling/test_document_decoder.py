@@ -4,7 +4,7 @@ import pytest
 from unittest.mock import MagicMock, patch, Mock
 from io import BytesIO
 
-from ai_ticket_platform.services.labeling.document_decoder import decode_document, MAX_CHARS
+from ai_ticket_platform.services.company_docs.document_decoder import decode_document, MAX_CHARS
 
 
 class TestDocumentDecoder:
@@ -21,7 +21,7 @@ class TestDocumentDecoder:
         mock_pdf.__enter__.return_value = mock_pdf
         mock_pdf.__exit__.return_value = None
 
-        with patch("ai_ticket_platform.services.labeling.document_decoder.pdfplumber.open") as mock_open:
+        with patch("ai_ticket_platform.services.company_docs.document_decoder.pdfplumber.open") as mock_open:
             mock_open.return_value = mock_pdf
 
             result = decode_document("test.pdf", content)
@@ -46,7 +46,7 @@ class TestDocumentDecoder:
         mock_pdf.__enter__.return_value = mock_pdf
         mock_pdf.__exit__.return_value = None
 
-        with patch("ai_ticket_platform.services.labeling.document_decoder.pdfplumber.open") as mock_open:
+        with patch("ai_ticket_platform.services.company_docs.document_decoder.pdfplumber.open") as mock_open:
             mock_open.return_value = mock_pdf
 
             result = decode_document("test.pdf", content)
@@ -72,7 +72,7 @@ class TestDocumentDecoder:
         mock_pdf.__enter__.return_value = mock_pdf
         mock_pdf.__exit__.return_value = None
 
-        with patch("ai_ticket_platform.services.labeling.document_decoder.pdfplumber.open") as mock_open:
+        with patch("ai_ticket_platform.services.company_docs.document_decoder.pdfplumber.open") as mock_open:
             mock_open.return_value = mock_pdf
 
             result = decode_document("test.pdf", content)
@@ -100,7 +100,7 @@ class TestDocumentDecoder:
         mock_pdf.__enter__.return_value = mock_pdf
         mock_pdf.__exit__.return_value = None
 
-        with patch("ai_ticket_platform.services.labeling.document_decoder.pdfplumber.open") as mock_open:
+        with patch("ai_ticket_platform.services.company_docs.document_decoder.pdfplumber.open") as mock_open:
             mock_open.return_value = mock_pdf
 
             result = decode_document("test.pdf", content)
@@ -125,7 +125,7 @@ class TestDocumentDecoder:
         mock_pdf.__enter__.return_value = mock_pdf
         mock_pdf.__exit__.return_value = None
 
-        with patch("ai_ticket_platform.services.labeling.document_decoder.pdfplumber.open") as mock_open:
+        with patch("ai_ticket_platform.services.company_docs.document_decoder.pdfplumber.open") as mock_open:
             mock_open.return_value = mock_pdf
 
             result = decode_document("test.pdf", content)
@@ -151,7 +151,7 @@ class TestDocumentDecoder:
         mock_pdf.__enter__.return_value = mock_pdf
         mock_pdf.__exit__.return_value = None
 
-        with patch("ai_ticket_platform.services.labeling.document_decoder.pdfplumber.open") as mock_open:
+        with patch("ai_ticket_platform.services.company_docs.document_decoder.pdfplumber.open") as mock_open:
             mock_open.return_value = mock_pdf
 
             result = decode_document("test.pdf", content)
@@ -164,7 +164,7 @@ class TestDocumentDecoder:
         """Test handling of PDF extraction errors."""
         content = b"INVALID_PDF"
 
-        with patch("ai_ticket_platform.services.labeling.document_decoder.pdfplumber.open") as mock_open:
+        with patch("ai_ticket_platform.services.company_docs.document_decoder.pdfplumber.open") as mock_open:
             mock_open.side_effect = Exception("PDF parsing error")
 
             result = decode_document("bad.pdf", content)
@@ -184,7 +184,7 @@ class TestDocumentDecoder:
         mock_pdf.__enter__.return_value = mock_pdf
         mock_pdf.__exit__.return_value = None
 
-        with patch("ai_ticket_platform.services.labeling.document_decoder.pdfplumber.open") as mock_open:
+        with patch("ai_ticket_platform.services.company_docs.document_decoder.pdfplumber.open") as mock_open:
             mock_open.return_value = mock_pdf
 
             result = decode_document("empty.pdf", content)
@@ -204,7 +204,7 @@ class TestDocumentDecoder:
         mock_pdf.__enter__.return_value = mock_pdf
         mock_pdf.__exit__.return_value = None
 
-        with patch("ai_ticket_platform.services.labeling.document_decoder.pdfplumber.open") as mock_open:
+        with patch("ai_ticket_platform.services.company_docs.document_decoder.pdfplumber.open") as mock_open:
             mock_open.return_value = mock_pdf
 
             result = decode_document("test.pdf", content)
@@ -226,7 +226,7 @@ class TestDocumentDecoder:
         mock_pdf.__enter__.return_value = mock_pdf
         mock_pdf.__exit__.return_value = None
 
-        with patch("ai_ticket_platform.services.labeling.document_decoder.pdfplumber.open") as mock_open:
+        with patch("ai_ticket_platform.services.company_docs.document_decoder.pdfplumber.open") as mock_open:
             mock_open.return_value = mock_pdf
 
             result = decode_document("test.pdf", content)
@@ -248,7 +248,7 @@ class TestDocumentDecoder:
         mock_pdf.__enter__.return_value = mock_pdf
         mock_pdf.__exit__.return_value = None
 
-        with patch("ai_ticket_platform.services.labeling.document_decoder.pdfplumber.open") as mock_open:
+        with patch("ai_ticket_platform.services.company_docs.document_decoder.pdfplumber.open") as mock_open:
             mock_open.return_value = mock_pdf
 
             result = decode_document("myfile.pdf", content)

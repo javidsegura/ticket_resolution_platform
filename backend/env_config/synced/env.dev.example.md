@@ -26,9 +26,13 @@ MYSQL_ASYNC_DRIVER="mysql+aiomysql"
 SLACK_BOT_TOKEN=xoxb-...
 SLACK_CHANNEL_ID=C0... # zeffo-tickets channel @ CSAI teamazo
 
+# LLM (Gemini)
+GEMINI_API_KEY=""
+GEMINI_MODEL="gemini-1.5-flash"
+
 # AWS => not needed yet
 AWS_ACCESS_KEY_ID=""
-AWS_SECRET_ACCESS_KEY="" 
+AWS_SECRET_ACCESS_KEY=""
 AWS_MAIN_REGION=""
 S3_MAIN_BUCKET_NAME=""
 # Firebase Configuration

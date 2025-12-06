@@ -7,9 +7,9 @@ import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
-from ai_ticket_platform.dependencies.settings import get_app_settings
-from ai_ticket_platform.dependencies.database import get_db
-from ai_ticket_platform.routers import documents as documents_router
+from src.ai_ticket_platform.dependencies.settings import get_app_settings
+from src.ai_ticket_platform.dependencies.database import get_db
+from src.ai_ticket_platform.routers import documents as documents_router
 
 
 @pytest.fixture()
@@ -19,8 +19,8 @@ def test_app():
 	app.include_router(documents_router.router, prefix="/api")
 
 	mock_settings = SimpleNamespace(
-		OPENAI_API_KEY="test-api-key",
-		OPENAI_MODEL="gpt-4o",
+		GEMINI_API_KEY="test-api-key",
+		GEMINI_MODEL="gemini-1.5-flash",
 	)
 
 	async def override_settings():

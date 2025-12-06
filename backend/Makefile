@@ -1,4 +1,4 @@
-.PHONY: help dev dev-debug install db-models lint lint-check pytest-run  test-docker-compose-start
++.PHONY: help dev dev-debug install install-full db-models lint lint-check format format-fix pytest-run test-start test-stop unit-test integration-test regression-test smoke-test load-tests test-integration test-integration-docker test-integration-csv test-integration-approval test-integration-publish test-integration-widget db-create-migration-files db-test-migration db-safe-migration db-downgrade-prior-version db-downgrade-specific-version push_docker check_enviroment_variables
 
 SHELL := /bin/bash
 
@@ -18,8 +18,7 @@ VENV_ACTIVATE = source $(VENV)/bin/activate
 APP_PATH = src.ai_ticket_platform.main:app
 PORT = 8000
 BACKEND_ENV_FILE_SYNCED_PATH= ../backend/env_config/synced/.env.$(ENVIRONMENT)
-PROJECT_NAME = url-shortener
-
+PROJECT_NAME = ai-ticket-platform
 
 
 help: ## Show this help message

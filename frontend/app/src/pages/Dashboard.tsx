@@ -397,7 +397,7 @@ export default function Dashboard() {
       try {
         setTicketsLoading(true);
         const data = await fetchTickets();
-        setTickets(data.tickets);
+        setTickets(data?.tickets ?? []);
         setTicketsError(null);
       } catch (error) {
         console.error("Error loading tickets:", error);
@@ -1172,8 +1172,12 @@ export default function Dashboard() {
                         </h4>
                       </div>
                       <div className="text-xs text-gray-500 text-right">
-                        <p className="line-clamp-1">{ticket.body}</p>
-                        <p className="mt-1">{formatDate(ticket.created_at)}</p>
+                        <p className="line-clamp-1">{ticket.body || ""}</p>
+                        <p className="mt-1">
+                          {ticket.created_at
+                            ? formatDate(ticket.created_at)
+                            : "N/A"}
+                        </p>
                       </div>
                     </Link>
                   ))
@@ -1417,19 +1421,21 @@ export default function Dashboard() {
                   <p className="font-semibold text-gray-800">
                     {ticketCsvResult.success
                       ? `Upload Complete: ${ticketCsvResult.tickets_created} ticket(s) uploaded successfully`
-                      : `Upload finished with issues while processing ${ticketCsvResult.file_info.filename}`}
+                      : `Upload finished with issues while processing ${ticketCsvResult.file_info?.filename || "file"}`}
                   </p>
                   <div className="text-xs text-gray-600">
                     <p>
-                      Rows processed: {ticketCsvResult.file_info.rows_processed}
+                      Rows processed:{" "}
+                      {ticketCsvResult.file_info?.rows_processed || 0}
                     </p>
                     <p>
-                      Rows skipped: {ticketCsvResult.file_info.rows_skipped}
+                      Rows skipped:{" "}
+                      {ticketCsvResult.file_info?.rows_skipped || 0}
                     </p>
                     <p>Tickets created: {ticketCsvResult.tickets_created}</p>
                     <p>
                       Clusters updated:{" "}
-                      {ticketCsvResult.clustering.clusters_created}
+                      {ticketCsvResult.clustering?.clusters_created || 0}
                     </p>
                   </div>
                   {ticketCsvResult.errors.length > 0 && (

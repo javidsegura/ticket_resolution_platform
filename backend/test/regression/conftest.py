@@ -50,7 +50,7 @@ def pytest_unconfigure(config):
 
 @pytest.fixture(scope="session")
 def fastapi_client():
-      from url_shortener.main import app
+      from ai_ticket_platform.main import app
       with TestClient(app) as client:
         yield client
 

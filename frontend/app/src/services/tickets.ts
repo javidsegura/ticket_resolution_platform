@@ -164,5 +164,22 @@ export const uploadTicketsCsv = async (
   }
 
   const data = await response.json();
-  return data as CsvUploadResponse;
+
+  // Transform backend response to match CsvUploadResponse interface
+  return {
+    success: true,
+    file_info: {
+      filename: data.filename || "",
+      rows_processed: data.tickets_count || 0,
+      rows_skipped: 0, // Backend doesn't track skipped rows
+      tickets_extracted: data.tickets_count || 0,
+      encoding: "utf-8",
+    },
+    tickets_created: data.tickets_count || 0,
+    clustering: {
+      clusters_created: 0, // Clustering happens async, so we return 0 initially
+      total_tickets_clustered: 0,
+    },
+    errors: [], // No synchronous errors if we reach here
+  };
 };
