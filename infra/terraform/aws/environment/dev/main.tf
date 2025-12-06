@@ -3,14 +3,14 @@
 terraform {
   required_providers {
     aws = {
-      source = "hashicorp/aws"
+      source  = "hashicorp/aws"
       version = "~> 5.0"
     }
   }
   backend "s3" {
-    bucket = "url-shortener-remote-state-bucket-sblyckh5"
-    key = "remote-state/dev/terraform.tfstate"
-    region = "us-east-1"
+    bucket  = "url-shortener-remote-state-bucket-sblyckh5"
+    key     = "remote-state/dev/terraform.tfstate"
+    region  = "us-east-1"
     encrypt = true
   }
 }
@@ -24,5 +24,5 @@ module "s3_services" {
 
   environment = var.environment
   main_region = var.main_region
-  
+
 }
