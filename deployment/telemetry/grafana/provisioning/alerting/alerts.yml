@@ -20,6 +20,9 @@ policies:
   - orgId: 1
     receiver: slack-alerts
     group_by: ['alertname']
+    group_wait: 10s
+    group_interval: 30s
+    repeat_interval: 5m
 
 # 3. Define the actual Alert Rules
 groups:
@@ -42,7 +45,7 @@ groups:
         data:
           - refId: A
             relativeTimeRange: { from: 300, to: 0 }
-            datasourceUid: "prometheus" # Matches the name/uid in your datasources.yml
+            datasourceUid: "PBFA97CFB590B2093" # Matches the UID in datasources.yml
             model:
               # This is the Prometheus Query
               expr: sum(rate(http_requests_total{status=~"5.*"}[1m]))
@@ -99,10 +102,10 @@ groups:
         data:
           - refId: A
             relativeTimeRange: { from: 300, to: 0 }
-            datasourceUid: "prometheus"
+            datasourceUid: "PBFA97CFB590B2093"
             model:
               # Calculates P99 latency
-              expr: histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[1m])) by (le))
+              expr: histogram_quantile(0.99, sum(rate(http_request_duration_highr_seconds_bucket[1m])) by (le))
               refId: A
           - refId: B
             datasourceUid: "__expr__"
