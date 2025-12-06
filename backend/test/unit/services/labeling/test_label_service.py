@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import Mock, patch
 
-from ai_ticket_platform.services.labeling.label_service import label_document
+from ai_ticket_platform.services.company_docs.label_service import label_document
 from ai_ticket_platform.core.clients import LLMClient
 
 
@@ -28,7 +28,7 @@ class TestLabelDocument:
 		}
 
 		# mock the prompt builder functions
-		with patch("ai_ticket_platform.services.labeling.label_service.prompt_builder") as mock_builder:
+		with patch("ai_ticket_platform.services.company_docs.label_service.prompt_builder") as mock_builder:
 			mock_builder.build_labeling_prompt.return_value = "mocked prompt"
 			mock_builder.get_output_schema.return_value = {"type": "object"}
 			mock_builder.get_task_config.return_value = {"system_prompt": "test"}
@@ -78,7 +78,7 @@ class TestLabelDocument:
 		# mock LLM to raise exception
 		mock_llm_client.call_llm_structured.side_effect = Exception("API error: rate limit exceeded")
 
-		with patch("ai_ticket_platform.services.labeling.label_service.prompt_builder") as mock_builder:
+		with patch("ai_ticket_platform.services.company_docs.label_service.prompt_builder") as mock_builder:
 			mock_builder.build_labeling_prompt.return_value = "prompt"
 			mock_builder.get_output_schema.return_value = {"type": "object"}
 			mock_builder.get_task_config.return_value = {"system_prompt": "test"}
@@ -107,7 +107,7 @@ class TestLabelDocument:
 			"reasoning": "Contains marketing strategy keywords"
 		}
 
-		with patch("ai_ticket_platform.services.labeling.label_service.prompt_builder") as mock_builder:
+		with patch("ai_ticket_platform.services.company_docs.label_service.prompt_builder") as mock_builder:
 			mock_builder.build_labeling_prompt.return_value = "prompt"
 			mock_builder.get_output_schema.return_value = {"type": "object"}
 			mock_builder.get_task_config.return_value = {"system_prompt": "test"}

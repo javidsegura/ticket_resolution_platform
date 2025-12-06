@@ -1,10 +1,3 @@
-"""
-Document decoder service.
-
-Extracts text from PDF documents using pdfplumber.
-Reads pages sequentially until MAX_CHARS limit is reached.
-"""
-
 import logging
 from typing import Dict
 from io import BytesIO
@@ -38,19 +31,23 @@ def decode_document(filename: str, content: bytes) -> Dict:
 				page_text = page.extract_text()
 
 				if page_text:
-					# Check if adding this page would exceed limit
-					if len(text_content) + len(page_text) > MAX_CHARS:
+					# Check if adding this page (plus separator) would exceed limit
+					separator = "\n" if text_content else ""
+					separator_len = len(separator)
+
+					if len(text_content) + separator_len + len(page_text) >= MAX_CHARS:
 						# Add partial page text to reach exactly MAX_CHARS
-						remaining_chars = MAX_CHARS - len(text_content)
-						text_content += page_text[:remaining_chars]
-						pages_read += 1
+						remaining_chars = MAX_CHARS - len(text_content) - separator_len
+						if remaining_chars > 0:
+							text_content += separator + page_text[:remaining_chars]
+							pages_read += 1
 						logger.info(
 							f"Reached MAX_CHARS limit for {filename}. "
 							f"Read {pages_read}/{total_pages} pages, {len(text_content)} chars"
 						)
 						break
 
-					text_content += page_text + "\n"  # Add newline between pages
+					text_content += separator + page_text
 					pages_read += 1
 				else:
 					logger.debug(
@@ -62,12 +59,13 @@ def decode_document(filename: str, content: bytes) -> Dict:
 			logger.warning(f"No text could be extracted from {filename}")
 			return {"success": False, "error": "No text could be extracted from PDF"}
 
+		stripped_content = text_content.strip()
 		logger.info(
-			f"Extracted {len(text_content)} chars from {pages_read} pages of {filename}"
+			f"Extracted {len(stripped_content)} chars from {pages_read} pages of {filename}"
 		)
 		return {
 			"success": True,
-			"content": text_content.strip(),
+			"content": stripped_content,
 			"pages_read": pages_read,
 		}
 

@@ -1,7 +1,7 @@
-import logging
-import os
 from abc import ABC, abstractmethod
-from typing import Optional, Union
+from typing import Optional
+import os
+import logging
 
 logger = logging.getLogger(__name__)
 
@@ -32,21 +32,6 @@ class StorageService(ABC):
 		**kwargs,
 	) -> str:
 		"""Generate a presigned URL for uploading/writing a file."""
-		pass
-
-	@abstractmethod
-	def upload_blob(
-		self,
-		blob_name: str,
-		content: Union[str, bytes],
-		content_type: Optional[str] = None,
-	) -> str:
-		"""
-		Upload content (string or binary) directly to storage.
-
-		Returns:
-			The URL or path of the uploaded blob.
-		"""
 		pass
 
 
