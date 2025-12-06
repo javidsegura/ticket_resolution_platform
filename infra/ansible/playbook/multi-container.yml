@@ -6,9 +6,10 @@
     target_user: "{{ ansible_user_id }}"
     remote_project_path: "/opt/{{ project_name }}"
     project_name: "ai-ticket-platform"
+    stage_environment: "{{ lookup('env', 'ENVIRONMENT') | default('production', true) }}"
     src_backend_env_synced_path: "../../../backend/env_config/synced/.env.{{ stage_environment }}"
     dest_backend_env_synced_path: "{{ remote_project_path }}/backend/env_config/synced/.env.{{ stage_environment }}"
-    backend_image_tag: "production-{{ lookup('env', 'BACKEND_VERSION') | default('production', true) }}"
+    backend_image_tag: "{{ stage_environment }}-{{ lookup('env', 'BACKEND_VERSION') | default('latest', true) }}"
     previous_tag_file: "{{ remote_project_path }}/.previous_backend_tag"
     health_check_retries: 3
     health_check_delay: 30
@@ -42,6 +43,7 @@
         - curl
       state: present
       update_cache: yes
+      allowerasing: yes
     when: ansible_pkg_mgr == "dnf"
 
   - name: Start Docker service
@@ -166,7 +168,7 @@
       project_src: "{{ remote_project_path }}/deployment"
       files:
         - docker-compose.yml
-        - docker-compose.{{stage_environment}}.yml
+        - docker-compose.remote.yml
       project_name: "{{ project_name }}"
       state: present
       pull: always

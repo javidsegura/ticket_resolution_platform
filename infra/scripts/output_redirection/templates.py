@@ -52,7 +52,7 @@ ANSIBLE_TEMPLATE_PRODUCTION_AWS = """
 {{ outputs.EC2_APP_SERVER_PUBLIC_IP }} ansible_user={{ outputs.EC2_APP_SERVER_SSH_USER }}
 
 [all:vars]
-ansible_ssh_private_key_file={{ outputs.EC2_APP_SERVER_SSH_PRIVATE_KEY_FILE_PATH }}
+ansible_ssh_private_key_file={{ outputs.EC2_SERVERS_SSH_PRIVATE_KEY_FILE_PATH }}
 ansible_user_id={{ outputs.EC2_APP_SERVER_SSH_USER }}
 
 

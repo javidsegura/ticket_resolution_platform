@@ -16,8 +16,9 @@ resource "random_string" "name" {
 }
 
 resource "aws_secretsmanager_secret" "database_credentials" {
-  name        = "db-credentials-${var.environment}-${random_string.name.result}"
-  description = "RDS credentials for url-shortener"
+  name                    = "db-credentials-${var.environment}-${random_string.name.result}"
+  description             = "RDS credentials for url-shortener"
+  recovery_window_in_days = 7
 }
 
 resource "aws_secretsmanager_secret_version" "database_credentials_var" {

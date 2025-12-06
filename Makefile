@@ -78,7 +78,7 @@ dev-destroy-infra: ## Destroy terraform infra for development environmnet
 	$(MAKE) -C infra terraform-stop
 
 # 3) Deployment environment
-deploy-start: ## Deploy to production (no infra changes)
+deploy-start: ## Deploy to production (process: build artifacts + ansible)
 	@echo "$(GREEN)Starting production deployment (app only)...$(RESET)"
 	$(MAKE) check-enviroment-variables
 	$(MAKE) check-backend-version
@@ -87,7 +87,13 @@ deploy-start: ## Deploy to production (no infra changes)
 	$(MAKE) -C backend push_docker
 	$(MAKE) -C infra ansible-start
 	@echo "$(GREEN)✅ Deployment complete - version $(BACKEND_VERSION)$(RESET)"
-deploy-start-with-infra: ## Deploy to production (with infra changes)
+deploy-start-ansible: ## Deploy to production (process: ansible)
+	@echo "$(GREEN)Starting production deployment (app only)...$(RESET)"
+	$(MAKE) check-enviroment-variables
+	$(MAKE) check-backend-version
+	$(MAKE) -C infra ansible-start
+	@echo "$(GREEN)✅ Deployment complete - version $(BACKEND_VERSION)$(RESET)"
+deploy-start-infra: ## Deploy to production (process: infra + build artifacts + ansible)
 	@echo "$(GREEN)Starting production deployment (infra + app)...$(RESET)"
 	$(MAKE) check-enviroment-variables
 	$(MAKE) check-backend-version
@@ -98,7 +104,7 @@ deploy-start-with-infra: ## Deploy to production (with infra changes)
 	$(MAKE) -C infra ansible-start
 	@echo "$(GREEN)✅ Deployment complete with infra - version $(BACKEND_VERSION)$(RESET)"
 
-deploy-stop: ## Stop development environment
+deploy-stop-infra: ## Stop development environment
 	@echo "$(YELLOW)Stopping development environment...$(RESET)"
 	$(MAKE) check-enviroment-variables
 	$(MAKE) -C infra terraform-stop ENVIRONMENT="$(ENVIRONMENT)"

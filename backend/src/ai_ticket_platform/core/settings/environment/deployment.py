@@ -39,6 +39,8 @@ class DeploymentSettings(BaseSettings):
 		return base_vars
 
 	def extract_all_variables(self):
+		self.CLOUD_PROVIDER = os.getenv("CLOUD_PROVIDER", "aws").lower().strip()
+
 		self._extract_storage_variables()
 		self._extract_app_logic_variables()
 		self._extract_database_variables()
@@ -57,8 +59,9 @@ class DeploymentSettings(BaseSettings):
 				"Database credentials secret key is needed! Set SECRETS_MANAGER_DB_CREDENTIALS_KEY"
 			)
 
-		secrets_service = get_secrets_service()
-		self.AZURE_KEY_VAULT_NAME = os.getenv("AZURE_KEY_VAULT_NAME")
+		secrets_service = get_secrets_service(cloud_provider=self.CLOUD_PROVIDER)
+		if self.CLOUD_PROVIDER == "azure":
+			self.AZURE_KEY_VAULT_NAME = os.getenv("AZURE_KEY_VAULT_NAME")
 		db_credentials = secrets_service.fetch_secret(secret_key=secret_key)
 		self.MYSQL_USER = db_credentials["username"]
 		self.MYSQL_PASSWORD = db_credentials["password"]

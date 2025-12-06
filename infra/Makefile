@@ -65,7 +65,7 @@ check: ## Apply Terraform configuration
 terraform-output:
 	$(MAKE) check_enviroment_variables
 	cd $(TERRAFORM_ENVIRONMENT_PATH) && terraform output
-terraform-output-json:
+terraform-output-json: ## Get output in json after `terraform apply`
 	$(MAKE) check_enviroment_variables
 	cd $(TERRAFORM_ENVIRONMENT_PATH) && terraform output -json
 

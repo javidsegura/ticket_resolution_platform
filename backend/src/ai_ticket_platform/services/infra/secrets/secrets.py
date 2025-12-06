@@ -29,7 +29,7 @@ class SecretsService(ABC):
 		pass
 
 
-def get_secrets_service() -> SecretsService:
+def get_secrets_service(cloud_provider: str) -> SecretsService:
 	"""
 	Factory function to get the appropriate secrets service based on configuration.
 
@@ -38,18 +38,18 @@ def get_secrets_service() -> SecretsService:
 	- AWS_MAIN_REGION: For AWS (required for AWS)
 	- AZURE_KEY_VAULT_NAME: For Azure (required for Azure)
 	"""
-	from .aws import AWSSecretsManager
-	from .azure import AzureKeyVault
-
-	cloud_provider = os.getenv("CLOUD_PROVIDER", "aws").lower()
 
 	if cloud_provider == "azure":
+		from .azure import AzureKeyVault
+
 		vault_name = os.getenv("AZURE_KEY_VAULT_NAME")
 		if not vault_name:
 			raise ValueError("AZURE_KEY_VAULT_NAME not set")
 		logger.info(f"Using Azure Key Vault: {vault_name}")
 		return AzureKeyVault(vault_name=vault_name)
-	else:
+	elif cloud_provider == "aws":
+		from .aws import AWSSecretsManager
+
 		region_name = os.getenv("AWS_MAIN_REGION")
 		if not region_name:
 			raise ValueError("AWS_MAIN_REGION not set")

@@ -20,7 +20,7 @@ data "azurerm_resource_group" "rg" {
 }
 
 resource "random_string" "random_postfix" {
-  length  = 8
+  length  = 6
   special = false
   upper   = false
   numeric = true
@@ -28,7 +28,7 @@ resource "random_string" "random_postfix" {
 
 // Creating storage account
 resource "azurerm_storage_account" "sa" {
-  name                     = "${lower(replace(substr("tfstate${var.project_name}", 0, 16), "-", ""))}${random_string.random_postfix.result}"
+  name                     = "${lower(replace(substr("tfstate${var.project_name}", 0, 18), "-", ""))}${random_string.random_postfix.result}"
   resource_group_name      = data.azurerm_resource_group.rg.name
   location                 = data.azurerm_resource_group.rg.location
   account_tier             = "Standard"

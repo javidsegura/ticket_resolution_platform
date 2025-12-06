@@ -23,7 +23,6 @@ services:
     deploy:
       replicas: 3
   db-migration:
-    image: javidsegura/ai_ticket_platform
     command: ["python", "scripts/migrate.py"]
     working_dir: /app
     env_file:
