@@ -1,4 +1,4 @@
-# Naming convention: <service_name>_<group>_<name> 
+# Naming convention: <service_name>_<group>_<name>
 
 output "s3_main_bucket_name" {
   value = module.s3.s3_bucket_name
@@ -12,7 +12,7 @@ output "ec2_app_server_public_ip" {
 output "ec2_app_server_ssh_user" {
   value = "ec2-user"
 }
-output "ec2_app_server_ssh_private_key_file_path" {
+output "ec2_servers_ssh_private_key_file_path" {
   value = abspath(pathexpand(var.ssh_key_local_path))
 }
 

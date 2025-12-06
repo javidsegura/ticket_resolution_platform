@@ -48,12 +48,15 @@ class DevSettings(BaseSettings):
 		return base_vars
 
 	def extract_all_variables(self):
+		# Define multi-cloud strategy
+		self.CLOUD_PROVIDER = os.getenv("CLOUD_PROVIDER", "aws").lower()
+
+		# Extract different categories of variables
 		self._extract_database_variables()
 		self._extract_storage_variables()
 		self._extract_app_logic_variables()
 		self._extract_slack_variables()
 		self._extract_llm_variables()
-		# self._extract_firebase_variables()
 
 	def _extract_database_variables(self):
 		self.REDIS_URL = os.getenv("REDIS_URL")
@@ -67,8 +70,6 @@ class DevSettings(BaseSettings):
 		self.MYSQL_HOST = os.getenv("MYSQL_HOST")
 
 	def _extract_storage_variables(self):
-		self.CLOUD_PROVIDER = os.getenv("CLOUD_PROVIDER", "aws").lower()
-
 		if self.CLOUD_PROVIDER == "aws":
 			self.S3_MAIN_BUCKET_NAME = os.getenv("S3_MAIN_BUCKET_NAME")
 			self.AWS_MAIN_REGION = os.getenv("AWS_MAIN_REGION")
@@ -90,8 +91,3 @@ class DevSettings(BaseSettings):
 	def _extract_llm_variables(self):
 		self.OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 		self.OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
-
-	# def _extract_firebase_variables(self):
-	#       self.USING_FIREBASE_EMULATOR = os.getenv("USING_FIREBASE_EMULATOR")
-	#       self.FB_AUTH_EMULATOR_HOST= os.getenv("FB_AUTH_EMULATOR_HOST")
-	#       self.FB_PROJECT_ID = os.getenv("FB_PROJECT_ID")

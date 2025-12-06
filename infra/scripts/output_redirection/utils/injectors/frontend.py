@@ -14,7 +14,7 @@ class FrontendInjector:
       def _extract_server_ip(self, ansible_outputs: BaseModel):
             cloud_provider = os.getenv("CLOUD_PROVIDER").lower()
             if cloud_provider == "aws":
-                  return ansible_outputs.get("EC2_APP_SERVER_PRIVATE_IP")
+                  return ansible_outputs.get("EC2_APP_SERVER_PUBLIC_IP")
             elif cloud_provider == "azure":
                   return ansible_outputs.get("VM_APP_SERVER_PUBLIC_IP")
 

@@ -1,11 +1,10 @@
-# Nginx server (added later), redis, db (added later)
-
-
+# Docker Compose overrides for remote deployments (staging & production)
+# Includes: nginx reverse proxy, backend services, telemetry stack (Prometheus/Grafana)
 
 services:
   nginx:
     volumes:
-      - ./reverse-proxy-config/nginx.prod.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./reverse-proxy-config/nginx.remote.conf:/etc/nginx/conf.d/default.conf:ro
       - ../frontend/app/dist:/usr/share/nginx/html:ro
     depends_on:
       redis:

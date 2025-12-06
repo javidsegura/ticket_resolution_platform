@@ -15,9 +15,6 @@ class ProductionBackendOutputs(BaseModel):
       MYSQL_HOST: str
 
 
-
-
-
 class ProductionFrontendOutputs(BaseModel):
       # AWS
       EC2_APP_SERVER_PUBLIC_IP: str
@@ -30,7 +27,8 @@ class ProductionAnsibleOutputs(BaseModel):
       # AWS
       EC2_APP_SERVER_PUBLIC_IP: str
       EC2_APP_SERVER_SSH_USER: str
-      EC2_APP_SERVER_SSH_PRIVATE_KEY_FILE_PATH: str
+      EC2_SERVERS_SSH_PRIVATE_KEY_FILE_PATH: str
+
 
       # AZURE
       VM_APP_SERVER_PUBLIC_IP: str

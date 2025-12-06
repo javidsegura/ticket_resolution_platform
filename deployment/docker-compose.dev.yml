@@ -5,7 +5,7 @@ services:
     build:
       context: ../frontend
       dockerfile: Dockerfile
-    image: frontend:dev
+    image: ai_ticket_platform_frontend:dev
     ports:
       - "5173:5173"
     volumes:
@@ -36,7 +36,7 @@ services:
       build:
          context: ../backend
          dockerfile: Dockerfile
-      image: db-migration:dev
+      image: ai_ticket_platform_db-migration:dev
       depends_on:
         database:
           condition: service_healthy
@@ -45,7 +45,7 @@ services:
       build:
         context: ../backend
         dockerfile: Dockerfile
-      image: backend:dev
+      image: ai_ticket_platform_backend:dev
       ports:
         - "8000:8000"
       volumes:
@@ -66,7 +66,7 @@ services:
       - ${BACKEND_ENV_FILE}
   nginx:
     volumes:
-      - ./reverse-proxy/nginx.dev.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./reverse-proxy-config/nginx.dev.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       redis:
         condition: service_started
@@ -83,6 +83,7 @@ services:
     build:
       context: ../backend
       dockerfile: Dockerfile
+    image: ai_ticket_platform_worker:dev
     volumes:
       - ../backend/src:/app/src
 

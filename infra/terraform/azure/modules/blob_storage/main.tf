@@ -6,7 +6,7 @@ resource "random_string" "storage_postfix" {
 }
 
 resource "azurerm_storage_account" "storage_account" {
-  name                     = "${lower(replace(substr("${var.environment}ai_ticket", 0, 16), "-", ""))}${random_string.storage_postfix.result}"
+  name                     = "${lower(replace(substr("${var.environment}aiticket", 0, 16), "-", ""))}${random_string.storage_postfix.result}"
   resource_group_name      = var.resource_group_name
   location                 = var.location
   account_tier             = "Standard"
