@@ -16,6 +16,27 @@ export interface TicketListResponse {
   tickets: Ticket[];
 }
 
+export interface CsvFileInfo {
+  filename: string;
+  rows_processed: number;
+  rows_skipped: number;
+  tickets_extracted: number;
+  encoding: string;
+}
+
+export interface ClusteringInfo {
+  clusters_created: number;
+  total_tickets_clustered: number;
+}
+
+export interface CsvUploadResponse {
+  success: boolean;
+  file_info: CsvFileInfo;
+  tickets_created: number;
+  clustering: ClusteringInfo;
+  errors: string[];
+}
+
 type FetchTicketsParams = {
   skip?: number;
   limit?: number;
@@ -108,4 +129,40 @@ export const fetchTicketById = async (
 
   const data = await response.json();
   return data as Ticket;
+};
+
+/**
+ * Upload a CSV file containing tickets.
+ */
+export const uploadTicketsCsv = async (
+  file: File,
+): Promise<CsvUploadResponse> => {
+  if (!file) {
+    throw new Error("Select a CSV file before uploading");
+  }
+
+  const apiBase = buildTicketsBaseUrl();
+
+  if (!apiBase) {
+    throw new Error("BASE_API_URL not configured; cannot upload CSV");
+  }
+
+  const formData = new FormData();
+  formData.append("file", file, file.name);
+
+  const response = await fetch(`${apiBase}/tickets/upload-csv`, {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(
+      message ||
+        `Failed to upload CSV: ${response.status} ${response.statusText}`,
+    );
+  }
+
+  const data = await response.json();
+  return data as CsvUploadResponse;
 };

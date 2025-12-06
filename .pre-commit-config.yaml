@@ -47,7 +47,7 @@ repos:
         pass_filenames: false
         always_run: false
 
-  # Tests: unit-tests
+  # Tests: unit-tests => @alex uncommet this whenever unit-tests are ready
   # - repo: local
   #   hooks:
   #     - id: unit-tests

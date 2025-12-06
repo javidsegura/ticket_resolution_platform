@@ -31,3 +31,21 @@ terraform.tfvars
 .DS_Store
 *.log
 
+# SSH Keys and Private Keys - prevent committing any SSH keys
+# Common SSH key file names
+**/ssh_key.pem
+**/*ssh*key*.pem
+**/*_key.pem
+**/id_rsa
+**/id_rsa.pub
+**/id_ed25519
+**/id_ed25519.pub
+**/id_ecdsa
+**/id_ecdsa.pub
+**/id_dsa
+**/id_dsa.pub
+# All .pem and .key files in secrets directories (most restrictive)
+**/secrets/**/*.pem
+**/secrets/**/*.key
+**/secrets/*.pem
+**/secrets/*.key

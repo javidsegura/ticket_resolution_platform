@@ -9,7 +9,7 @@ variable "ssh_key_local_path" {
   type = string
 }
 variable "aws_s3_web_arn" {
-  type = string 
+  type = string
 }
 variable "aws_secretsmanager_database_crentials_arn" {
   type = string

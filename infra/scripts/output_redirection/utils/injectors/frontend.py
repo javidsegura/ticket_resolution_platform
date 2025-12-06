@@ -1,5 +1,6 @@
 
 
+import os
 from typing import Any, Dict
 
 from pydantic import BaseModel
@@ -10,14 +11,20 @@ class FrontendInjector:
       def __init__(self, environment) -> None:
             self.environment = environment
 
+      def _extract_server_ip(self, ansible_outputs: BaseModel):
+            cloud_provider = os.getenv("CLOUD_PROVIDER").lower()
+            if cloud_provider == "aws":
+                  return ansible_outputs.get("EC2_APP_SERVER_PRIVATE_IP")
+            elif cloud_provider == "azure":
+                  return ansible_outputs.get("VM_APP_SERVER_PUBLIC_IP")
+
       def _resolve_base_url(self, ansible_outputs: BaseModel):
+            server_ip = self._extract_server_ip(ansible_outputs)
             if self.environment == "dev":
                   return {"VITE_BASE_URL": "http://localhost/api/"}
             elif self.environment == "staging":
-                  server_ip = ansible_outputs.get("EC2_APP_SERVER_PRIVATE_IP")
                   return {"VITE_BASE_URL": "http://localhost:8080/api/"}
             elif self.environment == "production":
-                  server_ip = ansible_outputs.get("EC2_APP_SERVER_PUBLIC_IP")
                   return {"VITE_BASE_URL": f"http://{server_ip}/api/"}
             else:
                   raise ValueError(f"Environment can only be dev, production or staging. Currently you have: '{self.environment}'")

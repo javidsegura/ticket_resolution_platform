@@ -23,6 +23,8 @@ dependencies = [
       "python-multipart",
       "python-json-logger>=2.0.0",
       "azure-storage-blob>=12.19.0",
+      "azure-keyvault-secrets",
+      "azure-identity",
       "prometheus-fastapi-instrumentator==7.0.0",
       "rq",
       "pdfplumber>=0.10.0"

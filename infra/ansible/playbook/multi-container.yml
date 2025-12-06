@@ -1,86 +1,110 @@
-- name: Docker compose launch
+- name: Docker compose launch with progressive rollout
   hosts: web_servers
   become: yes
 
   vars:
+    target_user: "{{ ansible_user_id }}"
     remote_project_path: "/opt/{{ project_name }}"
-    project_name: "url-shortener"
+    project_name: "ai-ticket-platform"
     src_backend_env_synced_path: "../../../backend/env_config/synced/.env.{{ stage_environment }}"
     dest_backend_env_synced_path: "{{ remote_project_path }}/backend/env_config/synced/.env.{{ stage_environment }}"
+    backend_image_tag: "production-{{ lookup('env', 'BACKEND_VERSION') | default('production', true) }}"
+    previous_tag_file: "{{ remote_project_path }}/.previous_backend_tag"
+    health_check_retries: 3
+    health_check_delay: 30
+
   tasks:
   - name: Show resolved paths
     debug:
       msg: "Source path is {{ src_backend_env_synced_path }} and destination path is {{ dest_backend_env_synced_path }}"
-  - name: Ensure Docker and dependencies are installed
+
+  - name: Show deployment tag
+    debug:
+      msg: "Deploying backend image tag: {{ backend_image_tag }}"
+
+  - name: Ensure Docker and dependencies are installed (APT)
+    ansible.builtin.apt:
+      name:
+        - docker.io
+        - python3
+        - python3-pip
+        - curl
+      state: present
+      update_cache: yes
+    when: ansible_pkg_mgr == "apt"
+
+  - name: Ensure Docker and dependencies are installed (DNF)
     ansible.builtin.dnf:
-      name: 
+      name:
         - docker
         - python3
         - python3-pip
+        - curl
       state: present
       update_cache: yes
-      
+    when: ansible_pkg_mgr == "dnf"
+
   - name: Start Docker service
     ansible.builtin.service:
       name: docker
       state: started
       enabled: yes
-      
+
   - name: Add ec2 user to the docker group
     ansible.builtin.user:
-      name: ec2-user
-      groups: docker 
+      name: "{{ target_user }}"
+      groups: docker
       append: yes
-      
+
   - name: Reset ssh connection in order to update user persmission
     ansible.builtin.meta: reset_connection
-    
+
   - name: Create project directory
     ansible.builtin.file:
       path: "{{ remote_project_path }}"
       state: directory
-      owner: ec2-user
+      owner: "{{ target_user }}"
       group: docker
       mode: "0755"
+
   - name: Create frontend app directory
     ansible.builtin.file:
       path: "{{ remote_project_path }}/frontend/app"
       state: directory
-      owner: ec2-user
+      owner: "{{ target_user }}"
       group: docker
       mode: "0755"
+
   - name: Create backend directory
     ansible.builtin.file:
       path: "{{ remote_project_path }}/backend"
       state: directory
-      owner: ec2-user
+      owner: "{{ target_user }}"
       group: docker
       mode: "0755"
+
   - name: Create backend env_config directory structure
     ansible.builtin.file:
       path: "{{ remote_project_path }}/backend/env_config/synced"
       state: directory
-      owner: ec2-user
+      owner: "{{ target_user }}"
       group: docker
       mode: "0755"
-      
-  - name: Copy docker-compose files and dependencies to the root level
+
+  - name: Copy deployment directory structure
     ansible.builtin.copy:
-      src: "../../../{{ item }}"
-      dest: "{{ remote_project_path }}/{{ item }}"
-      owner: ec2-user
+      src: "../../../deployment/"
+      dest: "{{ remote_project_path }}/deployment"
+      owner: "{{ target_user }}"
       group: docker
       mode: "0644"
-    loop:
-      - docker-compose.yml
-      - docker-compose.{{ stage_environment }}.yml
-      - nginx.prod.conf
-      
+      directory_mode: "0755"
+
   - name: Copy backend synced .env
     ansible.builtin.copy:
       src: "{{ src_backend_env_synced_path  }}"
       dest: "{{ dest_backend_env_synced_path }}"
-      owner: ec2-user
+      owner: "{{ target_user }}"
       group: docker
       mode: "0644"
       directory_mode: "0755"
@@ -89,12 +113,11 @@
     ansible.builtin.copy:
       src: "../../../frontend/app/dist/"
       dest: "{{ remote_project_path }}/frontend/app/dist/"
-      owner: ec2-user
+      owner: "{{ target_user }}"
       group: docker
       mode: "0644"
       directory_mode: "0755"
 
-  # Install Docker Compose V2 plugin
   - name: Create Docker CLI plugins directory
     ansible.builtin.file:
       path: /usr/local/lib/docker/cli-plugins
@@ -109,31 +132,132 @@
       owner: root
       group: root
 
-  # Install Python docker library for Ansible modules
   - name: Install python docker library
     ansible.builtin.pip:
       name: docker
       state: present
       extra_args: "--user"
-    become_user: ec2-user
+    become_user: "{{ target_user }}"
 
-  - name: Stop existing Docker Compose services
+  # Read previous tag for potential rollback
+  - name: Check if previous tag file exists
+    ansible.builtin.stat:
+      path: "{{ previous_tag_file }}"
+    register: previous_tag_stat
+
+  - name: Read previous backend tag
+    ansible.builtin.slurp:
+      src: "{{ previous_tag_file }}"
+    register: previous_tag_content
+    when: previous_tag_stat.stat.exists
+
+  - name: Set previous tag variable
+    set_fact:
+      previous_backend_tag: "{{ previous_tag_content.content | b64decode | trim }}"
+    when: previous_tag_stat.stat.exists
+
+  - name: Show previous tag
+    debug:
+      msg: "Previous backend tag: {{ previous_backend_tag | default('none') }}"
+
+  # Deploy new version
+  - name: Deploy new backend version
     community.docker.docker_compose_v2:
-      project_src: "{{ remote_project_path }}"
-      project_name: "{{ project_name }}"
-      state: absent
-    
-  - name: Start and build Docker Compose Services
-    community.docker.docker_compose_v2: 
-      project_src: "{{ remote_project_path }}"
+      project_src: "{{ remote_project_path }}/deployment"
       files:
         - docker-compose.yml
         - docker-compose.{{stage_environment}}.yml
       project_name: "{{ project_name }}"
       state: present
-      pull: always 
+      pull: always
       recreate: always
     environment:
       ENVIRONMENT: "{{ stage_environment }}"
       BACKEND_ENV_FILE: "{{ dest_backend_env_synced_path }}"
-    
+      SERVER_PUBLIC_IP: "{{ ansible_default_ipv4.address | default(ansible_host) }}"
+      BACKEND_IMAGE_TAG: "{{ backend_image_tag }}"
+
+
+  # Health check with retries
+  - name: Wait for backend dependency health check
+    ansible.builtin.uri:
+      url: "http://{{ ansible_default_ipv4.address | default(ansible_host) }}:8000/api/health/dependencies"
+      method: GET
+      status_code: 200
+    register: health_check
+    retries: "{{ health_check_retries }}"
+    delay: "{{ health_check_delay }}"
+    until: health_check.status == 200
+    ignore_errors: yes
+
+  # Rollback if health check fails
+  - name: Rollback to previous version if health check failed
+    block:
+      - name: Show rollback message
+        debug:
+          msg: "Health check failed! Rolling back to {{ previous_backend_tag }}"
+
+      - name: Get ID of the failed backend container
+        # Use grep to ensure we find the container even if it is 'Exited'
+        shell: docker ps -a | grep "url-shortener-backend" | head -n 1 | awk '{print $1}'
+        register: failed_backend_id
+        ignore_errors: yes
+
+      - name: Get Docker logs of failed backend
+        shell: "docker logs {{ failed_backend_id.stdout }}"
+        register: backend_failed_logs
+        ignore_errors: yes
+        # Only run this if we actually found an ID
+        when: failed_backend_id.stdout | length > 0
+
+      - name: Print failed backend logs
+        debug:
+          var: backend_failed_logs.stdout_lines
+        when:
+          - backend_failed_logs.skipped is not defined
+          - backend_failed_logs.stdout_lines is defined
+
+      - name: Deploy previous backend version
+        community.docker.docker_compose_v2:
+          project_src: "{{ remote_project_path }}/deployment"
+          files:
+            - docker-compose.yml
+            - docker-compose.{{stage_environment}}.yml
+          project_name: "{{ project_name }}"
+          state: present
+          pull: always
+          recreate: always
+        environment:
+          ENVIRONMENT: "{{ stage_environment }}"
+          BACKEND_ENV_FILE: "{{ dest_backend_env_synced_path }}"
+          SERVER_PUBLIC_IP: "{{ ansible_default_ipv4.address | default(ansible_host) }}"
+          BACKEND_IMAGE_TAG: "{{ previous_backend_tag }}"
+
+      - name: Fail deployment
+        fail:
+          msg: "Deployment failed - rolled back to {{ previous_backend_tag }}"
+    when:
+      - health_check.failed
+      - previous_tag_stat.stat.exists
+
+  - name: Fail if no previous version to rollback to
+    fail:
+      msg: "Health check failed and no previous version exists to rollback to"
+    when:
+      - health_check.failed
+      - not previous_tag_stat.stat.exists
+
+  # Save current tag as previous for next deployment
+  - name: Save current backend tag for future rollbacks
+    ansible.builtin.copy:
+      content: "{{ backend_image_tag }}"
+      dest: "{{ previous_tag_file }}"
+      owner: "{{ target_user }}"
+      group: docker
+      mode: "0644"
+    when: not health_check.failed
+
+  - name: Deployment successful
+    debug:
+      msg: "Backend {{ backend_image_tag }} deployed successfully!"
+    when: not health_check.failed
