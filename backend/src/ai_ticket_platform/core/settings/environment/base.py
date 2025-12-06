@@ -25,7 +25,7 @@ class BaseSettings(ABC):
 			if not getattr(self, var):
 				missing_vars.append(var)
 			else:
-				print(f"VAR: {var} has {getattr(self, var)}")
+				logger.debug(f"VAR: {var} has {getattr(self, var)}")
 		if missing_vars:
 			raise ValueError(
 				f"Missing required environment variables: {', '.join(missing_vars)}"
