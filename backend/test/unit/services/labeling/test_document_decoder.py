@@ -9,7 +9,7 @@ import pytest
 from unittest.mock import Mock, patch, MagicMock
 from io import BytesIO
 
-from ai_ticket_platform.services.labeling.document_decoder import decode_document, MAX_CHARS
+from ai_ticket_platform.services.company_docs.document_decoder import decode_document, MAX_CHARS
 
 
 class TestDecodeDocument:
@@ -23,7 +23,7 @@ class TestDecodeDocument:
 		expected_text = "This is page 1 content"
 
 		# mock pdfplumber
-		with patch("ai_ticket_platform.services.labeling.document_decoder.pdfplumber.open") as mock_open:
+		with patch("ai_ticket_platform.services.company_docs.document_decoder.pdfplumber.open") as mock_open:
 			mock_pdf = MagicMock()
 			mock_page = Mock()
 			mock_page.extract_text.return_value = expected_text
@@ -49,7 +49,7 @@ class TestDecodeDocument:
 		page_texts = ["Page 1 text", "Page 2 text", "Page 3 text"]
 
 		# mock pdfplumber
-		with patch("ai_ticket_platform.services.labeling.document_decoder.pdfplumber.open") as mock_open:
+		with patch("ai_ticket_platform.services.company_docs.document_decoder.pdfplumber.open") as mock_open:
 			mock_pdf = MagicMock()
 			mock_pages = []
 			for text in page_texts:
@@ -78,7 +78,7 @@ class TestDecodeDocument:
 		content = b"fake pdf content"
 
 		# mock pdfplumber with empty text
-		with patch("ai_ticket_platform.services.labeling.document_decoder.pdfplumber.open") as mock_open:
+		with patch("ai_ticket_platform.services.company_docs.document_decoder.pdfplumber.open") as mock_open:
 			mock_pdf = MagicMock()
 			mock_page = Mock()
 			mock_page.extract_text.return_value = ""
@@ -102,7 +102,7 @@ class TestDecodeDocument:
 		content = b"fake pdf content"
 
 		# mock pdfplumber with mix of text and None
-		with patch("ai_ticket_platform.services.labeling.document_decoder.pdfplumber.open") as mock_open:
+		with patch("ai_ticket_platform.services.company_docs.document_decoder.pdfplumber.open") as mock_open:
 			mock_pdf = MagicMock()
 			mock_page1 = Mock()
 			mock_page1.extract_text.return_value = "Page 1"
@@ -131,7 +131,7 @@ class TestDecodeDocument:
 		content = b"corrupted pdf content"
 
 		# mock pdfplumber to raise exception
-		with patch("ai_ticket_platform.services.labeling.document_decoder.pdfplumber.open") as mock_open:
+		with patch("ai_ticket_platform.services.company_docs.document_decoder.pdfplumber.open") as mock_open:
 			mock_open.side_effect = Exception("PDF is corrupted")
 
 			# execute

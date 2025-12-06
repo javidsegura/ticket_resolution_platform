@@ -19,6 +19,7 @@ class DeploymentSettings(BaseSettings):
 			"MYSQL_SYNC_DRIVER",
 			"MYSQL_ASYNC_DRIVER",
 			"CLOUD_PROVIDER",
+			"GEMINI_API_KEY"
 		]
 
 		# Dynamically add cloud-specific required vars
@@ -41,6 +42,11 @@ class DeploymentSettings(BaseSettings):
 		self._extract_storage_variables()
 		self._extract_app_logic_variables()
 		self._extract_database_variables()
+		self._extract_llm_variables()
+
+	def _extract_llm_variables(self):
+		self.GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+		self.GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
 
 	def _extract_secret_manger_databaseb_credentials(self):
 		from ai_ticket_platform.services.infra.secrets import get_secrets_service

@@ -4,7 +4,7 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ai_ticket_platform.services.labeling.document_processor import process_document
+from ai_ticket_platform.services.company_docs.document_processor import process_document
 
 
 @pytest.mark.asyncio
@@ -20,9 +20,9 @@ class TestDocumentProcessor:
         label_result = {"department_area": "Tech"}
         db_result = MagicMock(id=123)
 
-        with patch("ai_ticket_platform.services.labeling.document_processor.decode_document") as mock_decode:
-            with patch("ai_ticket_platform.services.labeling.document_processor.label_document") as mock_label:
-                with patch("ai_ticket_platform.services.labeling.document_processor.create_company_file") as mock_create:
+        with patch("ai_ticket_platform.services.company_docs.document_processor.decode_document") as mock_decode:
+            with patch("ai_ticket_platform.services.company_docs.document_processor.label_document") as mock_label:
+                with patch("ai_ticket_platform.services.company_docs.document_processor.create_company_file") as mock_create:
                     mock_decode.return_value = decode_result
                     mock_label.return_value = label_result
                     mock_create.return_value = db_result
@@ -41,7 +41,7 @@ class TestDocumentProcessor:
 
         decode_result = {"success": False, "error": "Invalid PDF"}
 
-        with patch("ai_ticket_platform.services.labeling.document_processor.decode_document") as mock_decode:
+        with patch("ai_ticket_platform.services.company_docs.document_processor.decode_document") as mock_decode:
             mock_decode.return_value = decode_result
 
             result = await process_document("bad.pdf", b"INVALID", mock_llm_client, mock_db)
@@ -59,8 +59,8 @@ class TestDocumentProcessor:
         decode_result = {"success": True, "content": "Content"}
         label_result = {"error": "LLM error", "department_area": "Unknown"}
 
-        with patch("ai_ticket_platform.services.labeling.document_processor.decode_document") as mock_decode:
-            with patch("ai_ticket_platform.services.labeling.document_processor.label_document") as mock_label:
+        with patch("ai_ticket_platform.services.company_docs.document_processor.decode_document") as mock_decode:
+            with patch("ai_ticket_platform.services.company_docs.document_processor.label_document") as mock_label:
                 mock_decode.return_value = decode_result
                 mock_label.return_value = label_result
 
@@ -79,9 +79,9 @@ class TestDocumentProcessor:
         decode_result = {"success": True, "content": "Content"}
         label_result = {"department_area": "Tech"}
 
-        with patch("ai_ticket_platform.services.labeling.document_processor.decode_document") as mock_decode:
-            with patch("ai_ticket_platform.services.labeling.document_processor.label_document") as mock_label:
-                with patch("ai_ticket_platform.services.labeling.document_processor.create_company_file") as mock_create:
+        with patch("ai_ticket_platform.services.company_docs.document_processor.decode_document") as mock_decode:
+            with patch("ai_ticket_platform.services.company_docs.document_processor.label_document") as mock_label:
+                with patch("ai_ticket_platform.services.company_docs.document_processor.create_company_file") as mock_create:
                     mock_decode.return_value = decode_result
                     mock_label.return_value = label_result
                     mock_create.side_effect = Exception("Database connection error")
@@ -103,10 +103,10 @@ class TestDocumentProcessor:
         label_result = {"department_area": "Tech"}
         db_result = MagicMock(id=123)
 
-        with patch("ai_ticket_platform.services.labeling.document_processor.decode_document") as mock_decode:
-            with patch("ai_ticket_platform.services.labeling.document_processor.label_document") as mock_label:
-                with patch("ai_ticket_platform.services.labeling.document_processor.create_company_file") as mock_create:
-                    with patch("ai_ticket_platform.services.labeling.document_processor.asyncio.to_thread") as mock_thread:
+        with patch("ai_ticket_platform.services.company_docs.document_processor.decode_document") as mock_decode:
+            with patch("ai_ticket_platform.services.company_docs.document_processor.label_document") as mock_label:
+                with patch("ai_ticket_platform.services.company_docs.document_processor.create_company_file") as mock_create:
+                    with patch("ai_ticket_platform.services.company_docs.document_processor.asyncio.to_thread") as mock_thread:
                         # Mock asyncio.to_thread to call the function directly
                         mock_thread.side_effect = lambda func, *args, **kwargs: func(*args, **kwargs)
 
@@ -127,10 +127,10 @@ class TestDocumentProcessor:
         label_result = {"department_area": "Finance"}
         db_result = MagicMock(id=123)
 
-        with patch("ai_ticket_platform.services.labeling.document_processor.decode_document") as mock_decode:
-            with patch("ai_ticket_platform.services.labeling.document_processor.label_document") as mock_label:
-                with patch("ai_ticket_platform.services.labeling.document_processor.create_company_file") as mock_create:
-                    with patch("ai_ticket_platform.services.labeling.document_processor.asyncio.to_thread") as mock_thread:
+        with patch("ai_ticket_platform.services.company_docs.document_processor.decode_document") as mock_decode:
+            with patch("ai_ticket_platform.services.company_docs.document_processor.label_document") as mock_label:
+                with patch("ai_ticket_platform.services.company_docs.document_processor.create_company_file") as mock_create:
+                    with patch("ai_ticket_platform.services.company_docs.document_processor.asyncio.to_thread") as mock_thread:
                         mock_thread.side_effect = lambda func, *args, **kwargs: func(*args, **kwargs)
 
                         mock_decode.return_value = decode_result
@@ -154,9 +154,9 @@ class TestDocumentProcessor:
         label_result = {"department_area": "HR"}
         db_result = MagicMock(id=456)
 
-        with patch("ai_ticket_platform.services.labeling.document_processor.decode_document") as mock_decode:
-            with patch("ai_ticket_platform.services.labeling.document_processor.label_document") as mock_label:
-                with patch("ai_ticket_platform.services.labeling.document_processor.create_company_file") as mock_create:
+        with patch("ai_ticket_platform.services.company_docs.document_processor.decode_document") as mock_decode:
+            with patch("ai_ticket_platform.services.company_docs.document_processor.label_document") as mock_label:
+                with patch("ai_ticket_platform.services.company_docs.document_processor.create_company_file") as mock_create:
                     mock_decode.return_value = decode_result
                     mock_label.return_value = label_result
                     mock_create.return_value = db_result
@@ -179,9 +179,9 @@ class TestDocumentProcessor:
         label_result = {"department_area": "Tech"}
         db_result = MagicMock(id=789)
 
-        with patch("ai_ticket_platform.services.labeling.document_processor.decode_document") as mock_decode:
-            with patch("ai_ticket_platform.services.labeling.document_processor.label_document") as mock_label:
-                with patch("ai_ticket_platform.services.labeling.document_processor.create_company_file") as mock_create:
+        with patch("ai_ticket_platform.services.company_docs.document_processor.decode_document") as mock_decode:
+            with patch("ai_ticket_platform.services.company_docs.document_processor.label_document") as mock_label:
+                with patch("ai_ticket_platform.services.company_docs.document_processor.create_company_file") as mock_create:
                     mock_decode.return_value = decode_result
                     mock_label.return_value = label_result
                     mock_create.return_value = db_result
@@ -199,9 +199,9 @@ class TestDocumentProcessor:
         label_result = {"department_area": "Marketing"}
         db_result = MagicMock(id=123)
 
-        with patch("ai_ticket_platform.services.labeling.document_processor.decode_document") as mock_decode:
-            with patch("ai_ticket_platform.services.labeling.document_processor.label_document") as mock_label:
-                with patch("ai_ticket_platform.services.labeling.document_processor.create_company_file") as mock_create:
+        with patch("ai_ticket_platform.services.company_docs.document_processor.decode_document") as mock_decode:
+            with patch("ai_ticket_platform.services.company_docs.document_processor.label_document") as mock_label:
+                with patch("ai_ticket_platform.services.company_docs.document_processor.create_company_file") as mock_create:
                     mock_decode.return_value = decode_result
                     mock_label.return_value = label_result
                     mock_create.return_value = db_result
@@ -219,9 +219,9 @@ class TestDocumentProcessor:
         label_result = {"department_area": "Unknown"}  # Default unknown label
         db_result = MagicMock(id=123)
 
-        with patch("ai_ticket_platform.services.labeling.document_processor.decode_document") as mock_decode:
-            with patch("ai_ticket_platform.services.labeling.document_processor.label_document") as mock_label:
-                with patch("ai_ticket_platform.services.labeling.document_processor.create_company_file") as mock_create:
+        with patch("ai_ticket_platform.services.company_docs.document_processor.decode_document") as mock_decode:
+            with patch("ai_ticket_platform.services.company_docs.document_processor.label_document") as mock_label:
+                with patch("ai_ticket_platform.services.company_docs.document_processor.create_company_file") as mock_create:
                     mock_decode.return_value = decode_result
                     mock_label.return_value = label_result
                     mock_create.return_value = db_result

@@ -1,7 +1,7 @@
 """Unit tests for labeling prompt builder."""
 
 import pytest
-from ai_ticket_platform.services.labeling.prompt_builder import (
+from ai_ticket_platform.services.company_docs.prompt_builder import (
     build_labeling_prompt,
     get_output_schema,
     get_task_config

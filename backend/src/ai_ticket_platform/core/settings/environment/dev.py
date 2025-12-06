@@ -13,85 +13,91 @@ from dotenv import load_dotenv
 
 
 class DevSettings(BaseSettings):
-	def __init__(self) -> None:
-		super().__init__()
+    def __init__(self) -> None:
+        super().__init__()
 
-	@property
-	def required_vars(self):
-		base_vars = [
-			"REDIS_URL",
-			"MYSQL_USER",
-			"MYSQL_PASSWORD",
-			"MYSQL_HOST",
-			"MYSQL_PORT",
-			"MYSQL_DATABASE",
-			"MYSQL_SYNC_DRIVER",
-			"MYSQL_ASYNC_DRIVER",
-			"CLOUD_PROVIDER",
-			# "OPENAI_API_KEY",  # Required for LLM clustering
-			# "USING_FIREBASE_EMULATOR", "FB_AUTH_EMULATOR_HOST", "FB_PROJECT_ID"
-		]
+    @property
+    def required_vars(self):
+        base_vars = [
+            "REDIS_URL",
+            "MYSQL_USER",
+            "MYSQL_PASSWORD",
+            "MYSQL_HOST",
+            "MYSQL_PORT",
+            "MYSQL_DATABASE",
+            "MYSQL_SYNC_DRIVER",
+            "MYSQL_ASYNC_DRIVER",
+            "CLOUD_PROVIDER",
+            "GEMINI_API_KEY",  
+            # "OPENAI_API_KEY",  # Required for LLM clustering
+            #"USING_FIREBASE_EMULATOR", "FB_AUTH_EMULATOR_HOST", "FB_PROJECT_ID"
+        ]
+        
+        # Cloud-specific vars 
+        cloud_provider = os.getenv("CLOUD_PROVIDER", "aws").lower()
+        if cloud_provider == "aws":
+            base_vars.extend(["S3_MAIN_BUCKET_NAME", "AWS_MAIN_REGION"])
+        elif cloud_provider == "azure":
+            base_vars.extend([
+                "AZURE_STORAGE_CONTAINER_NAME",
+                "AZURE_STORAGE_ACCOUNT_NAME", 
+                "AZURE_STORAGE_ACCOUNT_KEY"
+            ])
+        
+        return base_vars
 
-		# Cloud-specific vars
-		cloud_provider = os.getenv("CLOUD_PROVIDER", "aws").lower()
-		if cloud_provider == "aws":
-			base_vars.extend(["S3_MAIN_BUCKET_NAME", "AWS_MAIN_REGION"])
-		elif cloud_provider == "azure":
-			base_vars.extend(
-				[
-					"AZURE_STORAGE_CONTAINER_NAME",
-					"AZURE_STORAGE_ACCOUNT_NAME",
-					"AZURE_STORAGE_ACCOUNT_KEY",
-				]
-			)
+    def extract_all_variables(self):
+        self._extract_database_variables()
+        self._extract_storage_variables()
+        self._extract_app_logic_variables()
+        self._extract_slack_variables()
+        self._extract_llm_variables()
+        self._extract_chroma_variables()
+        #self._extract_firebase_variables()
 
-		return base_vars
+    def _extract_database_variables(self):
+        self.REDIS_URL = os.getenv("REDIS_URL")
+        self.REDIS_MAX_CONNECTIONS = int(os.getenv("REDIS_MAX_CONNECTIONS", "10"))
+        self.MYSQL_USER = os.getenv("MYSQL_USER")
+        self.MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD")
+        self.MYSQL_ASYNC_DRIVER = os.getenv("MYSQL_ASYNC_DRIVER")
+        self.MYSQL_PORT = os.getenv("MYSQL_PORT")
+        self.MYSQL_DATABASE = os.getenv("MYSQL_DATABASE")
+        self.MYSQL_SYNC_DRIVER = os.getenv("MYSQL_SYNC_DRIVER")
+        self.MYSQL_HOST = os.getenv("MYSQL_HOST")
 
-	def extract_all_variables(self):
-		self._extract_database_variables()
-		self._extract_storage_variables()
-		self._extract_app_logic_variables()
-		self._extract_slack_variables()
-		self._extract_llm_variables()
-		# self._extract_firebase_variables()
+    def _extract_storage_variables(self):
+        self.CLOUD_PROVIDER = os.getenv("CLOUD_PROVIDER", "aws").lower()
 
-	def _extract_database_variables(self):
-		self.REDIS_URL = os.getenv("REDIS_URL")
-		self.REDIS_MAX_CONNECTIONS = int(os.getenv("REDIS_MAX_CONNECTIONS", "10"))
-		self.MYSQL_USER = os.getenv("MYSQL_USER")
-		self.MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD")
-		self.MYSQL_ASYNC_DRIVER = os.getenv("MYSQL_ASYNC_DRIVER")
-		self.MYSQL_PORT = os.getenv("MYSQL_PORT")
-		self.MYSQL_DATABASE = os.getenv("MYSQL_DATABASE")
-		self.MYSQL_SYNC_DRIVER = os.getenv("MYSQL_SYNC_DRIVER")
-		self.MYSQL_HOST = os.getenv("MYSQL_HOST")
+        if self.CLOUD_PROVIDER == "aws":
+            self.S3_MAIN_BUCKET_NAME = os.getenv("S3_MAIN_BUCKET_NAME")
+            self.AWS_MAIN_REGION = os.getenv("AWS_MAIN_REGION")
+        elif self.CLOUD_PROVIDER == "azure":
+            self.AZURE_STORAGE_CONTAINER_NAME = os.getenv(
+                "AZURE_STORAGE_CONTAINER_NAME"
+            )
+            self.AZURE_STORAGE_ACCOUNT_NAME = os.getenv("AZURE_STORAGE_ACCOUNT_NAME")
+            self.AZURE_STORAGE_ACCOUNT_KEY = os.getenv("AZURE_STORAGE_ACCOUNT_KEY")
+        else:
+            raise ValueError(
+                f"Unsupported CLOUD_PROVIDER: {self.CLOUD_PROVIDER}. Use 'aws' or 'azure'"
+            )
 
-	def _extract_storage_variables(self):
-		self.CLOUD_PROVIDER = os.getenv("CLOUD_PROVIDER", "aws").lower()
+    def _extract_llm_variables(self):
+        self.GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+        self.GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
 
-		if self.CLOUD_PROVIDER == "aws":
-			self.S3_MAIN_BUCKET_NAME = os.getenv("S3_MAIN_BUCKET_NAME")
-			self.AWS_MAIN_REGION = os.getenv("AWS_MAIN_REGION")
-		elif self.CLOUD_PROVIDER == "azure":
-			self.AZURE_STORAGE_CONTAINER_NAME = os.getenv(
-				"AZURE_STORAGE_CONTAINER_NAME"
-			)
-			self.AZURE_STORAGE_ACCOUNT_NAME = os.getenv("AZURE_STORAGE_ACCOUNT_NAME")
-			self.AZURE_STORAGE_ACCOUNT_KEY = os.getenv("AZURE_STORAGE_ACCOUNT_KEY")
-		else:
-			raise ValueError(
-				f"Unsupported CLOUD_PROVIDER: {self.CLOUD_PROVIDER}. Use 'aws' or 'azure'"
-			)
+    def _extract_chroma_variables(self):
+        """Extract ChromaDB variables for RAG."""
+        self.CHROMA_HOST = os.getenv("CHROMA_HOST", "chromadb")
+        self.CHROMA_PORT = int(os.getenv("CHROMA_PORT", "8000"))
+        self.CHROMA_COLLECTION_NAME = os.getenv("CHROMA_COLLECTION_NAME", "company-docs")
 
-	def _extract_slack_variables(self):
-		self.SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")
-		self.SLACK_CHANNEL_ID = os.getenv("SLACK_CHANNEL_ID")
+    def _extract_slack_variables(self):
+        self.SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")
+        self.SLACK_CHANNEL_ID = os.getenv("SLACK_CHANNEL_ID")
 
-	def _extract_llm_variables(self):
-		self.OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-		self.OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
-
-	# def _extract_firebase_variables(self):
-	#       self.USING_FIREBASE_EMULATOR = os.getenv("USING_FIREBASE_EMULATOR")
-	#       self.FB_AUTH_EMULATOR_HOST= os.getenv("FB_AUTH_EMULATOR_HOST")
-	#       self.FB_PROJECT_ID = os.getenv("FB_PROJECT_ID")
+    # def _extract_firebase_variables(self):
+    #       self.USING_FIREBASE_EMULATOR = os.getenv("USING_FIREBASE_EMULATOR")
+    #       self.FB_AUTH_EMULATOR_HOST= os.getenv("FB_AUTH_EMULATOR_HOST")
+    #       self.FB_PROJECT_ID = os.getenv("FB_PROJECT_ID")

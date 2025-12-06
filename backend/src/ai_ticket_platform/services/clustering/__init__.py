@@ -1,3 +1,6 @@
-from ai_ticket_platform.services.clustering.cluster_service import (
-	cluster_and_categorize_tickets,
-)
+# Single-pass clustering - ticket categorization into super-specific intents
+from ai_ticket_platform.services.clustering.cluster_interface import cluster_tickets
+
+__all__ = [
+	"cluster_tickets"
+]

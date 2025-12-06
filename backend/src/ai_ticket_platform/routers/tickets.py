@@ -1,15 +1,16 @@
 from ai_ticket_platform.dependencies.queue import get_queue
 from ai_ticket_platform.services.queue_manager.tasks import (
-	batch_finalizer,
 	process_ticket_stage1,
+	batch_finalizer,
 )
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 import logging
+import tempfile
+import os
 
 from ai_ticket_platform.dependencies import get_db
-from ai_ticket_platform.services.csv_uploader.csv_orchestrator import upload_csv_file
-from ai_ticket_platform.schemas.endpoints.ticket import (
+from ai_ticket_platform.schemas.endpoints.ticket import ( 
 	CSVUploadResponse,
 	TicketListResponse,
 	TicketResponse,
@@ -19,13 +20,11 @@ from ai_ticket_platform.database.CRUD.ticket import (
 	list_tickets as crud_list_tickets,
 	count_tickets as crud_count_tickets,
 )
+from rq import Queue
+from rq.job import Retry
 
 router = APIRouter(prefix="/tickets", tags=["tickets"])
 logger = logging.getLogger(__name__)
-
-from ai_ticket_platform.core.clients.redis import initialize_redis_client
-from rq import Queue
-from rq.job import Job, Retry
 
 
 @router.get("/", response_model=TicketListResponse)
@@ -60,25 +59,30 @@ async def get_ticket_by_id(ticket_id: int, db: AsyncSession = Depends(get_db)):
 	return TicketResponse.model_validate(ticket)
 
 
-@router.post("/upload-csv", response_model=CSVUploadResponse)
-async def upload_tickets_csv(
-	file: UploadFile = File(...), db: AsyncSession = Depends(get_db)
+@router.post("/upload-csv")
+async def upload_csv_with_queue(
+	file: UploadFile = File(...),
+	queue: Queue = Depends(get_queue),
+	batch_size: int = Query(10, ge=1, le=50, description="Number of tickets to process per batch job")
 ):
 	"""
-	Upload a CSV file with tickets.
+	Upload CSV file and process through queue workflow with TRUE batching:
+	1. Parse CSV synchronously
+	2. Enqueue Stage 1 jobs (one per BATCH of tickets): Filter validation + create in DB + cluster/assign intent
+	3. Enqueue Batch Finalizer: Wait for all Stage 1 jobs, group by unique intent
+	4. Finalizer enqueues Stage 2 jobs (one per unique intent): Generate article content using RAG
 
-	Expected CSV columns: id, created_at, subject, body
+	Args:
+		file: CSV file with ticket data
+		batch_size: Number of tickets per batch job (default: 10, max: 50)
 	"""
-
 	# Validate file type
-	if not file.filename or not file.filename.lower().endswith(".csv"):
+	if not file.filename or not file.filename.lower().endswith('.csv'):
 		raise HTTPException(status_code=400, detail="Only CSV files are allowed")
 
 	# Validate content type
-	if file.content_type not in ["text/csv", "application/csv"]:
-		raise HTTPException(
-			status_code=400, detail="Invalid content type. Expected text/csv"
-		)
+	if file.content_type not in ['text/csv', 'application/csv']:
+		raise HTTPException(status_code=400, detail="Invalid content type. Expected text/csv")
 
 	# Validate file size (10MB limit)
 	MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
@@ -92,88 +96,81 @@ async def upload_tickets_csv(
 
 	await file.seek(0)  # Reset file pointer
 
-	try:
-		result = await upload_csv_file(file, db)
-		return CSVUploadResponse(**result)
-
-	except ValueError as e:
-		raise HTTPException(status_code=400, detail=str(e))
-	except Exception as e:
-		raise HTTPException(status_code=500, detail=f"Error processing CSV: {str(e)}")
-
-
-# ADD HERE FAKE CSV INGESTION, THEN CALL QUEUE SERVICE TO ADD STUFF
-@router.post("/upload-csv-with-pub-sub-model")
-async def process_tickets_endpoint(queue: Queue = Depends(get_queue)):
-	"""Process mock tickets in two stages (no CSV needed for demo)"""
-
-	logger.info("[PUB/SUB] Starting ticket processing pipeline")
-
-	# Mock ticket data
-	mock_tickets = [
-		{
-			"id": "TICKET-001",
-			"description": "Bug in login form - users cannot authenticate",
-			"category": "technical",
-			"priority": "high",
-		},
-		{
-			"id": "TICKET-002",
-			"description": "Add dark mode feature to the dashboard",
-			"category": "enhancement",
-			"priority": "medium",
-		},
-		{
-			"id": "TICKET-003",
-			"description": "Question about billing cycle",
-			"category": "support",
-			"priority": "low",
-		},
-		{
-			"id": "TICKET-004",
-			"description": "Error 500 when uploading large files",
-			"category": "technical",
-			"priority": "critical",
-		},
-		{
-			"id": "TICKET-005",
-			"description": "Feature request: export data to Excel",
-			"category": "enhancement",
-			"priority": "medium",
-		},
-	]
+	tmp_path = None
 
 	try:
-		# Stage 1: Enqueue all tickets
-		stage1_jobs = []
-		for ticket in mock_tickets:
-			job = queue.enqueue(
+		logger.info(f"[CSV QUEUE] Processing CSV upload: {file.filename} with batch_size={batch_size}")
+
+		# Save uploaded file temporarily
+		with tempfile.NamedTemporaryFile(delete=False, suffix='.csv') as tmp:
+			while chunk := await file.read(1024 * 1024):  # 1MB chunks
+				tmp.write(chunk)
+			tmp_path = tmp.name
+
+		logger.info(f"[CSV QUEUE] Saved temp file to: {tmp_path}")
+
+		# Parse CSV file to extract tickets
+		from ai_ticket_platform.services.csv_uploader.csv_parser import parse_csv_file
+		parse_result = parse_csv_file(tmp_path)
+
+		if not parse_result.get("success"):
+			raise ValueError(f"CSV parsing failed: {parse_result}")
+
+		tickets = parse_result.get("tickets", [])
+		logger.info(f"[CSV QUEUE] Parsed {len(tickets)} tickets from CSV")
+
+		# Stage 1: Enqueue one job per BATCH of tickets (filter + cluster)
+		stage1_job_ids = []
+		ticket_batches = [tickets[i:i + batch_size] for i in range(0, len(tickets), batch_size)]
+
+		logger.info(f"[CSV QUEUE] Created {len(ticket_batches)} batches of tickets (batch_size={batch_size})")
+
+		for batch_idx, ticket_batch in enumerate(ticket_batches):
+			stage1_job = queue.enqueue(
 				process_ticket_stage1,
-				ticket,
+				ticket_batch,  # Pass entire batch
 				retry=Retry(max=3, interval=[10, 30, 60]),
-				job_timeout="5m",
+				job_timeout='10m'  # Increased timeout for batch processing
 			)
-			stage1_jobs.append(job.id)
-			logger.info(
-				f"[PUB/SUB] Enqueued stage1 job {job.id} for ticket {ticket['id']}"
-			)
+			stage1_job_ids.append(stage1_job.id)
+			logger.info(f"[CSV QUEUE] Enqueued batch {batch_idx + 1}/{len(ticket_batches)} with {len(ticket_batch)} tickets (job_id: {stage1_job.id})")
 
-		logger.info(f"[PUB/SUB] Stage 1 complete: {len(stage1_jobs)} jobs enqueued")
+		logger.info(f"[CSV QUEUE] Enqueued {len(stage1_job_ids)} stage1 batch jobs for {len(tickets)} tickets")
 
-		# Finalizer: waits for stage1, then triggers stage2
-		finalizer_job = queue.enqueue(batch_finalizer, stage1_jobs, job_timeout="30m")
-		logger.info(
-			f"[PUB/SUB] Enqueued batch_finalizer job {finalizer_job.id} to process {len(stage1_jobs)} stage1 jobs"
+		# Batch Finalizer: Waits for all stage1 jobs, groups by cluster, enqueues stage2
+		finalizer_job = queue.enqueue(
+			batch_finalizer,
+			stage1_job_ids,
+			job_timeout='30m'
 		)
+		logger.info(f"[CSV QUEUE] Enqueued batch_finalizer job {finalizer_job.id}")
 
-		logger.info("[PUB/SUB] Pipeline initialized successfully")
+		# Clean up temp file
+		if tmp_path and os.path.exists(tmp_path):
+			try:
+				os.unlink(tmp_path)
+			except Exception as e:
+				logger.warning(f"Failed to delete temp file {tmp_path}: {e}")
 
 		return {
-			"message": f"Processing {len(mock_tickets)} tickets",
-			"total": len(mock_tickets),
-			"tickets": [t["id"] for t in mock_tickets],
+			"message": f"CSV upload queued for processing: {file.filename}",
+			"filename": file.filename,
+			"tickets_count": len(tickets),
+			"jobs": {
+				"batch_size": batch_size,
+				"batch_count": len(ticket_batches),
+				"stage1_job_count": len(stage1_job_ids),
+				"finalizer_job_id": finalizer_job.id
+			},
+			"workflow": f"Stage1: Filter+Cluster {batch_size} tickets per batch -> Finalizer: Group by intent -> Stage2: Generate article per intent"
 		}
 
 	except Exception as e:
-		logger.error(f"[PUB/SUB] Pipeline initialization failed: {str(e)}")
-		raise HTTPException(500, str(e))
+		logger.error(f"[CSV QUEUE] Pipeline initialization failed: {str(e)}")
+		# Clean up temp file on error
+		if tmp_path and os.path.exists(tmp_path):
+			try:
+				os.unlink(tmp_path)
+			except Exception:
+				pass
+		raise HTTPException(500, detail="Failed to process CSV upload. Please try again.")

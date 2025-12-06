@@ -2,7 +2,7 @@
 
 import pytest
 from unittest.mock import MagicMock, patch
-from ai_ticket_platform.services.labeling.label_service import label_document
+from ai_ticket_platform.services.company_docs.label_service import label_document
 
 
 class TestLabelDocument:
@@ -16,7 +16,7 @@ class TestLabelDocument:
             "department_area": "Tech"
         }
 
-        with patch("ai_ticket_platform.services.labeling.label_service.prompt_builder") as mock_pb:
+        with patch("ai_ticket_platform.services.company_docs.label_service.prompt_builder") as mock_pb:
             mock_pb.build_labeling_prompt.return_value = "Test prompt"
             mock_pb.get_output_schema.return_value = {}
             mock_pb.get_task_config.return_value = {}
@@ -59,7 +59,7 @@ class TestLabelDocument:
             "department_area": "Tech"
         }
 
-        with patch("ai_ticket_platform.services.labeling.label_service.prompt_builder") as mock_pb:
+        with patch("ai_ticket_platform.services.company_docs.label_service.prompt_builder") as mock_pb:
             mock_pb.build_labeling_prompt.return_value = "Test prompt"
             mock_pb.get_output_schema.return_value = {}
             mock_pb.get_task_config.return_value = {}
@@ -77,7 +77,7 @@ class TestLabelDocument:
         mock_llm_client = MagicMock()
         mock_llm_client.call_llm_structured.return_value = {"invalid": "response"}
 
-        with patch("ai_ticket_platform.services.labeling.label_service.prompt_builder") as mock_pb:
+        with patch("ai_ticket_platform.services.company_docs.label_service.prompt_builder") as mock_pb:
             mock_pb.build_labeling_prompt.return_value = "Test prompt"
             mock_pb.get_output_schema.return_value = {}
             mock_pb.get_task_config.return_value = {}
@@ -94,7 +94,7 @@ class TestLabelDocument:
         mock_llm_client = MagicMock()
         mock_llm_client.call_llm_structured.side_effect = Exception("LLM API error")
 
-        with patch("ai_ticket_platform.services.labeling.label_service.prompt_builder") as mock_pb:
+        with patch("ai_ticket_platform.services.company_docs.label_service.prompt_builder") as mock_pb:
             mock_pb.build_labeling_prompt.return_value = "Test prompt"
             mock_pb.get_output_schema.return_value = {}
             mock_pb.get_task_config.return_value = {}
@@ -113,7 +113,7 @@ class TestLabelDocument:
             "department_area": "Tech"
         }
 
-        with patch("ai_ticket_platform.services.labeling.label_service.prompt_builder") as mock_pb:
+        with patch("ai_ticket_platform.services.company_docs.label_service.prompt_builder") as mock_pb:
             mock_pb.build_labeling_prompt.return_value = "Test prompt"
             mock_pb.get_output_schema.return_value = {}
             mock_pb.get_task_config.return_value = {}
@@ -131,7 +131,7 @@ class TestLabelDocument:
             "department_area": "Tech"
         }
 
-        with patch("ai_ticket_platform.services.labeling.label_service.prompt_builder") as mock_pb:
+        with patch("ai_ticket_platform.services.company_docs.label_service.prompt_builder") as mock_pb:
             mock_pb.build_labeling_prompt.return_value = "Test prompt"
             mock_pb.get_output_schema.return_value = {}
             mock_pb.get_task_config.return_value = {}
@@ -149,7 +149,7 @@ class TestLabelDocument:
             "department_area": "Finance"
         }
 
-        with patch("ai_ticket_platform.services.labeling.label_service.prompt_builder") as mock_pb:
+        with patch("ai_ticket_platform.services.company_docs.label_service.prompt_builder") as mock_pb:
             mock_pb.build_labeling_prompt.return_value = "Test prompt"
             mock_pb.get_output_schema.return_value = {}
             mock_pb.get_task_config.return_value = {}
@@ -168,7 +168,7 @@ class TestLabelDocument:
             "related_areas": ["Finance", "Legal"]
         }
 
-        with patch("ai_ticket_platform.services.labeling.label_service.prompt_builder") as mock_pb:
+        with patch("ai_ticket_platform.services.company_docs.label_service.prompt_builder") as mock_pb:
             mock_pb.build_labeling_prompt.return_value = "Test prompt"
             mock_pb.get_output_schema.return_value = {}
             mock_pb.get_task_config.return_value = {}
