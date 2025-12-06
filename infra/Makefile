@@ -145,7 +145,12 @@ sync_all: ## Syncs tf output in dotenvs (backend and frontend) and ansible
 	$(MAKE) sync_ansible_inventory
 
 extract-db-credentials: ## Extract credentials from db
-	python3 -m scripts.resource_connections.extract_db_credentials \
+	python3 -m scripts.resource_connections.utils.secrets.db \
+	   --terraform-dir $(TERRAFORM_ENVIRONMENT_PATH)
+
+fetch-ssh-key: ## Fetch SSH key from AWS Secrets Manager and cache locally
+	$(MAKE) check_enviroment_variables
+	$(PYTHON) -m scripts.resource_connections.utils.secrets.ssh \
 	   --terraform-dir $(TERRAFORM_ENVIRONMENT_PATH)
 
 

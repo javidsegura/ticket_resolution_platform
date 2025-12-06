@@ -20,5 +20,5 @@ class StagingAnsibleOutputs(BaseModel):
       # USER
       EC2_APP_SERVER_SSH_USER: str
       EC2_BASTION_SERVER_SSH_USER: str
-      # SSH KEYS
-      EC2_SERVERS_SSH_PRIVATE_KEY_FILE_PATH: str
+      # SSH KEYS - Fetched from Secrets Manager
+      SSH_KEY_SECRET_NAME: str

@@ -27,14 +27,24 @@ resource "aws_key_pair" "key_pair_ssh" {
   public_key = tls_private_key.priv_key.public_key_openssh
 }
 
-resource "local_file" "private_key" {
-  content         = tls_private_key.priv_key.private_key_pem
-  filename        = var.ssh_key_local_path
-  file_permission = "0400"
+# Store SSH key in Secrets Manager (single source of truth)
+resource "random_string" "ssh_key_suffix" {
+  length  = 4
+  special = false
+  upper   = false
 }
 
+resource "aws_secretsmanager_secret" "ssh_private_key" {
+  name                    = "ec2-ssh-private-key-production-${random_string.ssh_key_suffix.result}"
+  description             = "SSH private key for EC2 instances in production"
+  recovery_window_in_days = 7
+}
 
-# IAM ROLES
+resource "aws_secretsmanager_secret_version" "ssh_private_key" {
+  secret_id     = aws_secretsmanager_secret.ssh_private_key.id
+  secret_string = tls_private_key.priv_key.private_key_pem
+}
+
 # IAM ROLES
 # Policy allowing EC2 to assume this role (Trust Policy)
 data "aws_iam_policy_document" "assume_role" {
@@ -91,7 +101,10 @@ data "aws_iam_policy_document" "secret_manager_access_policy" {
     actions = [
       "secretsmanager:GetSecretValue"
     ]
-    resources = ["${var.aws_secretsmanager_database_crentials_arn}"]
+    resources = [
+      var.aws_secretsmanager_database_crentials_arn,
+      aws_secretsmanager_secret.ssh_private_key.arn
+    ]
   }
 }
 

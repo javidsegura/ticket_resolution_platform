@@ -1,0 +1,220 @@
+name: CD - Deploy
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+env:
+  ENVIRONMENT: production
+  CLOUD_PROVIDER: aws
+
+jobs:
+  check-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      infra-changed: ${{ steps.detect.outputs.infra_changed }}
+      app-changed: ${{ steps.detect.outputs.app_changed }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify tag is on main branch
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          TAG_COMMIT=$(git rev-list -n 1 $TAG_NAME)
+
+          git fetch origin main:main 2>/dev/null || true
+
+          if git branch -r --contains $TAG_COMMIT | grep -q 'origin/main'; then
+            echo "✓ Tag $TAG_NAME is on main branch"
+          else
+            echo "✗ Tag $TAG_NAME is NOT on main branch. Deployment aborted."
+            exit 1
+          fi
+
+      - name: Extract version
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Detect changes
+        id: detect
+        run: |
+          TAG_COMMIT=$(git rev-list -n 1 ${{ steps.version.outputs.version }})
+          ALL_TAGS=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$')
+          PREV_TAG=$(echo "$ALL_TAGS" | sed -n '2p')
+
+          if [ -z "$PREV_TAG" ]; then
+            echo "First deployment - deploying everything"
+            echo "infra_changed=true" >> $GITHUB_OUTPUT
+            echo "app_changed=true" >> $GITHUB_OUTPUT
+          else
+            CHANGED_FILES=$(git diff --name-only $PREV_TAG $TAG_COMMIT)
+
+            if echo "$CHANGED_FILES" | grep -qE '^infra/terraform/'; then
+              echo "infra_changed=true" >> $GITHUB_OUTPUT
+            else
+              echo "infra_changed=false" >> $GITHUB_OUTPUT
+            fi
+
+            if echo "$CHANGED_FILES" | grep -qE '^(backend/|frontend/)'; then
+              echo "app_changed=true" >> $GITHUB_OUTPUT
+            else
+              echo "app_changed=false" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: check-changes
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: "backend/pyproject.toml"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache Python virtualenv
+        uses: actions/cache@v4
+        with:
+          path: |
+            .venv
+            backend/.venv
+            infra/.venv
+          key: venv-${{ runner.os }}-py3.11-${{ hashFiles('**/requirements*.txt', 'backend/pyproject.toml', 'infra/requirements.txt') }}
+          restore-keys: |
+            venv-${{ runner.os }}-py3.11-
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'frontend/app/package-lock.json'
+
+      - name: Cache Terraform providers
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.terraform.d/plugin-cache
+            infra/terraform/**/.terraform
+          key: terraform-${{ runner.os }}-${{ hashFiles('infra/terraform/**/.terraform.lock.hcl') }}
+          restore-keys: |
+            terraform-${{ runner.os }}-
+
+      - name: Cache Ansible Galaxy collections
+        uses: actions/cache@v4
+        with:
+          path: ~/.ansible/collections
+          key: ansible-${{ runner.os }}-${{ hashFiles('infra/ansible/dependencies.yml') }}
+          restore-keys: |
+            ansible-${{ runner.os }}-
+
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.6.0'
+          terraform_wrapper: false
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Create backend .env file
+        run: |
+          mkdir -p backend/env_config/base/
+          echo "${{ secrets.BACKEND_ENV_PRODUCTION }}" > backend/env_config/base/.env.production
+
+      - name: Create frontend .env file
+        run: |
+          mkdir -p frontend/app/env_config/base/
+          echo "${{ secrets.FRONTEND_ENV_PRODUCTION }}" > frontend/app/env_config/base/.env.production
+
+      - name: Create firebase credentials
+        run: |
+          mkdir -p backend/src/ai_ticket_platform/core/clients/
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' > backend/src/ai_ticket_platform/core/clients/secret.ai-ticket-platform-firebase.json
+
+      - name: Install dependencies
+        run: make install-ci-cd
+        env:
+          ENVIRONMENT: ${{ env.ENVIRONMENT }}
+          CLOUD_PROVIDER: ${{ env.CLOUD_PROVIDER }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Deploy with infrastructure
+        if: needs.check-changes.outputs.infra-changed == 'true'
+        run: make deploy-start-infra
+        env:
+          ENVIRONMENT: ${{ env.ENVIRONMENT }}
+          CLOUD_PROVIDER: ${{ env.CLOUD_PROVIDER }}
+          BACKEND_VERSION: ${{ needs.check-changes.outputs.version }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Fetch SSH key from Secrets Manager (after infra deploy)
+        if: needs.check-changes.outputs.infra-changed == 'true'
+        run: |
+          cd infra
+          source .venv/bin/activate
+          python -m scripts.resource_connections.utils.secrets.ssh \
+            --terraform-dir terraform/${{ env.CLOUD_PROVIDER }}/environment/${{ env.ENVIRONMENT }}
+
+      - name: Fetch SSH key from Secrets Manager (for app/ansible deploy)
+        if: needs.check-changes.outputs.infra-changed == 'false'
+        run: |
+          cd infra
+          source .venv/bin/activate
+          python -m scripts.resource_connections.utils.secrets.ssh \
+            --terraform-dir terraform/${{ env.CLOUD_PROVIDER }}/environment/${{ env.ENVIRONMENT }}
+
+      - name: Deploy artifacts only
+        if: needs.check-changes.outputs.infra-changed == 'false' && needs.check-changes.outputs.app-changed == 'true'
+        run: make deploy-start-artifacts
+        env:
+          ENVIRONMENT: ${{ env.ENVIRONMENT }}
+          CLOUD_PROVIDER: ${{ env.CLOUD_PROVIDER }}
+          BACKEND_VERSION: ${{ needs.check-changes.outputs.version }}
+
+      - name: Deploy ansible only
+        if: needs.check-changes.outputs.infra-changed == 'false' && needs.check-changes.outputs.app-changed == 'false'
+        run: make deploy-start-ansible
+        env:
+          ENVIRONMENT: ${{ env.ENVIRONMENT }}
+          CLOUD_PROVIDER: ${{ env.CLOUD_PROVIDER }}
+          BACKEND_VERSION: ${{ needs.check-changes.outputs.version }}
+
+      - name: Deployment summary
+        run: |
+          echo "## 🚀 Production Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Infrastructure**: ${{ needs.check-changes.outputs.infra-changed == 'true' && '✅ Updated' || '⏭️ Skipped' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Application**: ${{ needs.check-changes.outputs.app-changed == 'true' && '✅ Updated' || '⏭️ Skipped' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🔐 SSH keys stored in AWS Secrets Manager" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Deployment complete!" >> $GITHUB_STEP_SUMMARY

@@ -40,10 +40,10 @@ ENV_TEMPLATE = """
 
 ANSIBLE_TEMPLATE_STAGING = """
 [web_servers]
-{{ outputs.EC2_APP_SERVER_PRIVATE_IP }} ansible_user={{ outputs.EC2_APP_SERVER_SSH_USER }} ansible_ssh_common_args='-o ProxyCommand"=ssh -i {{ outputs.EC2_SERVERS_SSH_PRIVATE_KEY_FILE_PATH }} -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -W %h:%p -q {{ outputs.EC2_BASTION_SERVER_SSH_USER}}@{{ outputs.EC2_BASTION_SERVER_PUBLIC_IP}}"'
+{{ outputs.EC2_APP_SERVER_PRIVATE_IP }} ansible_user={{ outputs.EC2_APP_SERVER_SSH_USER }} ansible_ssh_common_args='-o ProxyCommand"=ssh -i {{ outputs.SSH_KEY_FILE_PATH }} -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -W %h:%p -q {{ outputs.EC2_BASTION_SERVER_SSH_USER}}@{{ outputs.EC2_BASTION_SERVER_PUBLIC_IP}}"'
 
 [all:vars]
-ansible_ssh_private_key_file={{ outputs.EC2_SERVERS_SSH_PRIVATE_KEY_FILE_PATH }}
+ansible_ssh_private_key_file={{ outputs.SSH_KEY_FILE_PATH }}
 """
 
 ANSIBLE_TEMPLATE_PRODUCTION_AWS = """
@@ -52,7 +52,7 @@ ANSIBLE_TEMPLATE_PRODUCTION_AWS = """
 {{ outputs.EC2_APP_SERVER_PUBLIC_IP }} ansible_user={{ outputs.EC2_APP_SERVER_SSH_USER }}
 
 [all:vars]
-ansible_ssh_private_key_file={{ outputs.EC2_SERVERS_SSH_PRIVATE_KEY_FILE_PATH }}
+ansible_ssh_private_key_file={{ outputs.SSH_KEY_FILE_PATH }}
 ansible_user_id={{ outputs.EC2_APP_SERVER_SSH_USER }}
 
 

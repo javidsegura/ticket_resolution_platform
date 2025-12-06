@@ -10,24 +10,15 @@ class Extractor:
             self.environment = environment
             self.terraform_dir = terraform_dir
       def _extract_outputs(self):
-                  # First, check if terraform outputs are provided via environment variable
-                  # This is useful for CI/CD environments where terraform credentials may not be available
-                  terraform_outputs_json = os.getenv("TERRAFORM_OUTPUTS_JSON")
-
-                  if terraform_outputs_json:
-                        print("Using terraform outputs from TERRAFORM_OUTPUTS_JSON environment variable")
-                        print(terraform_outputs_json)
-                        raw_outputs = json.loads(terraform_outputs_json)
-                  else:
-                        print(f"Fetching terraform outputs from terraform directory: {self.terraform_dir}")
-                        output = subprocess.run(
-                              ["terraform", "output",  "-json"],
-                              cwd=self.terraform_dir,
-                              check=True,
-                              text=True,
-                              capture_output=True
-                        )
-                        raw_outputs = json.loads(output.stdout)
+                  print(f"Fetching terraform outputs from terraform directory: {self.terraform_dir}")
+                  output = subprocess.run(
+                        ["terraform", "output",  "-json"],
+                        cwd=self.terraform_dir,
+                        check=True,
+                        text=True,
+                        capture_output=True
+                  )
+                  raw_outputs = json.loads(output.stdout)
 
                   flattened_outputs = {
                         key: value["value"]

@@ -10,10 +10,6 @@ variable "project_name" {
   type = string
 }
 
-variable "ssh_key_local_path" {
-  type = string
-}
-
 variable "db_username" {
   type = string
 }
@@ -23,4 +19,3 @@ variable "instance_type_web_app" {
 variable "instance_type_bastion" {
   type = string
 }
-

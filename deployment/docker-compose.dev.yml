@@ -104,8 +104,9 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_SECURITY_ADMIN_USER=admin
+      - GF_ALERTING_ENABLED=false
+      - GF_UNIFIED_ALERTING_ENABLED=true
     volumes:
       - grafana_data:/var/lib/grafana
       - ./telemetry/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
@@ -113,6 +114,8 @@ services:
     depends_on:
       prometheus:
         condition: service_started
+    env_file:
+      - ${BACKEND_ENV_FILE}
 
 
 volumes:

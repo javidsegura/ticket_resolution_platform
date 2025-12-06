@@ -14,10 +14,7 @@ variable "web_app_sg_id" {
 variable "bastion_sg_id" {
   type = string
 }
-# SSH
-variable "ssh_key_local_path" {
-  type = string
-}
+
 # S3
 variable "aws_s3_web_arn" {
   type = string
