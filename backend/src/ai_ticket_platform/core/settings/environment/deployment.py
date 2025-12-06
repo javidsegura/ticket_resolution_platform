@@ -41,6 +41,8 @@ class DeploymentSettings(BaseSettings):
 		self._extract_storage_variables()
 		self._extract_app_logic_variables()
 		self._extract_database_variables()
+		self._extract_slack_variables()
+		self._extract_llm_variables()
 
 	def _extract_secret_manger_databaseb_credentials(self):
 		from ai_ticket_platform.services.infra.secrets import get_secrets_service
@@ -85,3 +87,11 @@ class DeploymentSettings(BaseSettings):
 			raise ValueError(
 				f"Unsupported CLOUD_PROVIDER: {self.CLOUD_PROVIDER}. Use 'aws' or 'azure'"
 			)
+
+	def _extract_slack_variables(self):
+		self.SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")
+		self.SLACK_CHANNEL_ID = os.getenv("SLACK_CHANNEL_ID")
+
+	def _extract_llm_variables(self):
+		self.OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+		self.OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")

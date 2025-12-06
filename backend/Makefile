@@ -47,6 +47,23 @@ install-full: ## Install backend dependices for client + dev usage
 dev: ## Start backend development server. Note, the recommended usage is with make dev-start from parent Makefile. Flaky behavior warned.
 	$(VENV_ACTIVATE) &&  ENVIRONMENT=dev uvicorn $(APP_PATH) --reload --host 0.0.0.0 --port $(PORT)
 
+format: ## Formats
+	@echo "$(YELLOW)Running CI formatting$(RESET)"
+	@echo "$(BLUE)Checking code formatting with ruff...$(RESET)"
+	@$(VENV_ACTIVATE) && ruff format --check src/
+
+format-fix: ## Format code (for pre-commit)
+	@echo "$(YELLOW)Formatting code with ruff...$(RESET)"
+	$(VENV_ACTIVATE) && ruff format src/
+
+
+
+static-security-analysis: ## Run static security analysis
+	@echo "$(BLUE)Running security checks with bandit...$(RESET)"
+	$(VENV_ACTIVATE) && bandit -r src/ -f json -o bandit-report.json || true
+	@echo "$(BLUE)Running security checks with safety...$(RESET)"
+	$(VENV_ACTIVATE) && safety check --json || true
+
 
 # 2) CI
 lint: ## Run linting and formatting (local dev)

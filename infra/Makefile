@@ -73,6 +73,14 @@ terraform-apply: ## Apply Terraform configuration
 	$(MAKE) check_enviroment_variables
 	cd $(TERRAFORM_ENVIRONMENT_PATH) && terraform apply
 
+terraform-validate: ## Validate Terraform configuration (no credentials needed)
+	$(MAKE) check_enviroment_variables
+	cd $(TERRAFORM_ENVIRONMENT_PATH) && terraform init -backend=false && terraform validate
+
+terraform-fmt-check: ## Check Terraform formatting (no credentials needed)
+	$(MAKE) check_enviroment_variables
+	cd $(TERRAFORM_ENVIRONMENT_PATH) && terraform fmt -check -recursive
+
 terraform-stop: ## Apply Terraform configuration
 	$(MAKE) check_enviroment_variables
 	cd $(TERRAFORM_ENVIRONMENT_PATH) && terraform destroy
@@ -148,8 +156,17 @@ extract-db-credentials: ## Extract credentials from db
 	python3 -m scripts.resource_connections.extract_db_credentials \
 	   --terraform-dir $(TERRAFORM_ENVIRONMENT_PATH)
 
-
-connection-db: ## SSH tunnel for database (default: local 3307 -> remote 3306)
+connection-ssh-web-server: ## Send TCP traffic to port 22 in remote host
+	python3 -m $(CONNECTION_SCRIPT_PATH) \
+	   --environment $(ENVIRONMENT) \
+	   --terraform-dir $(TERRAFORM_ENVIRONMENT_PATH) \
+	   --type-of-connection ssh
+connection-http-traffic-web-server: ## SSH tunnel between local HTTP port and instance HTTP port
+	python3 -m $(CONNECTION_SCRIPT_PATH) \
+	   --environment $(ENVIRONMENT) \
+	   --terraform-dir $(TERRAFORM_ENVIRONMENT_PATH) \
+	   --type-of-connection web-serving
+connection-db: ## SSH tunnel between local MySQL port and instance MySQL port
 	python3 -m $(CONNECTION_SCRIPT_PATH) \
 	   --environment $(ENVIRONMENT) \
 	   --terraform-dir $(TERRAFORM_ENVIRONMENT_PATH) \
