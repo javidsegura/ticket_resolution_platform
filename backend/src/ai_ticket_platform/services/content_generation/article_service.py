@@ -4,13 +4,17 @@ from typing import Dict, Optional
 from datetime import datetime
 import asyncio
 
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ai_ticket_platform.database.CRUD.article import get_article_by_id as read_article
-from ai_ticket_platform.database.CRUD.intents import get_intent
+from ai_ticket_platform.database.CRUD.article import (
+	get_article_by_id as read_article,
+	create_article,
+	get_articles_by_intent,
+	update_article
+)
+from ai_ticket_platform.database.CRUD.intents import get_intent, update_intent
 from ai_ticket_platform.database.CRUD.ticket import list_tickets_by_intent
-from ai_ticket_platform.database.generated_models import Article
+from ai_ticket_platform.schemas.endpoints.intent import IntentUpdate
 from ai_ticket_platform.core.clients.chroma_client import get_chroma_vectorstore
 from ai_ticket_platform.services.content_generation.langgraph_rag_workflow import RAGWorkflow
 from ai_ticket_platform.services.infra.storage.storage import get_storage_service
@@ -119,15 +123,11 @@ class ArticleGenerationService:
 						# Get the version of the previous article
 						prev_version = previous_article.version
 
-						# Find BOTH micro and article for the same intent and previous version
-						# Query all articles for this intent and version
-						articles_for_version = await db.execute(
-							select(Article).where(
-								(Article.intent_id == intent_id) &
-								(Article.version == prev_version)
-							)
-						)
-						articles_prev = articles_for_version.scalars().all()
+						# Find BOTH micro and article for the same intent
+						all_articles_for_intent = await get_articles_by_intent(db, intent_id)
+
+						# Filter for the specific version
+						articles_prev = [art for art in all_articles_for_intent if art.version == prev_version]
 
 						# Separate micro and article
 						micro_article = None
@@ -225,8 +225,9 @@ class ArticleGenerationService:
 				logger.error(f"Failed to upload articles and generate presigned URLs: {e}", exc_info=True)
 				raise
 
-			# 7. Create both Article records in a single transaction
-			article_micro = Article(
+			# 7. Create both Article records
+			article_micro = await create_article(
+				db,
 				intent_id=intent_id,
 				type="micro",
 				blob_path=blob_path_micro,
@@ -234,7 +235,10 @@ class ArticleGenerationService:
 				version=version,
 				feedback=None,  # New versions start without feedback
 			)
-			article_article = Article(
+			logger.info(f"Created MICRO article {article_micro.id} (version {version})")
+
+			article_article = await create_article(
+				db,
 				intent_id=intent_id,
 				type="article",
 				blob_path=blob_path_article,
@@ -242,23 +246,15 @@ class ArticleGenerationService:
 				version=version,
 				feedback=None,  # New versions start without feedback
 			)
+			logger.info(f"Created ARTICLE article {article_article.id} (version {version})")
 
-			# Add both articles and update intent
-			db.add(article_micro)
-			db.add(article_article)
-			intent.is_processed = True
-
-			# Commit all changes together (articles + intent update)
-			await db.commit()
-
-			# Refresh to get generated IDs
-			await db.refresh(article_micro)
-			await db.refresh(article_article)
-
-			logger.info(
-				f"Created MICRO article {article_micro.id} and ARTICLE article {article_article.id} "
-				f"(version {version}) in single transaction"
+			# Update Intent
+			await update_intent(
+				db,
+				intent_id,
+				IntentUpdate(is_processed=True),
 			)
+			logger.info(f"Updated intent {intent_id}: is_processed=True")
 
 			return {
 				"status": "success",
@@ -296,30 +292,24 @@ class ArticleGenerationService:
 			intent_id = article.intent_id
 			version = article.version
 
-			# Find both MICRO and ARTICLE for the same intent and version
-			articles_to_approve = await db.execute(
-				select(Article).where(
-					(Article.intent_id == intent_id) &
-					(Article.version == version)
-				)
-			)
-			articles = articles_to_approve.scalars().all()
+			# Find both MICRO and ARTICLE for the same intent and version using CRUD
+			all_articles_for_intent = await get_articles_by_intent(db, intent_id)
+			articles = [art for art in all_articles_for_intent if art.version == version]
 
 			if not articles:
 				return {"status": "error", "error": "No articles found for this version"}
 
-			# Update all articles (both micro and article) to accepted status
+			# Update all articles (both micro and article) to accepted status using CRUD
+			approved_types = []
 			for art in articles:
-				art.status = "accepted"
-				art.feedback = None  
-
-			await db.commit()
-
-			# Refresh articles
-			for art in articles:
-				await db.refresh(art)
-
-			approved_types = [art.type for art in articles]
+				updated = await update_article(
+					db,
+					art.id,
+					status="accepted",
+					feedback=None
+				)
+				if updated:
+					approved_types.append(updated.type)
 			logger.info(f"Approved {len(articles)} articles (types: {approved_types}) for intent {intent_id} version {version}")
 
 			return {
