@@ -92,5 +92,5 @@ class DevSettings(BaseSettings):
 		self.GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 		self.GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 		self.CHROMA_HOST = os.getenv("CHROMA_HOST", "chromadb")
-		self.CHROMA_PORT = int(os.getenv("CHROMA_PORT", "8000"))
+		self.CHROMA_PORT = os.getenv("CHROMA_PORT", "8000")
 		self.CHROMA_COLLECTION_NAME = os.getenv("CHROMA_COLLECTION_NAME", "company-docs")
