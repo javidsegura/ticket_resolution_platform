@@ -1,12 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-
+import logging
 from ai_ticket_platform.dependencies import get_db
 from ai_ticket_platform.database.CRUD.intents import get_intent, list_intents
 from ai_ticket_platform.database.CRUD.article import get_latest_articles_for_intent
 from ai_ticket_platform.schemas.endpoints.intent import IntentRead
 from ai_ticket_platform.schemas.endpoints.article import LatestArticlesResponse
 from ai_ticket_platform.services.infra.storage.storage import get_storage_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
 	prefix="/intents",
@@ -89,8 +91,8 @@ async def get_latest_articles_by_intent(
 				articles["micro"].blob_path, expiration_time_secs=3600
 			)
 		except Exception as e:
-			# Log error but don't fail the request
-			print(f"Failed to generate presigned URL for micro article: {e}")
+			# Log error 
+			logger.error(f"Failed to generate presigned URL for micro article: {e}", exc_info=True)
 
 	if articles["article"]:
 		try:
@@ -98,8 +100,8 @@ async def get_latest_articles_by_intent(
 				articles["article"].blob_path, expiration_time_secs=3600
 			)
 		except Exception as e:
-			# Log error but don't fail the request
-			print(f"Failed to generate presigned URL for full article: {e}")
+			# Log error
+			logger.error(f"Failed to generate presigned URL for full article: {e}", exc_info=True)
 
 	return LatestArticlesResponse(
 		intent_id=intent_id,
