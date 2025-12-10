@@ -3,7 +3,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ai_ticket_platform.dependencies import get_db
 from ai_ticket_platform.database.CRUD.intents import get_intent, list_intents
+from ai_ticket_platform.database.CRUD.article import get_latest_articles_for_intent
 from ai_ticket_platform.schemas.endpoints.intent import IntentRead
+from ai_ticket_platform.schemas.endpoints.article import LatestArticlesResponse
+from ai_ticket_platform.services.infra.storage.storage import get_storage_service
 
 router = APIRouter(
 	prefix="/intents",
@@ -40,3 +43,68 @@ async def get_intent_by_id(intent_id: int, db: AsyncSession = Depends(get_db)):
 		raise HTTPException(status_code=404, detail="Intent not found")
 
 	return IntentRead.model_validate(intent)
+
+
+@router.get("/{intent_id}/articles/latest", response_model=LatestArticlesResponse)
+async def get_latest_articles_by_intent(
+	intent_id: int, db: AsyncSession = Depends(get_db)
+):
+	"""
+	Get the latest version of articles for a specific intent/cluster.
+
+	Returns:
+	- version: Latest version number
+	- status: Article status (accepted, iteration, denied)
+	- presigned_url_micro: Temporary URL to download micro article content from S3 (valid 1 hour)
+	- presigned_url_full: Temporary URL to download full article content from S3 (valid 1 hour)
+
+	If no articles exist for this intent, all fields will be null.
+	"""
+	# Verify intent exists
+	intent = await get_intent(db, intent_id)
+	if not intent:
+		raise HTTPException(status_code=404, detail="Intent not found")
+
+	# Get latest articles
+	articles = await get_latest_articles_for_intent(db, intent_id)
+
+	# Extract version and status from articles (both should have same version/status)
+	version = None
+	status = None
+	if articles["micro"]:
+		version = articles["micro"].version
+		status = articles["micro"].status
+	elif articles["article"]:
+		version = articles["article"].version
+		status = articles["article"].status
+
+	# Generate presigned URLs for article content
+	storage = get_storage_service()
+	presigned_url_micro = None
+	presigned_url_full = None
+
+	if articles["micro"]:
+		try:
+			presigned_url_micro = storage.get_presigned_url(
+				articles["micro"].blob_path, expiration_time_secs=3600
+			)
+		except Exception as e:
+			# Log error but don't fail the request
+			print(f"Failed to generate presigned URL for micro article: {e}")
+
+	if articles["article"]:
+		try:
+			presigned_url_full = storage.get_presigned_url(
+				articles["article"].blob_path, expiration_time_secs=3600
+			)
+		except Exception as e:
+			# Log error but don't fail the request
+			print(f"Failed to generate presigned URL for full article: {e}")
+
+	return LatestArticlesResponse(
+		intent_id=intent_id,
+		version=version,
+		status=status,
+		presigned_url_micro=presigned_url_micro,
+		presigned_url_full=presigned_url_full,
+	)

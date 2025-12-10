@@ -57,6 +57,7 @@ class DevSettings(BaseSettings):
 		self._extract_app_logic_variables()
 		self._extract_slack_variables()
 		self._extract_llm_variables()
+		self._extract_chroma_variables()
 
 	def _extract_database_variables(self):
 		self.REDIS_URL = os.getenv("REDIS_URL")
@@ -89,5 +90,10 @@ class DevSettings(BaseSettings):
 		self.SLACK_CHANNEL_ID = os.getenv("SLACK_CHANNEL_ID")
 
 	def _extract_llm_variables(self):
-		self.OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-		self.OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
+		self.GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+		self.GEMINI_MODEL = os.getenv("GEMINI_MODEL")
+
+	def _extract_chroma_variables(self):
+		self.CHROMA_HOST = os.getenv("CHROMA_HOST")
+		self.CHROMA_PORT = int(os.getenv("CHROMA_PORT"))
+		self.CHROMA_COLLECTION_NAME = os.getenv("CHROMA_COLLECTION_NAME")

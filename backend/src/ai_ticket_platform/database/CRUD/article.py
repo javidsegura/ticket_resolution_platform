@@ -1,8 +1,8 @@
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.exc import SQLAlchemyError
-from typing import Optional, List
+from typing import Optional, List, Dict
 from sqlalchemy.ext.asyncio import AsyncSession
-from ai_ticket_platform.database.generated_models import Article
+from ai_ticket_platform.database.generated_models import Article, Intent
 
 
 async def create_article(
@@ -114,3 +114,44 @@ async def delete_article(db: AsyncSession, article_id: int) -> bool:
 			raise RuntimeError(f"Failed to delete article: {e}") from e
 		return True
 	return False
+
+
+async def get_latest_articles_for_intent(
+	db: AsyncSession, intent_id: int
+) -> Dict[str, Optional[Article]]:
+	"""
+	Get the latest version articles (both micro and full) for a specific intent.
+
+	Returns a dictionary with 'micro' and 'article' keys.
+	Example: {'micro': Article(...), 'article': Article(...)}
+	"""
+	# Get the maximum version for this intent
+	max_version_query = (
+		select(func.max(Article.version))
+		.where(Article.intent_id == intent_id)
+	)
+	result = await db.execute(max_version_query)
+	max_version = result.scalar()
+
+	if max_version is None:
+		return {'micro': None, 'article': None}
+
+	# Get both micro and article for the latest version
+	query = (
+		select(Article)
+		.where(
+			Article.intent_id == intent_id,
+			Article.version == max_version
+		)
+		.order_by(Article.type)
+	)
+
+	result = await db.execute(query)
+	articles = result.scalars().all()
+
+	# Organize by type
+	articles_dict: Dict[str, Optional[Article]] = {'micro': None, 'article': None}
+	for article in articles:
+		articles_dict[article.type] = article
+
+	return articles_dict
