@@ -6,11 +6,16 @@ from rq import Queue
 
 from ai_ticket_platform.dependencies import get_db
 from ai_ticket_platform.dependencies.queue import get_queue
-from ai_ticket_platform.database.CRUD.article import get_article_by_id, update_article
+from ai_ticket_platform.database.CRUD.article import (
+	get_article_by_id,
+	update_article,
+)
+from ai_ticket_platform.schemas.endpoints.article import ArticleRead
 from ai_ticket_platform.services.content_generation.content_generation_interface import (
-	approve_article_task,
 	generate_article_task,
 )
+from ai_ticket_platform.services.content_generation.article_service import ArticleGenerationService
+from ai_ticket_platform.dependencies import get_app_settings
 
 router = APIRouter(prefix="/articles", tags=["articles"])
 logger = logging.getLogger(__name__)
@@ -24,8 +29,8 @@ class IterateArticleRequest(BaseModel):
 @router.post("/{article_id}/approve")
 async def approve_article(
 	article_id: int,
-	queue: Queue = Depends(get_queue),
 	db: AsyncSession = Depends(get_db),
+	settings = Depends(get_app_settings),
 ):
 	"""
 	Approve an article and mark it as accepted.
@@ -35,8 +40,8 @@ async def approve_article(
 
 	Args:
 	    article_id: ID of the article to approve
-	    queue: RQ queue for task execution
 	    db: Database session
+	    settings: Application settings
 
 	Returns:
 	    Success response with approval details
@@ -49,22 +54,24 @@ async def approve_article(
 		if not article:
 			raise HTTPException(status_code=404, detail="Article not found")
 
-		# Enqueue approval task
-		approval_job = queue.enqueue(
-			approve_article_task,
-			article_id,
-			job_timeout='5m'
-		)
+		# Approve article
+		service = ArticleGenerationService(settings)
+		result = await service.approve_article(article_id, db)
 
-		logger.info(f"[ARTICLE APPROVE] Enqueued approval job {approval_job.id} for article {article_id}")
+		if result.get("status") == "error":
+			logger.error(f"[ARTICLE APPROVE] Approval failed for article {article_id}: {result.get('error')}")
+			raise HTTPException(status_code=500, detail=result.get("error", "Approval failed"))
+
+		logger.info(f"[ARTICLE APPROVE] Successfully approved article {article_id}")
 
 		return {
 			"status": "success",
-			"message": f"Approval queued for article {article_id}",
+			"message": f"Article {article_id} approved successfully",
 			"article_id": article_id,
-			"job_id": approval_job.id,
-			"intent_id": article.intent_id,
-			"version": article.version,
+			"intent_id": result.get("intent_id"),
+			"version": result.get("version"),
+			"new_status": result.get("new_status"),
+			"approved_types": result.get("approved_types", []),
 		}
 
 	except HTTPException:

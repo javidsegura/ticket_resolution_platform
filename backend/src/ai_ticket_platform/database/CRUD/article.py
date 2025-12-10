@@ -114,3 +114,28 @@ async def delete_article(db: AsyncSession, article_id: int) -> bool:
 			raise RuntimeError(f"Failed to delete article: {e}") from e
 		return True
 	return False
+
+
+async def get_articles_by_intent(
+	db: AsyncSession, intent_id: int, article_type: Optional[str] = None
+) -> List[Article]:
+	"""
+	Get all articles for a given intent, ordered by version descending.
+
+	Args:
+		db: Database session
+		intent_id: Intent ID to fetch articles for
+		article_type: Optional filter by type ('micro' or 'article')
+
+	Returns:
+		List of articles for the intent
+	"""
+	query = select(Article).where(Article.intent_id == intent_id)
+
+	if article_type:
+		query = query.where(Article.type == article_type)
+
+	query = query.order_by(Article.version.desc(), Article.created_at.desc())
+
+	result = await db.execute(query)
+	return result.scalars().all()
