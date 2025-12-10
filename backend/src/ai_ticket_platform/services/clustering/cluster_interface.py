@@ -107,7 +107,7 @@ async def cluster_tickets(
 				task_config=task_config,
 				temperature=0.2
 			),
-			timeout=120.0  # Adjust based on expected response time
+			timeout=180.0  
 		)
 	except asyncio.TimeoutError:
 		logger.error(f"LLM call timed out for batch of {len(tickets)} tickets")
@@ -115,6 +115,7 @@ async def cluster_tickets(
 	except Exception as e:
 		logger.error(f"LLM call failed: {e}")
 		raise
+
 	# Validate we got assignments for all tickets
 	llm_assignments = llm_result.get("assignments")
 	if len(llm_assignments) != len(tickets):
@@ -186,14 +187,11 @@ async def cluster_tickets(
 
 	logger.info(
 		f"Clustering completed successfully:\n"
-		f"  - Tickets processed: {result['total_tickets']}\n"
-		f"  - Intents created: {result['intents_created']}\n"
-		f"  - Intents matched: {result['intents_matched']}\n"
-		f"  - New categories: L1={stats['categories_created']['l1']}, "
+		f"- Tickets processed: {result['total_tickets']}\n"
+		f"- Intents created: {result['intents_created']}\n"
+		f"- Intents matched: {result['intents_matched']}\n"
+		f"- New categories: L1={stats['categories_created']['l1']}, "
 		f"L2={stats['categories_created']['l2']}, L3={stats['categories_created']['l3']}"
 	)
 
 	return result
-
-
-

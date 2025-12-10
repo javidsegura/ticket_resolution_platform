@@ -138,12 +138,9 @@ async def process_create_decision(
 	if is_l3_new:
 		stats.setdefault("categories_created", {}).setdefault("l3", 0)
 		stats["categories_created"]["l3"] += 1
-		logger.info(f"Created new L3 category: {cat_l3_name} under {cat_l1_name} > {cat_l2_name}")	
-	if is_l3_new:
-		stats["categories_created"]["l3"] += 1
 		logger.info(f"Created new L3 category: {cat_l3_name} under {cat_l1_name} > {cat_l2_name}")
 
-	# Create intent using the semantic name from LLM
+	# Create intent using the name from LLM
 	intent, is_new_intent = await intent_crud.get_or_create_intent(
 		db,
 		name=intent_name_from_llm,
