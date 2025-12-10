@@ -7,11 +7,10 @@ import asyncio
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ai_ticket_platform.database.CRUD.article import create_article, get_article_by_id as read_article
-from ai_ticket_platform.database.CRUD.intents import get_intent, update_intent
+from ai_ticket_platform.database.CRUD.article import get_article_by_id as read_article
+from ai_ticket_platform.database.CRUD.intents import get_intent
 from ai_ticket_platform.database.CRUD.ticket import list_tickets_by_intent
 from ai_ticket_platform.database.generated_models import Article
-from ai_ticket_platform.schemas.endpoints.intent import IntentUpdate
 from ai_ticket_platform.core.clients.chroma_client import get_chroma_vectorstore
 from ai_ticket_platform.services.content_generation.langgraph_rag_workflow import RAGWorkflow
 from ai_ticket_platform.services.infra.storage.storage import get_storage_service
@@ -226,9 +225,8 @@ class ArticleGenerationService:
 				logger.error(f"Failed to upload articles and generate presigned URLs: {e}", exc_info=True)
 				raise
 
-			# 7. Create new Article records in database (MICRO) - new versions have NO feedback initially
-			article_micro = await create_article(
-				db,
+			# 7. Create both Article records in a single transaction
+			article_micro = Article(
 				intent_id=intent_id,
 				type="micro",
 				blob_path=blob_path_micro,
@@ -236,11 +234,7 @@ class ArticleGenerationService:
 				version=version,
 				feedback=None,  # New versions start without feedback
 			)
-			logger.info(f"Created MICRO article {article_micro.id} (version {version})")
-
-			# 9. Create new Article records in database (ARTICLE) - new versions have NO feedback initially
-			article_article = await create_article(
-				db,
+			article_article = Article(
 				intent_id=intent_id,
 				type="article",
 				blob_path=blob_path_article,
@@ -248,16 +242,23 @@ class ArticleGenerationService:
 				version=version,
 				feedback=None,  # New versions start without feedback
 			)
-			logger.info(f"Created ARTICLE article {article_article.id} (version {version})")
 
-			# 10. Update Intent
-			await update_intent(
-				db,
-				intent_id,
-				IntentUpdate(is_processed=True),
+			# Add both articles and update intent
+			db.add(article_micro)
+			db.add(article_article)
+			intent.is_processed = True
+
+			# Commit all changes together (articles + intent update)
+			await db.commit()
+
+			# Refresh to get generated IDs
+			await db.refresh(article_micro)
+			await db.refresh(article_article)
+
+			logger.info(
+				f"Created MICRO article {article_micro.id} and ARTICLE article {article_article.id} "
+				f"(version {version}) in single transaction"
 			)
-
-			logger.info(f"Updated intent {intent_id}: is_processed=True")
 
 			return {
 				"status": "success",
@@ -281,10 +282,7 @@ class ArticleGenerationService:
 
 	async def approve_article(self, article_id: int, db: AsyncSession) -> Dict:
 		"""
-		Approve article - change status to "accepted" for both micro and article of same version.
-
-		Approving an article means approving BOTH the micro (summary) and article (full content)
-		of the same version together. Status is set to "accepted" and feedback is cleared.
+		Approve article: change status to "accepted" for both micro and article of same version.
 		"""
 		logger.info(f"Approving article {article_id}")
 
@@ -313,7 +311,7 @@ class ArticleGenerationService:
 			# Update all articles (both micro and article) to accepted status
 			for art in articles:
 				art.status = "accepted"
-				art.feedback = None  # Clear feedback when approving
+				art.feedback = None  
 
 			await db.commit()
 

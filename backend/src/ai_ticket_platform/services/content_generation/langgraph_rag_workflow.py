@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class RAGState(TypedDict):
-	"""Simplified state for RAG workflow - retrieve and generate only."""
+	"""State for RAG workflow: retrieve and generate only."""
 
 	# Input fields
 	intent_id: int
@@ -43,7 +43,7 @@ class RAGState(TypedDict):
 
 
 class RAGWorkflow:
-	"""Simplified LangGraph RAG workflow - retrieve and generate only."""
+	"""LangGraph RAG workflow: retrieve and generate only."""
 
 	def __init__(self, vector_store: ChromaVectorStore, settings):
 		"""
