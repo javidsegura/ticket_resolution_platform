@@ -19,7 +19,7 @@ services:
     environment:
       - REDIS_HOST=redis
       - ENVIRONMENT=${ENVIRONMENT}
-    command: rq worker --url redis://redis:6379/0
+    command: rq worker --url redis://redis:6379/0 --with-scheduler
     deploy:
       replicas: 3
   db-migration:
