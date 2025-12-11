@@ -87,7 +87,7 @@ class DeploymentSettings(BaseSettings):
 	def _extract_slack_variables(self):
 		self.SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")
 		self.SLACK_CHANNEL_ID = os.getenv("SLACK_CHANNEL_ID")
-		self.FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+		self.FRONTEND_URL = os.getenv("FRONTEND_URL")
 
 	def _extract_storage_variables(self):
 		self.CLOUD_PROVIDER = os.getenv("CLOUD_PROVIDER", "aws").lower()
