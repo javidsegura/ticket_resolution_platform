@@ -17,24 +17,24 @@ export interface TicketListResponse {
 }
 
 export interface CsvFileInfo {
-  filename: string
-  rows_processed: number
-  rows_skipped: number
-  tickets_extracted: number
-  encoding: string
+  filename: string;
+  rows_processed: number;
+  rows_skipped: number;
+  tickets_extracted: number;
+  encoding: string;
 }
 
 export interface ClusteringInfo {
-  clusters_created: number
-  total_tickets_clustered: number
+  clusters_created: number;
+  total_tickets_clustered: number;
 }
 
 export interface CsvUploadResponse {
-  success: boolean
-  file_info: CsvFileInfo
-  tickets_created: number
-  clustering: ClusteringInfo
-  errors: string[]
+  success: boolean;
+  file_info: CsvFileInfo;
+  tickets_created: number;
+  clustering: ClusteringInfo;
+  errors: string[];
 }
 
 type FetchTicketsParams = {
@@ -127,38 +127,43 @@ export const fetchTicketById = async (
     );
   }
 
-  const data = await response.json()
-  return data as Ticket
-}
+  const data = await response.json();
+  return data as Ticket;
+};
 
 /**
  * Upload a CSV file containing tickets.
  */
-export const uploadTicketsCsv = async (file: File): Promise<CsvUploadResponse> => {
+export const uploadTicketsCsv = async (
+  file: File,
+): Promise<CsvUploadResponse> => {
   if (!file) {
-    throw new Error("Select a CSV file before uploading")
+    throw new Error("Select a CSV file before uploading");
   }
 
-  const apiBase = buildTicketsBaseUrl()
+  const apiBase = buildTicketsBaseUrl();
 
   if (!apiBase) {
-    throw new Error("BASE_API_URL not configured; cannot upload CSV")
+    throw new Error("BASE_API_URL not configured; cannot upload CSV");
   }
 
-  const formData = new FormData()
-  formData.append("file", file, file.name)
+  const formData = new FormData();
+  formData.append("file", file, file.name);
 
   const response = await fetch(`${apiBase}/tickets/upload-csv`, {
     method: "POST",
-    body: formData
-  })
+    body: formData,
+  });
 
   if (!response.ok) {
-    const message = await response.text()
-    throw new Error(message || `Failed to upload CSV: ${response.status} ${response.statusText}`)
+    const message = await response.text();
+    throw new Error(
+      message ||
+        `Failed to upload CSV: ${response.status} ${response.statusText}`,
+    );
   }
 
-  const data = await response.json()
+  const data = await response.json();
 
   // Transform backend response to match CsvUploadResponse interface
   return {
@@ -168,15 +173,13 @@ export const uploadTicketsCsv = async (file: File): Promise<CsvUploadResponse> =
       rows_processed: data.tickets_count || 0,
       rows_skipped: 0, // Backend doesn't track skipped rows
       tickets_extracted: data.tickets_count || 0,
-      encoding: "utf-8"
+      encoding: "utf-8",
     },
     tickets_created: data.tickets_count || 0,
     clustering: {
       clusters_created: 0, // Clustering happens async, so we return 0 initially
-      total_tickets_clustered: 0
+      total_tickets_clustered: 0,
     },
-    errors: [] // No synchronous errors if we reach here
-  }
-}
-
-
+    errors: [], // No synchronous errors if we reach here
+  };
+};

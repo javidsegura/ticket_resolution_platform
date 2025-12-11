@@ -31,7 +31,7 @@ export default function Landing() {
             <div className="flex items-center gap-2">
               <Ticket className="h-6 w-6 text-primary-600" />
               <span className="text-xl font-bold text-gray-900">
-                Ticket Resolution Platform
+                Ticket Resolution Platform AAAAA
               </span>
             </div>
             <div className="flex items-center gap-4">
