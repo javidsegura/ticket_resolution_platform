@@ -91,8 +91,11 @@ async def get_latest_articles_by_intent(
 				articles["micro"].blob_path, expiration_time_secs=3600
 			)
 		except Exception as e:
-			# Log error 
-			logger.error(f"Failed to generate presigned URL for micro article: {e}", exc_info=True)
+			# Log error
+			logger.error(
+				f"Failed to generate presigned URL for micro article: {e}",
+				exc_info=True,
+			)
 
 	if articles["article"]:
 		try:
@@ -101,7 +104,9 @@ async def get_latest_articles_by_intent(
 			)
 		except Exception as e:
 			# Log error
-			logger.error(f"Failed to generate presigned URL for full article: {e}", exc_info=True)
+			logger.error(
+				f"Failed to generate presigned URL for full article: {e}", exc_info=True
+			)
 
 	return LatestArticlesResponse(
 		intent_id=intent_id,

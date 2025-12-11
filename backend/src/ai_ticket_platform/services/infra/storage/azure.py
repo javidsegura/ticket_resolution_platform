@@ -114,7 +114,12 @@ class AzureBlobStorage(StorageService):
 			**params,
 		)
 
-	def upload_blob(self, blob_name: str, content: Union[str, bytes], content_type: Optional[str] = None) -> str:
+	def upload_blob(
+		self,
+		blob_name: str,
+		content: Union[str, bytes],
+		content_type: Optional[str] = None,
+	) -> str:
 		"""
 		Upload content (string or binary) directly to Azure Blob Storage using backend credentials.
 
@@ -132,10 +137,14 @@ class AzureBlobStorage(StorageService):
 			)
 			upload_kwargs = {"overwrite": True}
 			if content_type:
-				upload_kwargs["content_settings"] = ContentSettings(content_type=content_type)
+				upload_kwargs["content_settings"] = ContentSettings(
+					content_type=content_type
+				)
 
 			blob_client.upload_blob(content, **upload_kwargs)
-			logger.info(f"Successfully uploaded blob: {self.container_name}/{blob_name}")
+			logger.info(
+				f"Successfully uploaded blob: {self.container_name}/{blob_name}"
+			)
 			return blob_name
 		except Exception as e:
 			logger.error(f"Failed to upload blob {blob_name}: {e}", exc_info=True)
@@ -158,8 +167,10 @@ class AzureBlobStorage(StorageService):
 			)
 			download_stream = blob_client.download_blob()
 			content = download_stream.readall()
-			logger.info(f"Successfully downloaded blob: {self.container_name}/{blob_name}")
-			return content.decode('utf-8') if decode else content
+			logger.info(
+				f"Successfully downloaded blob: {self.container_name}/{blob_name}"
+			)
+			return content.decode("utf-8") if decode else content
 		except Exception as e:
 			logger.error(f"Failed to download blob {blob_name}: {e}", exc_info=True)
 			raise

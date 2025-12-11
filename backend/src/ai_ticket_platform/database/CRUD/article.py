@@ -6,44 +6,44 @@ from ai_ticket_platform.database.generated_models import Article, Intent
 
 
 async def create_article(
-    db: AsyncSession,
-    intent_id: int,
-    type: str,
-    blob_path: str,
-    status: str = "iteration",
-    version: int = 1,
-    feedback: Optional[str] = None
+	db: AsyncSession,
+	intent_id: int,
+	type: str,
+	blob_path: str,
+	status: str = "iteration",
+	version: int = 1,
+	feedback: Optional[str] = None,
 ) -> Article:
-    """
-    Create a new article with blob reference.
+	"""
+	Create a new article with blob reference.
 
-    Args:
-        db: Database session
-        intent_id: Intent ID (immutable after creation)
-        type: Article type ('micro' for summary, 'article' for full content)
-        blob_path: Azure Blob Storage path (e.g., 'articles/article-1-v1-micro-2024-01-15T10:30:00Z.md')
-        status: Article status (default 'iteration')
-        version: Version number (default 1)
-        feedback: Optional feedback text
+	Args:
+	    db: Database session
+	    intent_id: Intent ID (immutable after creation)
+	    type: Article type ('micro' for summary, 'article' for full content)
+	    blob_path: Azure Blob Storage path (e.g., 'articles/article-1-v1-micro-2024-01-15T10:30:00Z.md')
+	    status: Article status (default 'iteration')
+	    version: Version number (default 1)
+	    feedback: Optional feedback text
 
-    Note: Content is stored in Azure Blob Storage, blob_path is reference to blob location.
-    """
-    db_article = Article(
-        intent_id=intent_id,
-        type=type,
-        blob_path=blob_path,
-        status=status,
-        version=version,
-        feedback=feedback,
-    )
-    try:
-        db.add(db_article)
-        await db.commit()
-        await db.refresh(db_article)
-    except SQLAlchemyError as e:
-        await db.rollback()
-        raise RuntimeError(f"Failed to create article: {e}") from e
-    return db_article
+	Note: Content is stored in Azure Blob Storage, blob_path is reference to blob location.
+	"""
+	db_article = Article(
+		intent_id=intent_id,
+		type=type,
+		blob_path=blob_path,
+		status=status,
+		version=version,
+		feedback=feedback,
+	)
+	try:
+		db.add(db_article)
+		await db.commit()
+		await db.refresh(db_article)
+	except SQLAlchemyError as e:
+		await db.rollback()
+		raise RuntimeError(f"Failed to create article: {e}") from e
+	return db_article
 
 
 async def get_article_by_id(db: AsyncSession, article_id: int) -> Optional[Article]:
@@ -143,23 +143,19 @@ async def get_latest_articles_for_intent(
 	Example: {'micro': Article(...), 'article': Article(...)}
 	"""
 	# Get the maximum version for this intent
-	max_version_query = (
-		select(func.max(Article.version))
-		.where(Article.intent_id == intent_id)
+	max_version_query = select(func.max(Article.version)).where(
+		Article.intent_id == intent_id
 	)
 	result = await db.execute(max_version_query)
 	max_version = result.scalar()
 
 	if max_version is None:
-		return {'micro': None, 'article': None}
+		return {"micro": None, "article": None}
 
 	# Get both micro and article for the latest version
 	query = (
 		select(Article)
-		.where(
-			Article.intent_id == intent_id,
-			Article.version == max_version
-		)
+		.where(Article.intent_id == intent_id, Article.version == max_version)
 		.order_by(Article.type)
 	)
 
@@ -167,7 +163,7 @@ async def get_latest_articles_for_intent(
 	articles = result.scalars().all()
 
 	# Organize by type
-	articles_dict: Dict[str, Optional[Article]] = {'micro': None, 'article': None}
+	articles_dict: Dict[str, Optional[Article]] = {"micro": None, "article": None}
 	for article in articles:
 		articles_dict[article.type] = article
 

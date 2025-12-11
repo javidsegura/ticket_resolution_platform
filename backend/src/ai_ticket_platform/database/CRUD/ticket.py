@@ -35,23 +35,23 @@ async def create_tickets(db: AsyncSession, tickets_data: List[dict]) -> List[Tic
 
 
 async def get_ticket(db: AsyncSession, ticket_id: int) -> Ticket | None:
-    """
-    Fetch a single ticket by ID.
-    """
-    result = await db.execute(select(Ticket).where(Ticket.id == ticket_id))
-    return result.scalar_one_or_none()
+	"""
+	Fetch a single ticket by ID.
+	"""
+	result = await db.execute(select(Ticket).where(Ticket.id == ticket_id))
+	return result.scalar_one_or_none()
 
 
-async def list_tickets(db: AsyncSession, skip: int = 0, limit: int = 100) -> List[Ticket]:
-    """
-    Fetch all tickets with pagination.
-    """
-    result = await db.execute(select(Ticket)
-        .offset(skip)
-        .limit(limit)
-        .order_by(Ticket.created_at.desc())
-    )
-    return result.scalars().all()
+async def list_tickets(
+	db: AsyncSession, skip: int = 0, limit: int = 100
+) -> List[Ticket]:
+	"""
+	Fetch all tickets with pagination.
+	"""
+	result = await db.execute(
+		select(Ticket).offset(skip).limit(limit).order_by(Ticket.created_at.desc())
+	)
+	return result.scalars().all()
 
 
 async def count_tickets(db: AsyncSession) -> int:
@@ -69,39 +69,42 @@ async def count_tickets(db: AsyncSession) -> int:
 
 
 async def list_tickets_by_intent(db: AsyncSession, intent_id: int) -> List[Ticket]:
-    """
-    Fetch all tickets linked to a specific intent.
-    """
-    result = await db.execute(select(Ticket)
-        .where(Ticket.intent_id == intent_id)
-        .order_by(Ticket.created_at.desc())
-    )
-    return result.scalars().all()
+	"""
+	Fetch all tickets linked to a specific intent.
+	"""
+	result = await db.execute(
+		select(Ticket)
+		.where(Ticket.intent_id == intent_id)
+		.order_by(Ticket.created_at.desc())
+	)
+	return result.scalars().all()
 
 
-async def update_ticket_intent(db: AsyncSession, ticket_id: int, intent_id: int) -> Ticket | None:
-    """
-    Update a ticket's intent_id (used when orchestrator links clusters to tickets).
-    """
-    ticket = await get_ticket(db, ticket_id)
-    
-    if not ticket:
-        return None
-    
-    ticket.intent_id = intent_id
-    await db.commit()
-    await db.refresh(ticket)
+async def update_ticket_intent(
+	db: AsyncSession, ticket_id: int, intent_id: int
+) -> Ticket | None:
+	"""
+	Update a ticket's intent_id (used when orchestrator links clusters to tickets).
+	"""
+	ticket = await get_ticket(db, ticket_id)
 
-    return ticket
+	if not ticket:
+		return None
+
+	ticket.intent_id = intent_id
+	await db.commit()
+	await db.refresh(ticket)
+
+	return ticket
 
 
 async def get_unassigned_tickets(db: AsyncSession) -> List[Ticket]:
-    """
-    Fetch all tickets that haven't been assigned to an intent yet.
-    """
-    result = await db.execute(
-        select(Ticket)
-        .where(Ticket.intent_id.is_(None))
-        .order_by(Ticket.created_at.desc())
-    )
-    return list(result.scalars().all())
+	"""
+	Fetch all tickets that haven't been assigned to an intent yet.
+	"""
+	result = await db.execute(
+		select(Ticket)
+		.where(Ticket.intent_id.is_(None))
+		.order_by(Ticket.created_at.desc())
+	)
+	return list(result.scalars().all())

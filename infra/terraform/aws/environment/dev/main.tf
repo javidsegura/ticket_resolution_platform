@@ -22,7 +22,7 @@ provider "aws" {
 module "s3_services" {
   source = "../../modules/s3"
 
-  environment = var.environment
-  main_region = var.main_region
-
+  environment  = var.environment
+  main_region  = var.main_region
+  project_name = var.project_name
 }

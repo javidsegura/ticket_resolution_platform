@@ -15,7 +15,7 @@ async def get_intent_by_category_path(
 	db: AsyncSession,
 	category_level_1_id: int,
 	category_level_2_id: int,
-	category_level_3_id: int
+	category_level_3_id: int,
 ) -> Optional[Intent]:
 	"""
 	Find an intent by its category path.
@@ -23,7 +23,7 @@ async def get_intent_by_category_path(
 	query = select(Intent).where(
 		Intent.category_level_1_id == category_level_1_id,
 		Intent.category_level_2_id == category_level_2_id,
-		Intent.category_level_3_id == category_level_3_id
+		Intent.category_level_3_id == category_level_3_id,
 	)
 
 	result = await db.execute(query)
@@ -36,7 +36,7 @@ async def create_intent(
 	category_level_1_id: int,
 	category_level_2_id: int,
 	category_level_3_id: int,
-	area: Optional[str] = None
+	area: Optional[str] = None,
 ) -> Intent:
 	"""
 	Create a new intent.
@@ -48,13 +48,15 @@ async def create_intent(
 			category_level_2_id=category_level_2_id,
 			category_level_3_id=category_level_3_id,
 			area=area,
-			is_processed=False
+			is_processed=False,
 		)
 		db.add(intent)
 		await db.commit()
 		await db.refresh(intent)
 
-		logger.info(f"Created intent: {name} (id={intent.id}, l1={category_level_1_id}, l2={category_level_2_id}, l3={category_level_3_id})")
+		logger.info(
+			f"Created intent: {name} (id={intent.id}, l1={category_level_1_id}, l2={category_level_2_id}, l3={category_level_3_id})"
+		)
 		return intent
 	except Exception as e:
 		await db.rollback()
@@ -68,7 +70,7 @@ async def get_or_create_intent(
 	category_level_1_id: int,
 	category_level_2_id: int,
 	category_level_3_id: int,
-	area: Optional[str] = None
+	area: Optional[str] = None,
 ) -> tuple[Intent, bool]:
 	"""
 	Get existing intent or create if it doesn't exist.
@@ -81,10 +83,7 @@ async def get_or_create_intent(
 	"""
 	# Try to find existing intent by category path
 	intent = await get_intent_by_category_path(
-		db,
-		category_level_1_id,
-		category_level_2_id,
-		category_level_3_id
+		db, category_level_1_id, category_level_2_id, category_level_3_id
 	)
 
 	if intent:
@@ -100,21 +99,20 @@ async def get_or_create_intent(
 			category_level_2_id=category_level_2_id,
 			category_level_3_id=category_level_3_id,
 			area=area,
-			is_processed=False
+			is_processed=False,
 		)
 		db.add(intent)
 		await db.commit()
 		await db.refresh(intent)
-		logger.info(f"Created intent: {name} (id={intent.id}, l1={category_level_1_id}, l2={category_level_2_id}, l3={category_level_3_id})")
+		logger.info(
+			f"Created intent: {name} (id={intent.id}, l1={category_level_1_id}, l2={category_level_2_id}, l3={category_level_3_id})"
+		)
 		return intent, True
 	except IntegrityError:
 		await db.rollback()
 		logger.warning(f"Race condition handled for intent. Fetching existing.")
 		intent = await get_intent_by_category_path(
-			db,
-			category_level_1_id,
-			category_level_2_id,
-			category_level_3_id
+			db, category_level_1_id, category_level_2_id, category_level_3_id
 		)
 		if intent is None:
 			raise RuntimeError(
@@ -127,7 +125,10 @@ async def get_or_create_intent(
 		logger.error(f"Error in get_or_create_intent for '{name}': {str(e)}")
 		raise
 
-async def get_intents_processing_status(db: AsyncSession, intent_ids: List[int]) -> Dict[int, bool]:
+
+async def get_intents_processing_status(
+	db: AsyncSession, intent_ids: List[int]
+) -> Dict[int, bool]:
 	"""
 	Check processing status for multiple intents.
 	"""
@@ -135,8 +136,7 @@ async def get_intents_processing_status(db: AsyncSession, intent_ids: List[int])
 		return {}
 
 	result = await db.execute(
-		select(Intent.id, Intent.is_processed)
-		.where(Intent.id.in_(intent_ids))
+		select(Intent.id, Intent.is_processed).where(Intent.id.in_(intent_ids))
 	)
 	rows = result.all()
 
@@ -157,7 +157,7 @@ async def get_all_intents_with_categories(db: AsyncSession) -> List[Dict]:
 		.options(
 			selectinload(Intent.category_level_1),
 			selectinload(Intent.category_level_2),
-			selectinload(Intent.category_level_3)
+			selectinload(Intent.category_level_3),
 		)
 		.order_by(Intent.created_at.desc())
 	)
@@ -169,23 +169,31 @@ async def get_all_intents_with_categories(db: AsyncSession) -> List[Dict]:
 	intent_dicts = []
 	for intent in intents:
 		# Only include intents with all 3 category levels
-		if not intent.category_level_1 or not intent.category_level_2 or not intent.category_level_3:
+		if (
+			not intent.category_level_1
+			or not intent.category_level_2
+			or not intent.category_level_3
+		):
 			logger.warning(
 				f"Skipping intent {intent.id} - missing category levels "
 				f"(L1: {intent.category_level_1_id}, L2: {intent.category_level_2_id}, L3: {intent.category_level_3_id})"
 			)
 			continue
 
-		intent_dicts.append({
-			"intent_id": intent.id,
-			"intent_name": intent.name,
-			"category_l1_id": intent.category_level_1.id,
-			"category_l1_name": intent.category_level_1.name,
-			"category_l2_id": intent.category_level_2.id,
-			"category_l2_name": intent.category_level_2.name,
-			"category_l3_id": intent.category_level_3.id,
-			"category_l3_name": intent.category_level_3.name
-		})
+		intent_dicts.append(
+			{
+				"intent_id": intent.id,
+				"intent_name": intent.name,
+				"category_l1_id": intent.category_level_1.id,
+				"category_l1_name": intent.category_level_1.name,
+				"category_l2_id": intent.category_level_2.id,
+				"category_l2_name": intent.category_level_2.name,
+				"category_l3_id": intent.category_level_3.id,
+				"category_l3_name": intent.category_level_3.name,
+			}
+		)
 
-	logger.debug(f"Fetched {len(intent_dicts)} intents with complete category hierarchy")
+	logger.debug(
+		f"Fetched {len(intent_dicts)} intents with complete category hierarchy"
+	)
 	return intent_dicts

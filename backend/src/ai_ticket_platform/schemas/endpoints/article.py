@@ -42,7 +42,9 @@ class ArticleRead(ArticleBase):
 class LatestArticlesResponse(BaseModel):
 	intent_id: int
 	version: int | None = Field(None, description="Latest version number")
-	status: str | None = Field(None, description="Article status (accepted, iteration, denied)")
+	status: str | None = Field(
+		None, description="Article status (accepted, iteration, denied)"
+	)
 	presigned_url_micro: str | None = Field(
 		None, description="Presigned URL to download the micro article content from S3"
 	)

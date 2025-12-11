@@ -67,9 +67,11 @@ async def process_and_index_document(
 			storage.upload_blob,
 			blob_name,
 			content,  # Original binary PDF content
-			"application/pdf"
+			"application/pdf",
 		)
-		logger.info(f"[DOC PROCESSING] Successfully uploaded {filename} to Azure: {blob_path}")
+		logger.info(
+			f"[DOC PROCESSING] Successfully uploaded {filename} to Azure: {blob_path}"
+		)
 	except Exception as azure_error:
 		logger.warning(
 			f"[DOC PROCESSING] Failed to upload {filename} to Azure: {azure_error}. "
@@ -78,7 +80,9 @@ async def process_and_index_document(
 		blob_path = ""  # Save with empty blob_path if upload fails
 
 	# Step 4: Save to database
-	logger.info(f"[DOC PROCESSING] Step 4: Saving {filename} to database (area: {area})")
+	logger.info(
+		f"[DOC PROCESSING] Step 4: Saving {filename} to database (area: {area})"
+	)
 	try:
 		db_file = await create_company_file(
 			db=db, blob_path=blob_path, original_filename=filename, area=area

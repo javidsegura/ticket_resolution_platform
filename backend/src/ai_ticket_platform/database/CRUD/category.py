@@ -7,19 +7,20 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 async def get_level_1_categories(db: AsyncSession) -> List[Category]:
 	"""
 	Fetch all level 1 categories (root categories with no parent).
 	"""
 	result = await db.execute(
-		select(Category)
-		.where(Category.level == 1)
-		.order_by(Category.name)
+		select(Category).where(Category.level == 1).order_by(Category.name)
 	)
 	return list(result.scalars().all())
 
 
-async def get_level_2_categories_by_parent(db: AsyncSession, parent_id: int) -> List[Category]:
+async def get_level_2_categories_by_parent(
+	db: AsyncSession, parent_id: int
+) -> List[Category]:
 	"""
 	Fetch all level 2 categories that are children of a specific level 1 category.
 	"""
@@ -31,7 +32,9 @@ async def get_level_2_categories_by_parent(db: AsyncSession, parent_id: int) -> 
 	return list(result.scalars().all())
 
 
-async def get_level_3_categories_by_parent(db: AsyncSession, parent_id: int) -> List[Category]:
+async def get_level_3_categories_by_parent(
+	db: AsyncSession, parent_id: int
+) -> List[Category]:
 	"""
 	Fetch all level 3 categories that are children of a specific level 2 category.
 	"""
@@ -44,10 +47,7 @@ async def get_level_3_categories_by_parent(db: AsyncSession, parent_id: int) -> 
 
 
 async def create_category(
-	db: AsyncSession,
-	name: str,
-	level: int,
-	parent_id: Optional[int] = None
+	db: AsyncSession, name: str, level: int, parent_id: Optional[int] = None
 ) -> Category:
 	"""
 	Create a new category.
@@ -74,10 +74,7 @@ async def create_category(
 
 
 async def get_or_create_category(
-	db: AsyncSession,
-	name: str,
-	level: int,
-	parent_id: Optional[int] = None
+	db: AsyncSession, name: str, level: int, parent_id: Optional[int] = None
 ) -> tuple[Category, bool]:
 	"""
 	Get existing category or create if it doesn't exist.
@@ -89,9 +86,7 @@ async def get_or_create_category(
 	"""
 	# Simplified query construction - SQLAlchemy handles None correctly
 	query = select(Category).where(
-		Category.name == name,
-		Category.level == level,
-		Category.parent_id == parent_id
+		Category.name == name, Category.level == level, Category.parent_id == parent_id
 	)
 
 	result = await db.execute(query)
@@ -99,7 +94,9 @@ async def get_or_create_category(
 		category = result.scalar_one_or_none()
 	except Exception as e:
 		# Handle case where multiple rows exist (shouldn't happen, but just in case)
-		logger.warning(f"Multiple categories found for name='{name}', level={level}, parent_id={parent_id}. Using first one.")
+		logger.warning(
+			f"Multiple categories found for name='{name}', level={level}, parent_id={parent_id}. Using first one."
+		)
 		result = await db.execute(query)
 		category = result.scalars().first()
 
@@ -118,11 +115,15 @@ async def get_or_create_category(
 		return category, True
 	except IntegrityError:
 		await db.rollback()
-		logger.warning(f"Race condition handled for category '{name}'. Fetching existing.")
+		logger.warning(
+			f"Race condition handled for category '{name}'. Fetching existing."
+		)
 		result = await db.execute(query)
 		category = result.scalar_one_or_none()
 		if category is None:
-			raise RuntimeError(f"Category '{name}' not found after IntegrityError - concurrent deletion?")
+			raise RuntimeError(
+				f"Category '{name}' not found after IntegrityError - concurrent deletion?"
+			)
 		return category, False
 	except Exception as e:
 		await db.rollback()
