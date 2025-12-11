@@ -218,3 +218,61 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "🔐 SSH keys stored in AWS Secrets Manager" >> $GITHUB_STEP_SUMMARY
           echo "✅ Deployment complete!" >> $GITHUB_STEP_SUMMARY
+
+  cleanup-on-failure:
+    runs-on: ubuntu-latest
+    needs: [check-changes, deploy]
+    if: failure()
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: "backend/pyproject.toml"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.6.0'
+          terraform_wrapper: false
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Install dependencies for cleanup
+        run: make install-ci-cd
+        env:
+          ENVIRONMENT: ${{ env.ENVIRONMENT }}
+          CLOUD_PROVIDER: ${{ env.CLOUD_PROVIDER }}
+
+      - name: Cleanup failed deployment
+        run: |
+          echo "⚠️ Deployment failed - cleaning up infrastructure..."
+          make deploy-stop-infra
+        env:
+          ENVIRONMENT: ${{ env.ENVIRONMENT }}
+          CLOUD_PROVIDER: ${{ env.CLOUD_PROVIDER }}
+        continue-on-error: true
+
+      - name: Cleanup summary
+        run: |
+          echo "## ⚠️ Deployment Failed - Cleanup Executed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Action**: Infrastructure cleanup initiated" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: Partial deployment rolled back" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ Please check logs and retry deployment after fixing issues." >> $GITHUB_STEP_SUMMARY
