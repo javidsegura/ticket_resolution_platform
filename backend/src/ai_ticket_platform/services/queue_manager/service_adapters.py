@@ -36,7 +36,7 @@ def save_tickets(ticket_data: Dict[str, Any]) -> Dict[str, Any]:
 
 	db_ticket = _run_async(create_in_db())
 
-	# Return enriched ticket data with DB id
+	# Return ticket data with DB id
 	result = {
 		"id": db_ticket.id,  # DB ticket ID
 		"csv_id": csv_id,  # Original CSV id
@@ -115,7 +115,7 @@ def cluster_ticket(tickets_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 				)
 				continue
 
-			# Create enriched copy to avoid mutating input
+			# Create copy
 			enriched = ticket_data.copy()
 			enriched["cluster"] = intent_name
 			enriched["intent_id"] = intent_id
@@ -137,7 +137,6 @@ def cluster_ticket(tickets_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
 def generate_content(ticket_data: Dict[str, Any]) -> Dict[str, Any]:
 	"""Generate article content for an intent/cluster using RAG.
-
 	Note: This is called ONCE per unique cluster (intent) by the batch_finalizer,
 	not once per ticket. Multiple tickets in the same cluster share one article.
 	"""
@@ -151,7 +150,6 @@ def generate_content(ticket_data: Dict[str, Any]) -> Dict[str, Any]:
 	logger.info(f"[GENERATE] Generating article for intent '{cluster}' (ID: {intent_id}) - representative ticket: {ticket_id}")
 
 	# Call the RAG article generation task
-	# This function is already sync-compatible (uses _run_async internally)
 	result = generate_article_task(intent_id=intent_id)
 	logger.info(f"[GENERATE] Article generation for intent {intent_id}: {result.get('status')}")
 

@@ -115,7 +115,7 @@ class ChromaVectorStore:
 				embedding_function=self.embeddings,
 			)
 
-			# Add documents with embeddings (run in thread to avoid blocking event loop)
+			# Add documents with embeddings 
 			ids = [f"{file_id}-{i}" for i in range(len(chunks))]
 			await asyncio.to_thread(
 				vectorstore.add_texts, texts=texts, metadatas=metadatas, ids=ids
@@ -196,25 +196,6 @@ class ChromaVectorStore:
 			logger.error(f"Error searching ChromaDB: {e}")
 			raise
 
-	def as_retriever(self, k: int = 2):
-		"""
-		Return a LangChain retriever interface for use with RetrievalQA chains.
-
-		Args:
-		    k: Number of documents to retrieve
-
-		Returns:
-		    LangChain retriever
-		"""
-		vectorstore = Chroma(
-			client=self.client,
-			collection_name=self.collection_name,
-			embedding_function=self.embeddings,
-		)
-
-		return vectorstore.as_retriever(search_kwargs={"k": k})
-
-
 # Global vector store instance (initialized in lifespan)
 chroma_vectorstore = None
 _init_lock = threading.Lock()
@@ -239,12 +220,7 @@ def initialize_chroma_vectorstore(settings) -> ChromaVectorStore:
 
 def get_chroma_vectorstore(settings=None) -> ChromaVectorStore:
 	"""
-	Get or initialize the ChromaDB vector store (convenience function with lazy initialization).
-
-	This function can be called without settings if the client has already been initialized.
-	If not initialized and no settings provided, it will initialize settings automatically.
-
-	Thread-safe using double-checked locking pattern.
+	Get or initialize the ChromaDB vector store.
 
 	Args:
 		settings: Optional application settings object. If None, will auto-initialize.

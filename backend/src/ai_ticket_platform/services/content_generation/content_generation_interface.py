@@ -39,7 +39,7 @@ def generate_article_task(
 		settings = initialize_settings()
 		AsyncSessionLocal = initialize_db_engine()
 
-		# Initialize ChromaDB for this worker (lazy initialization)
+		# Initialize ChromaDB for this worker
 		get_chroma_vectorstore(settings)
 
 		async def generate():
@@ -55,41 +55,17 @@ def generate_article_task(
 
 		result = _run_async(generate())
 
-		logger.info(f"[QUEUE TASK] {action} article for intent {intent_id}: {result.get('status', 'unknown')}")
+		# Check if result indicates error
+		if result.get("status") == "error":
+			error_msg = result.get("error", "Unknown error")
+			logger.error(f"[QUEUE TASK] {action} article for intent {intent_id} failed: {error_msg}")
+			raise RuntimeError(f"Article generation failed: {error_msg}")
+
+		logger.info(f"[QUEUE TASK] {action} article for intent {intent_id}: success")
 		return result
 
 	except Exception as e:
 		logger.error(f"[QUEUE TASK] Error {action.lower()} article for intent {intent_id}: {e}")
-		return {"status": "error", "error": str(e)}
+		raise
 
 
-def approve_article_task(article_id: int) -> Dict[str, Any]:
-	"""
-	RQ Task: Approve article.
-
-	Args:
-	    article_id: Article ID
-
-	Returns:
-	    Dict with approval result
-	"""
-	logger.info(f"[QUEUE TASK] Approving article {article_id}")
-
-	try:
-		settings = initialize_settings()
-		AsyncSessionLocal = initialize_db_engine()
-
-		async def approve():
-			async with AsyncSessionLocal() as db:
-				service = ArticleGenerationService(settings)
-				result = await service.approve_article(article_id, db)
-				return result
-
-		result = _run_async(approve())
-
-		logger.info(f"[QUEUE TASK] Approve article {article_id}: {result.get('status', 'unknown')}")
-		return result
-
-	except Exception as e:
-		logger.error(f"[QUEUE TASK] Error approving article {article_id}: {e}")
-		return {"status": "error", "error": str(e)}
