@@ -60,15 +60,16 @@ def write_ssh_key_to_file(key_content: str, file_path: str) -> None:
 
 def get_ssh_key_path(terraform_dir: str, cache_dir: str = None) -> str:
     """
-    Get path to SSH key, fetching from Secrets Manager if needed.
+    Get path to SSH key, always fetching fresh from Secrets Manager.
 
     Args:
         terraform_dir: Path to Terraform directory
-        cache_dir: Directory to cache the key (default: ~/.ssh)
+        cache_dir: Directory to write the key (default: ~/.ssh)
 
     Returns:
         Path to SSH private key file
     """
+    print(f"Fetching SSH key from Secrets Manager...")
     if cache_dir is None:
         cache_dir = os.path.expanduser("~/.ssh")
 
@@ -80,12 +81,7 @@ def get_ssh_key_path(terraform_dir: str, cache_dir: str = None) -> str:
     else:
         key_file = os.path.join(cache_dir, "aws_key.pem")
 
-    # Use cached key if it exists
-    if os.path.exists(key_file):
-        return key_file
-
-    # Fetch from Secrets Manager
-    print(f"Fetching SSH key from Secrets Manager...")
+    # Always fetch fresh key from Secrets Manager
     secret_name = get_secret_name_from_terraform(terraform_dir)
 
     if not secret_name:
@@ -93,7 +89,7 @@ def get_ssh_key_path(terraform_dir: str, cache_dir: str = None) -> str:
 
     key_content = fetch_ssh_key_from_secrets_manager(secret_name)
     write_ssh_key_to_file(key_content, key_file)
-    print(f"SSH key cached at: {key_file}")
+    print(f"SSH key written to: {key_file}")
 
     return key_file
 

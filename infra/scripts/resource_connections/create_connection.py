@@ -63,8 +63,9 @@ class ConnectionEstabisher():
                   return StagingConnectionModel(**filtered)
 
       def _handle_ssh_connection(self):
-            # Fetch SSH key from Secrets Manager
+            # Fetch SSH key from Secrets Manager (always fresh)
             SSH_PRIVATE_KEY_FILE_PATH = get_ssh_key_path(self.terraform_dir)
+            print(f"SSH_PRIVATE_KEY_FILE_PATH: {SSH_PRIVATE_KEY_FILE_PATH}")
 
             if self.environment == "production":
                   if self.cloud_provider == "AWS":
@@ -109,7 +110,7 @@ class ConnectionEstabisher():
                   target_host: Target host (if None, uses app server)
                   connection_name: Name for logging purposes
             """
-            # Fetch SSH key from Secrets Manager
+            # Fetch SSH key from Secrets Manager (always fresh)
             SSH_PRIVATE_KEY_FILE_PATH = get_ssh_key_path(self.terraform_dir)
 
             if self.environment == "production":

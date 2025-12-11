@@ -23,16 +23,11 @@ class AnsibleInjector:
             else:
                   key_file = os.path.join(cache_dir, "aws_key.pem")
 
-            # Check if key already cached
-            if os.path.exists(key_file):
-                  print(f"Using cached SSH key: {key_file}")
-                  return key_file
-
             # Fetch from Secrets Manager using existing function
             print(f"Fetching SSH key from Secrets Manager: {secret_name}")
             key_content = fetch_ssh_key_from_secrets_manager(secret_name)
             write_ssh_key_to_file(key_content, key_file)
-            print(f"SSH key cached at: {key_file}")
+            print(f"SSH key written to: {key_file}")
 
             return key_file
 

@@ -73,8 +73,4 @@ async def cheeck_backend_health_dependencies_endpoint(
 
 @router.get(path="/ping", status_code=status.HTTP_200_OK)
 async def cheeck_backend_health_endpoint() -> Dict:
-	raise HTTPException(
-		status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-	)
-
 	return {"response": "pong"}
