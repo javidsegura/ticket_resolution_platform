@@ -6,7 +6,9 @@ import logging
 from ai_ticket_platform.core.clients.llm import get_llm_client
 from ai_ticket_platform.dependencies import get_app_settings, get_db
 from ai_ticket_platform.core.settings import Settings
-from ai_ticket_platform.services.company_docs.company_doc_processing import process_and_index_document
+from ai_ticket_platform.services.company_docs.company_doc_processing import (
+	process_and_index_document,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -31,23 +33,25 @@ async def upload_company_documents(
 		# Validate PDF file type
 		if not file.filename.lower().endswith(".pdf"):
 			logger.warning(f"Rejected non-PDF file: {file.filename}")
-			results.append({
-				"filename": file.filename,
-				"success": False,
-				"error": "Only PDF files are accepted",
-				"indexed": False
-			})
+			results.append(
+				{
+					"filename": file.filename,
+					"success": False,
+					"error": "Only PDF files are accepted",
+					"indexed": False,
+				}
+			)
 			continue
 
 		content = await file.read()
 
-		# Process and index document 
+		# Process and index document
 		result = await process_and_index_document(
 			filename=file.filename,
 			content=content,
 			llm_client=llm_client,
 			db=db,
-			settings=settings
+			settings=settings,
 		)
 
 		results.append(result)
@@ -62,5 +66,5 @@ async def upload_company_documents(
 		"successful": successful_count,
 		"failed": failed_count,
 		"indexed": indexed_count,
-		"results": results
+		"results": results,
 	}

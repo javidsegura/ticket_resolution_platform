@@ -38,7 +38,7 @@ def _cleanup_event_loop(loop):
 
 def _cleanup_on_exit():
 	"""Clean up the current thread's event loop on process exit."""
-	if hasattr(_thread_local, 'loop'):
+	if hasattr(_thread_local, "loop"):
 		_cleanup_event_loop(_thread_local.loop)
 		_thread_local.loop = None
 
@@ -53,7 +53,11 @@ def _get_or_create_event_loop():
 	This avoids the issue of asyncio.run() closing the loop while
 	database connections are still using it.
 	"""
-	if not hasattr(_thread_local, 'loop') or _thread_local.loop is None or _thread_local.loop.is_closed():
+	if (
+		not hasattr(_thread_local, "loop")
+		or _thread_local.loop is None
+		or _thread_local.loop.is_closed()
+	):
 		_thread_local.loop = asyncio.new_event_loop()
 		asyncio.set_event_loop(_thread_local.loop)
 		logger.debug("[_get_or_create_event_loop] Created new persistent event loop")

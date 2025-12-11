@@ -152,20 +152,20 @@ class RAGWorkflow:
 
 							Output format:
 							TITLE: [Article title]
-							SUMMARY: [A couple sentences summarising the main insights of the article so that the user is able to 
+							SUMMARY: [A couple sentences summarising the main insights of the article so that the user is able to
        									get an overview on how to fix the issue without needing to read the article]
 							CONTENT: [Full article in markdown]
 							"""
 
 		user_prompt = f"""Create a support article for:
-						**Category**: {state['category']} > {state['subcategory']}
-						**Intent**: {state['intent_name']}
+						**Category**: {state["category"]} > {state["subcategory"]}
+						**Intent**: {state["intent_name"]}
 
-						**User Issues** (from {len(state['ticket_summaries'])} tickets):
-						{chr(10).join(f"{i+1}. {s}" for i, s in enumerate(state['ticket_summaries'][:10]))}
+						**User Issues** (from {len(state["ticket_summaries"])} tickets):
+						{chr(10).join(f"{i + 1}. {s}" for i, s in enumerate(state["ticket_summaries"][:10]))}
 
 						**Company Documentation**:
-						{state['context']}
+						{state["context"]}
 
 						Generate a comprehensive article addressing these issues using the company docs.
 """
@@ -209,22 +209,22 @@ class RAGWorkflow:
 
 		user_prompt = f"""IMPROVE this article based on feedback:
 						**Previous Article**:
-						Title: {state['previous_article_title']}
+						Title: {state["previous_article_title"]}
 						Content:
-						{state['previous_article_content']}
+						{state["previous_article_content"]}
 
-						**Human Feedback** (iteration #{state['iteration_number']}):
-						{state['human_feedback']}
+						**Human Feedback** (iteration #{state["iteration_number"]}):
+						{state["human_feedback"]}
 
 						**Context** (same as before):
-						Category: {state['category']} > {state['subcategory']}
-						Intent: {state['intent_name']}
+						Category: {state["category"]} > {state["subcategory"]}
+						Intent: {state["intent_name"]}
 
 						User Issues:
-						{chr(10).join(f"- {s}" for s in state['ticket_summaries'][:5])}
+						{chr(10).join(f"- {s}" for s in state["ticket_summaries"][:5])}
 
 						**Company Documentation** (for reference):
-						{state['context'][:3000]}... (use if needed for improvements)
+						{state["context"][:3000]}... (use if needed for improvements)
 
 						Generate an IMPROVED article that:
 						1. Addresses the human feedback
@@ -310,9 +310,7 @@ class RAGWorkflow:
 				"area": input_state.get("area", ""),
 				# Iteration fields
 				"is_iteration": input_state.get("is_iteration", False),
-				"previous_article_content": input_state.get(
-					"previous_article_content"
-				),
+				"previous_article_content": input_state.get("previous_article_content"),
 				"previous_article_title": input_state.get("previous_article_title"),
 				"human_feedback": input_state.get("human_feedback"),
 				"iteration_number": input_state.get("iteration_number", 1),

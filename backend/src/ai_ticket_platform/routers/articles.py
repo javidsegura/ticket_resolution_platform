@@ -14,7 +14,9 @@ from ai_ticket_platform.schemas.endpoints.article import ArticleRead
 from ai_ticket_platform.services.content_generation.content_generation_interface import (
 	generate_article_task,
 )
-from ai_ticket_platform.services.content_generation.article_service import ArticleGenerationService
+from ai_ticket_platform.services.content_generation.article_service import (
+	ArticleGenerationService,
+)
 from ai_ticket_platform.dependencies import get_app_settings
 
 router = APIRouter(prefix="/articles", tags=["articles"])
@@ -23,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 class IterateArticleRequest(BaseModel):
 	"""Request body for iterating an article with feedback."""
+
 	feedback: str
 
 
@@ -30,7 +33,7 @@ class IterateArticleRequest(BaseModel):
 async def approve_article(
 	article_id: int,
 	db: AsyncSession = Depends(get_db),
-	settings = Depends(get_app_settings),
+	settings=Depends(get_app_settings),
 ):
 	"""
 	Approve an article and mark it as accepted.
@@ -59,8 +62,12 @@ async def approve_article(
 		result = await service.approve_article(article_id, db)
 
 		if result.get("status") == "error":
-			logger.error(f"[ARTICLE APPROVE] Approval failed for article {article_id}: {result.get('error')}")
-			raise HTTPException(status_code=500, detail=result.get("error", "Approval failed"))
+			logger.error(
+				f"[ARTICLE APPROVE] Approval failed for article {article_id}: {result.get('error')}"
+			)
+			raise HTTPException(
+				status_code=500, detail=result.get("error", "Approval failed")
+			)
 
 		logger.info(f"[ARTICLE APPROVE] Successfully approved article {article_id}")
 
@@ -77,7 +84,10 @@ async def approve_article(
 	except HTTPException:
 		raise
 	except Exception as e:
-		logger.error(f"[ARTICLE APPROVE] Error approving article {article_id}: {e}", exc_info=True)
+		logger.error(
+			f"[ARTICLE APPROVE] Error approving article {article_id}: {e}",
+			exc_info=True,
+		)
 		raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -120,7 +130,7 @@ async def iterate_article(
 			intent_id=intent_id,
 			feedback=request.feedback,
 			previous_article_id=article_id,
-			job_timeout='15m'
+			job_timeout="15m",
 		)
 
 		logger.info(
@@ -130,9 +140,7 @@ async def iterate_article(
 
 		# Update the article with feedback AFTER successful enqueue
 		updated_article = await update_article(
-			db,
-			article_id,
-			feedback=request.feedback
+			db, article_id, feedback=request.feedback
 		)
 
 		if not updated_article:
@@ -142,7 +150,7 @@ async def iterate_article(
 			)
 			raise HTTPException(
 				status_code=500,
-				detail="Generation job queued but failed to save feedback to article"
+				detail="Generation job queued but failed to save feedback to article",
 			)
 
 		logger.info(f"[ARTICLE ITERATE] Updated article {article_id} with feedback")
@@ -161,5 +169,8 @@ async def iterate_article(
 	except HTTPException:
 		raise
 	except Exception as e:
-		logger.error(f"[ARTICLE ITERATE] Error iterating article {article_id}: {e}", exc_info=True)
+		logger.error(
+			f"[ARTICLE ITERATE] Error iterating article {article_id}: {e}",
+			exc_info=True,
+		)
 		raise HTTPException(status_code=500, detail=str(e))

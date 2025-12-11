@@ -2,7 +2,9 @@
 from typing import List, Dict
 
 
-def build_batch_clustering_prompt(tickets: List[Dict], existing_intents: List[Dict]) -> str:
+def build_batch_clustering_prompt(
+	tickets: List[Dict], existing_intents: List[Dict]
+) -> str:
 	"""
 	Build prompt for batch clustering decision.
 
@@ -12,11 +14,13 @@ def build_batch_clustering_prompt(tickets: List[Dict], existing_intents: List[Di
 	"""
 	# Format existing intents
 	if existing_intents:
-		intent_list = "\n".join([
-			f"ID: {intent.get('intent_id', 'N/A')} | {intent.get('intent_name', 'Unnamed')} | "
-			f"({intent.get('category_l1_name', 'N/A')} > {intent.get('category_l2_name', 'N/A')} > {intent.get('category_l3_name', 'N/A')})"
-			for intent in existing_intents
-		])
+		intent_list = "\n".join(
+			[
+				f"ID: {intent.get('intent_id', 'N/A')} | {intent.get('intent_name', 'Unnamed')} | "
+				f"({intent.get('category_l1_name', 'N/A')} > {intent.get('category_l2_name', 'N/A')} > {intent.get('category_l3_name', 'N/A')})"
+				for intent in existing_intents
+			]
+		)
 		intent_section = f"""
 							EXISTING INTENTS:
 							{intent_list}
@@ -31,10 +35,12 @@ def build_batch_clustering_prompt(tickets: List[Dict], existing_intents: List[Di
 						"""
 
 	# Format tickets
-	ticket_list = "\n".join([
-		f"[{i}] Subject: {ticket.get('subject', '')}\n    Body: {ticket.get('body', '')[:200]}{'...' if len(ticket.get('body', '')) > 200 else ''}"
-		for i, ticket in enumerate(tickets)
-	])
+	ticket_list = "\n".join(
+		[
+			f"[{i}] Subject: {ticket.get('subject', '')}\n    Body: {ticket.get('body', '')[:200]}{'...' if len(ticket.get('body', '')) > 200 else ''}"
+			for i, ticket in enumerate(tickets)
+		]
+	)
 
 	prompt = f"""
 				You are a support ticket categorization expert specializing in ULTRA-GRANULAR classification. Your mission: Create intents so specific that each one represents a single, exact user question with precise symptoms.
@@ -144,43 +150,43 @@ def get_batch_clustering_schema() -> dict:
 					"properties": {
 						"ticket_index": {
 							"type": "integer",
-							"description": "Index of the ticket in the batch (0, 1, 2, ...)"
+							"description": "Index of the ticket in the batch (0, 1, 2, ...)",
 						},
 						"decision": {
 							"type": "string",
 							"enum": ["match_existing", "create_new"],
-							"description": "Whether to match existing intent or create new"
+							"description": "Whether to match existing intent or create new",
 						},
 						"intent_id": {
 							"type": ["integer", "null"],
-							"description": "ID of existing intent (required if decision is match_existing)"
+							"description": "ID of existing intent (required if decision is match_existing)",
 						},
 						"category_l1_name": {
 							"type": ["string", "null"],
-							"description": "Level 1 category name (required if creating new)"
+							"description": "Level 1 category name (required if creating new)",
 						},
 						"category_l2_name": {
 							"type": ["string", "null"],
-							"description": "Level 2 category name (required if creating new)"
+							"description": "Level 2 category name (required if creating new)",
 						},
 						"category_l3_name": {
 							"type": ["string", "null"],
-							"description": "Level 3 category name (required if creating new)"
+							"description": "Level 3 category name (required if creating new)",
 						},
 						"intent_name": {
 							"type": ["string", "null"],
-							"description": "Descriptive name for the intent (required if creating new) - should be a specific phrase describing the core issue"
+							"description": "Descriptive name for the intent (required if creating new) - should be a specific phrase describing the core issue",
 						},
 						"confidence": {
 							"type": "number",
 							"description": "Confidence score 0-1",
 							"minimum": 0,
-							"maximum": 1
+							"maximum": 1,
 						},
 						"reasoning": {
 							"type": "string",
-							"description": "Brief explanation of the decision"
-						}
+							"description": "Brief explanation of the decision",
+						},
 					},
 					"required": ["ticket_index", "decision", "confidence", "reasoning"],
 					"additionalProperties": False,
@@ -189,24 +195,25 @@ def get_batch_clustering_schema() -> dict:
 							"if": {
 								"properties": {"decision": {"const": "match_existing"}}
 							},
-							"then": {
-								"required": ["intent_id"]
-							}
+							"then": {"required": ["intent_id"]},
 						},
 						{
-							"if": {
-								"properties": {"decision": {"const": "create_new"}}
-							},
+							"if": {"properties": {"decision": {"const": "create_new"}}},
 							"then": {
-								"required": ["category_l1_name", "category_l2_name", "category_l3_name", "intent_name"]
-							}
-						}
-					]
-				}
+								"required": [
+									"category_l1_name",
+									"category_l2_name",
+									"category_l3_name",
+									"intent_name",
+								]
+							},
+						},
+					],
+				},
 			}
 		},
 		"required": ["assignments"],
-		"additionalProperties": False
+		"additionalProperties": False,
 	}
 
 
@@ -216,5 +223,5 @@ def get_task_config() -> dict:
 	"""
 	return {
 		"system_prompt": "You are an expert at categorizing support tickets into ultra-specific intents. Each intent must represent ONE exact, granular user question or issue with precise symptoms. Category Level 3 must be so specific that it describes the exact problem as if answering 'What is the user's exact question?' Avoid vague categorizations - specificity is paramount.",
-		"schema_name": "batch_clustering"
+		"schema_name": "batch_clustering",
 	}

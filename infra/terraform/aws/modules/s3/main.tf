@@ -1,5 +1,5 @@
 resource "aws_s3_bucket" "s3_image_bucket" {
-  bucket        = "${var.environment}-shorten-url-${random_string.bucket_prefix.result}"
+  bucket        = "${var.environment}-${var.project_name}-${random_string.bucket_prefix.result}"
   force_destroy = true
 
 }

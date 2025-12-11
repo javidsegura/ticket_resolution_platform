@@ -5,7 +5,9 @@ from ai_ticket_platform.database.main import initialize_db_engine
 from ai_ticket_platform.database.CRUD.ticket import create_tickets
 from ai_ticket_platform.services.clustering.cluster_interface import cluster_tickets
 from ai_ticket_platform.core.clients.llm import get_llm_client
-from ai_ticket_platform.services.content_generation.content_generation_interface import generate_article_task
+from ai_ticket_platform.services.content_generation.content_generation_interface import (
+	generate_article_task,
+)
 from ai_ticket_platform.services.queue_manager.async_helper import _run_async
 
 logger = logging.getLogger(__name__)
@@ -63,7 +65,9 @@ def cluster_ticket(tickets_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 		return []
 
 	ticket_ids = [t.get("id") for t in tickets_data]
-	logger.info(f"[CLUSTER] Clustering batch of {len(tickets_data)} tickets: {ticket_ids}")
+	logger.info(
+		f"[CLUSTER] Clustering batch of {len(tickets_data)} tickets: {ticket_ids}"
+	)
 
 	# Initialize LLM client for this worker
 	llm = get_llm_client()
@@ -72,13 +76,13 @@ def cluster_ticket(tickets_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 		AsyncSessionLocal = initialize_db_engine()
 
 		async with AsyncSessionLocal() as db:
-			logger.info(f"[CLUSTER] Calling cluster_tickets with {len(tickets_data)} tickets")
+			logger.info(
+				f"[CLUSTER] Calling cluster_tickets with {len(tickets_data)} tickets"
+			)
 
 			# Run clustering on the entire batch
 			clustering_result = await cluster_tickets(
-				db=db,
-				llm_client=llm,
-				tickets=tickets_data
+				db=db, llm_client=llm, tickets=tickets_data
 			)
 
 			# Extract assignments
@@ -126,12 +130,16 @@ def cluster_ticket(tickets_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 			enriched["category_l3_id"] = assignment.get("category_l3_id")
 			enriched["category_l3_name"] = assignment.get("category_l3_name")
 
-			logger.info(f"[CLUSTER] Ticket {ticket_id} assigned to intent: {intent_name} (ID: {intent_id})")
+			logger.info(
+				f"[CLUSTER] Ticket {ticket_id} assigned to intent: {intent_name} (ID: {intent_id})"
+			)
 			enriched_tickets.append(enriched)
 		else:
 			logger.warning(f"[CLUSTER] No assignment found for ticket {ticket_id}")
 
-	logger.info(f"[CLUSTER] Batch clustering complete: {len(enriched_tickets)}/{len(tickets_data)} tickets successfully clustered")
+	logger.info(
+		f"[CLUSTER] Batch clustering complete: {len(enriched_tickets)}/{len(tickets_data)} tickets successfully clustered"
+	)
 	return enriched_tickets
 
 
@@ -145,13 +153,19 @@ def generate_content(ticket_data: Dict[str, Any]) -> Dict[str, Any]:
 	cluster = ticket_data.get("cluster")
 
 	if not intent_id:
-		raise ValueError(f"Missing intent_id for ticket {ticket_id} - cannot generate content")
+		raise ValueError(
+			f"Missing intent_id for ticket {ticket_id} - cannot generate content"
+		)
 
-	logger.info(f"[GENERATE] Generating article for intent '{cluster}' (ID: {intent_id}) - representative ticket: {ticket_id}")
+	logger.info(
+		f"[GENERATE] Generating article for intent '{cluster}' (ID: {intent_id}) - representative ticket: {ticket_id}"
+	)
 
 	# Call the RAG article generation task
 	result = generate_article_task(intent_id=intent_id)
-	logger.info(f"[GENERATE] Article generation for intent {intent_id}: {result.get('status')}")
+	logger.info(
+		f"[GENERATE] Article generation for intent {intent_id}: {result.get('status')}"
+	)
 
 	return {
 		"ticket_id": ticket_id,
@@ -159,5 +173,5 @@ def generate_content(ticket_data: Dict[str, Any]) -> Dict[str, Any]:
 		"cluster": cluster,
 		"article_id": result.get("article_id"),
 		"status": result.get("status"),
-		"result": result
+		"result": result,
 	}

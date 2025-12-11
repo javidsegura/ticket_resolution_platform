@@ -4,7 +4,9 @@ from typing import Any, Dict, List, Optional
 from ai_ticket_platform.core.settings.app_settings import initialize_settings
 from ai_ticket_platform.database.main import initialize_db_engine
 from ai_ticket_platform.core.clients.chroma_client import get_chroma_vectorstore
-from ai_ticket_platform.services.content_generation.article_service import ArticleGenerationService
+from ai_ticket_platform.services.content_generation.article_service import (
+	ArticleGenerationService,
+)
 from ai_ticket_platform.services.queue_manager.async_helper import _run_async
 
 logger = logging.getLogger(__name__)
@@ -58,14 +60,16 @@ def generate_article_task(
 		# Check if result indicates error
 		if result.get("status") == "error":
 			error_msg = result.get("error", "Unknown error")
-			logger.error(f"[QUEUE TASK] {action} article for intent {intent_id} failed: {error_msg}")
+			logger.error(
+				f"[QUEUE TASK] {action} article for intent {intent_id} failed: {error_msg}"
+			)
 			raise RuntimeError(f"Article generation failed: {error_msg}")
 
 		logger.info(f"[QUEUE TASK] {action} article for intent {intent_id}: success")
 		return result
 
 	except Exception as e:
-		logger.error(f"[QUEUE TASK] Error {action.lower()} article for intent {intent_id}: {e}")
+		logger.error(
+			f"[QUEUE TASK] Error {action.lower()} article for intent {intent_id}: {e}"
+		)
 		raise
-
-

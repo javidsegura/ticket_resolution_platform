@@ -10,7 +10,7 @@ import tempfile
 import os
 
 from ai_ticket_platform.dependencies import get_db
-from ai_ticket_platform.schemas.endpoints.ticket import ( 
+from ai_ticket_platform.schemas.endpoints.ticket import (
 	CSVUploadResponse,
 	TicketListResponse,
 	TicketResponse,
@@ -63,7 +63,9 @@ async def get_ticket_by_id(ticket_id: int, db: AsyncSession = Depends(get_db)):
 async def upload_csv_with_queue(
 	file: UploadFile = File(...),
 	queue: Queue = Depends(get_queue),
-	batch_size: int = Query(10, ge=1, le=50, description="Number of tickets to process per batch job")
+	batch_size: int = Query(
+		10, ge=1, le=50, description="Number of tickets to process per batch job"
+	),
 ):
 	"""
 	Upload CSV file and process through queue workflow with TRUE batching:
@@ -77,12 +79,14 @@ async def upload_csv_with_queue(
 		batch_size: Number of tickets per batch job (default: 10, max: 50)
 	"""
 	# Validate file type
-	if not file.filename or not file.filename.lower().endswith('.csv'):
+	if not file.filename or not file.filename.lower().endswith(".csv"):
 		raise HTTPException(status_code=400, detail="Only CSV files are allowed")
 
 	# Validate content type
-	if file.content_type not in ['text/csv', 'application/csv']:
-		raise HTTPException(status_code=400, detail="Invalid content type. Expected text/csv")
+	if file.content_type not in ["text/csv", "application/csv"]:
+		raise HTTPException(
+			status_code=400, detail="Invalid content type. Expected text/csv"
+		)
 
 	# Validate file size (10MB limit)
 	MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
@@ -99,10 +103,12 @@ async def upload_csv_with_queue(
 	tmp_path = None
 
 	try:
-		logger.info(f"[CSV QUEUE] Processing CSV upload: {file.filename} with batch_size={batch_size}")
+		logger.info(
+			f"[CSV QUEUE] Processing CSV upload: {file.filename} with batch_size={batch_size}"
+		)
 
 		# Save uploaded file temporarily
-		with tempfile.NamedTemporaryFile(delete=False, suffix='.csv') as tmp:
+		with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmp:
 			while chunk := await file.read(1024 * 1024):  # 1MB chunks
 				tmp.write(chunk)
 			tmp_path = tmp.name
@@ -111,6 +117,7 @@ async def upload_csv_with_queue(
 
 		# Parse CSV file to extract tickets
 		from ai_ticket_platform.services.csv_uploader.csv_parser import parse_csv_file
+
 		parse_result = parse_csv_file(tmp_path)
 
 		if not parse_result.get("success"):
@@ -121,27 +128,33 @@ async def upload_csv_with_queue(
 
 		# Stage 1: Enqueue one job per BATCH of tickets (filter + cluster)
 		stage1_job_ids = []
-		ticket_batches = [tickets[i:i + batch_size] for i in range(0, len(tickets), batch_size)]
+		ticket_batches = [
+			tickets[i : i + batch_size] for i in range(0, len(tickets), batch_size)
+		]
 
-		logger.info(f"[CSV QUEUE] Created {len(ticket_batches)} batches of tickets (batch_size={batch_size})")
+		logger.info(
+			f"[CSV QUEUE] Created {len(ticket_batches)} batches of tickets (batch_size={batch_size})"
+		)
 
 		for batch_idx, ticket_batch in enumerate(ticket_batches):
 			stage1_job = queue.enqueue(
 				process_ticket_stage1,
 				ticket_batch,  # Pass entire batch
 				retry=Retry(max=3, interval=[10, 30, 60]),
-				job_timeout='10m'  # Increased timeout for batch processing
+				job_timeout="10m",  # Increased timeout for batch processing
 			)
 			stage1_job_ids.append(stage1_job.id)
-			logger.info(f"[CSV QUEUE] Enqueued batch {batch_idx + 1}/{len(ticket_batches)} with {len(ticket_batch)} tickets (job_id: {stage1_job.id})")
+			logger.info(
+				f"[CSV QUEUE] Enqueued batch {batch_idx + 1}/{len(ticket_batches)} with {len(ticket_batch)} tickets (job_id: {stage1_job.id})"
+			)
 
-		logger.info(f"[CSV QUEUE] Enqueued {len(stage1_job_ids)} stage1 batch jobs for {len(tickets)} tickets")
+		logger.info(
+			f"[CSV QUEUE] Enqueued {len(stage1_job_ids)} stage1 batch jobs for {len(tickets)} tickets"
+		)
 
 		# Batch Finalizer: Waits for all stage1 jobs, groups by cluster, enqueues stage2
 		finalizer_job = queue.enqueue(
-			batch_finalizer,
-			stage1_job_ids,
-			job_timeout='30m'
+			batch_finalizer, stage1_job_ids, job_timeout="30m"
 		)
 		logger.info(f"[CSV QUEUE] Enqueued batch_finalizer job {finalizer_job.id}")
 
@@ -160,9 +173,9 @@ async def upload_csv_with_queue(
 				"batch_size": batch_size,
 				"batch_count": len(ticket_batches),
 				"stage1_job_count": len(stage1_job_ids),
-				"finalizer_job_id": finalizer_job.id
+				"finalizer_job_id": finalizer_job.id,
 			},
-			"workflow": f"Stage1: Filter+Cluster {batch_size} tickets per batch -> Finalizer: Group by intent -> Stage2: Generate article per intent"
+			"workflow": f"Stage1: Filter+Cluster {batch_size} tickets per batch -> Finalizer: Group by intent -> Stage2: Generate article per intent",
 		}
 
 	except Exception as e:
@@ -173,4 +186,6 @@ async def upload_csv_with_queue(
 				os.unlink(tmp_path)
 			except Exception:
 				pass
-		raise HTTPException(500, detail="Failed to process CSV upload. Please try again.")
+		raise HTTPException(
+			500, detail="Failed to process CSV upload. Please try again."
+		)

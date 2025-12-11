@@ -104,7 +104,9 @@ class ChromaVectorStore:
 			collection = self.get_or_create_collection()
 			try:
 				collection.delete(where={"file_id": str(file_id)})
-				logger.info(f"Deleted existing chunks for file_id {file_id} before re-indexing")
+				logger.info(
+					f"Deleted existing chunks for file_id {file_id} before re-indexing"
+				)
 			except Exception as e:
 				logger.debug(f"No existing chunks to delete for file_id {file_id}: {e}")
 
@@ -115,7 +117,7 @@ class ChromaVectorStore:
 				embedding_function=self.embeddings,
 			)
 
-			# Add documents with embeddings 
+			# Add documents with embeddings
 			ids = [f"{file_id}-{i}" for i in range(len(chunks))]
 			await asyncio.to_thread(
 				vectorstore.add_texts, texts=texts, metadatas=metadatas, ids=ids
@@ -172,7 +174,9 @@ class ChromaVectorStore:
 			# Perform similarity search with scores (run in thread to avoid blocking event loop)
 			results = await asyncio.to_thread(
 				vectorstore.similarity_search_with_score,
-				query=query, k=k, filter=filter_dict
+				query=query,
+				k=k,
+				filter=filter_dict,
 			)
 
 			# Format results
@@ -195,6 +199,7 @@ class ChromaVectorStore:
 		except Exception as e:
 			logger.error(f"Error searching ChromaDB: {e}")
 			raise
+
 
 # Global vector store instance (initialized in lifespan)
 chroma_vectorstore = None
@@ -235,7 +240,10 @@ def get_chroma_vectorstore(settings=None) -> ChromaVectorStore:
 			if chroma_vectorstore is None:
 				if settings is None:
 					# Auto-initialize settings if not provided
-					from ai_ticket_platform.core.settings.app_settings import initialize_settings
+					from ai_ticket_platform.core.settings.app_settings import (
+						initialize_settings,
+					)
+
 					settings = initialize_settings()
 				chroma_vectorstore = initialize_chroma_vectorstore(settings)
 	return chroma_vectorstore

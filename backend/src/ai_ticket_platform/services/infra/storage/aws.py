@@ -117,15 +117,14 @@ class AWSS3Storage(StorageService):
 
 			# Convert string to bytes if needed
 			if isinstance(content, str):
-				content = content.encode('utf-8')
+				content = content.encode("utf-8")
 
 			self._s3_client.put_object(
-				Bucket=self.bucket_name,
-				Key=blob_name,
-				Body=content,
-				**upload_kwargs
+				Bucket=self.bucket_name, Key=blob_name, Body=content, **upload_kwargs
 			)
-			logger.info(f"Successfully uploaded to S3: s3://{self.bucket_name}/{blob_name}")
+			logger.info(
+				f"Successfully uploaded to S3: s3://{self.bucket_name}/{blob_name}"
+			)
 			return blob_name
 		except Exception as e:
 			logger.error(f"Failed to upload to S3 {blob_name}: {e}", exc_info=True)
@@ -144,12 +143,13 @@ class AWSS3Storage(StorageService):
 		"""
 		try:
 			response = self._s3_client.get_object(
-				Bucket=self.bucket_name,
-				Key=blob_name
+				Bucket=self.bucket_name, Key=blob_name
 			)
-			content = response['Body'].read()
-			logger.info(f"Successfully downloaded from S3: s3://{self.bucket_name}/{blob_name}")
-			return content.decode('utf-8') if decode else content
+			content = response["Body"].read()
+			logger.info(
+				f"Successfully downloaded from S3: s3://{self.bucket_name}/{blob_name}"
+			)
+			return content.decode("utf-8") if decode else content
 		except ClientError as e:
 			logger.error(f"Failed to download from S3 {blob_name}: {e}", exc_info=True)
 			raise

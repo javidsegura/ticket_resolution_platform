@@ -31,9 +31,7 @@ def _compute_clustering_hash(ticket_texts: List[str]) -> str:
 
 
 async def cluster_tickets(
-	db: AsyncSession,
-	llm_client: LLMClient,
-	tickets: List[Dict]
+	db: AsyncSession, llm_client: LLMClient, tickets: List[Dict]
 ) -> Dict:
 	"""
 	Cluster a batch of tickets by assigning them to existing or new intents.
@@ -60,7 +58,7 @@ async def cluster_tickets(
 			"intents_created": 0,
 			"intents_matched": 0,
 			"categories_created": {"l1": 0, "l2": 0, "l3": 0},
-			"assignments": []
+			"assignments": [],
 		}
 
 	logger.info(f"Starting clustering for {len(tickets)} tickets")
@@ -74,9 +72,13 @@ async def cluster_tickets(
 	if clients.cache_manager:
 		cached_result = await clients.cache_manager.get(cache_key)
 		if cached_result:
-			logger.info(f"Cache HIT for clustering hash {clustering_hash[:8]}... - returning cached result")
+			logger.info(
+				f"Cache HIT for clustering hash {clustering_hash[:8]}... - returning cached result"
+			)
 			return cached_result
-		logger.info(f"Cache MISS for clustering hash {clustering_hash[:8]}... - processing tickets")
+		logger.info(
+			f"Cache MISS for clustering hash {clustering_hash[:8]}... - processing tickets"
+		)
 	else:
 		logger.warning("Cache manager not initialized, skipping cache check")
 
@@ -88,7 +90,7 @@ async def cluster_tickets(
 	stats = {
 		"intents_created": 0,
 		"intents_matched": 0,
-		"categories_created": {"l1": 0, "l2": 0, "l3": 0}
+		"categories_created": {"l1": 0, "l2": 0, "l3": 0},
 	}
 
 	# Build prompt for batch
@@ -105,9 +107,9 @@ async def cluster_tickets(
 				prompt=prompt,
 				output_schema=schema,
 				task_config=task_config,
-				temperature=0.2
+				temperature=0.2,
 			),
-			timeout=180.0  
+			timeout=180.0,
 		)
 	except asyncio.TimeoutError:
 		logger.error(f"LLM call timed out for batch of {len(tickets)} tickets")
@@ -157,16 +159,18 @@ async def cluster_tickets(
 
 		# Update existing_intents with newly created intents
 		if assignment.get("is_new_intent"):
-			existing_intents.append({
-				"intent_id": assignment["intent_id"],
-				"intent_name": assignment["intent_name"],
-				"category_l1_id": assignment["category_l1_id"],
-				"category_l1_name": assignment["category_l1_name"],
-				"category_l2_id": assignment["category_l2_id"],
-				"category_l2_name": assignment["category_l2_name"],
-				"category_l3_id": assignment["category_l3_id"],
-				"category_l3_name": assignment["category_l3_name"]
-			})
+			existing_intents.append(
+				{
+					"intent_id": assignment["intent_id"],
+					"intent_name": assignment["intent_name"],
+					"category_l1_id": assignment["category_l1_id"],
+					"category_l1_name": assignment["category_l1_name"],
+					"category_l2_id": assignment["category_l2_id"],
+					"category_l2_name": assignment["category_l2_name"],
+					"category_l3_id": assignment["category_l3_id"],
+					"category_l3_name": assignment["category_l3_name"],
+				}
+			)
 
 	# Build final result
 	result = {
@@ -175,7 +179,7 @@ async def cluster_tickets(
 		"intents_matched": stats["intents_matched"],
 		"total_intents": stats["intents_created"] + stats["intents_matched"],
 		"categories_created": stats["categories_created"],
-		"assignments": all_assignments
+		"assignments": all_assignments,
 	}
 
 	# Store in cache for configured TTL (if initialized)

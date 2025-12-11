@@ -15,7 +15,7 @@ async def process_match_decision(
 	ticket: Dict,
 	llm_result: Dict,
 	existing_intents: List[Dict],
-	stats: Dict
+	stats: Dict,
 ) -> Dict:
 	"""
 	Process LLM decision to match ticket to existing intent.
@@ -32,16 +32,18 @@ async def process_match_decision(
 	"""
 	intent_id = llm_result["intent_id"]
 	ticket_id = ticket.get("id")
-	
+
 	if ticket_id is None:
 		raise ValueError("Ticket dict missing required 'id' field")
 	if intent_id is None:
-		raise ValueError(f"LLM chose 'match_existing' but didn't provide intent_id for ticket {ticket_id}")
+		raise ValueError(
+			f"LLM chose 'match_existing' but didn't provide intent_id for ticket {ticket_id}"
+		)
 
 	# Find the intent in existing_intents
 	matched_intent = next(
 		(intent for intent in existing_intents if intent["intent_id"] == intent_id),
-		None
+		None,
 	)
 
 	if not matched_intent:
@@ -73,15 +75,12 @@ async def process_match_decision(
 		"category_l3_name": matched_intent["category_l3_name"],
 		"is_new_intent": False,
 		"confidence": llm_result.get("confidence"),
-		"reasoning": llm_result.get("reasoning")
+		"reasoning": llm_result.get("reasoning"),
 	}
 
 
 async def process_create_decision(
-	db: AsyncSession,
-	ticket: Dict,
-	llm_result: Dict,
-	stats: Dict
+	db: AsyncSession, ticket: Dict, llm_result: Dict, stats: Dict
 ) -> Dict:
 	"""
 	Process LLM decision to create new intent with full category hierarchy.
@@ -100,7 +99,7 @@ async def process_create_decision(
 	cat_l3_name = llm_result.get("category_l3_name")
 	intent_name_from_llm = llm_result.get("intent_name")
 	ticket_id = ticket.get("id")
-	
+
 	if ticket_id is None:
 		raise ValueError("Ticket dict missing required 'id' field")
 
@@ -138,7 +137,9 @@ async def process_create_decision(
 	if is_l3_new:
 		stats.setdefault("categories_created", {}).setdefault("l3", 0)
 		stats["categories_created"]["l3"] += 1
-		logger.info(f"Created new L3 category: {cat_l3_name} under {cat_l1_name} > {cat_l2_name}")
+		logger.info(
+			f"Created new L3 category: {cat_l3_name} under {cat_l1_name} > {cat_l2_name}"
+		)
 
 	# Create intent using the name from LLM
 	intent, is_new_intent = await intent_crud.get_or_create_intent(
@@ -147,7 +148,7 @@ async def process_create_decision(
 		category_level_1_id=category_l1.id,
 		category_level_2_id=category_l2.id,
 		category_level_3_id=category_l3.id,
-		area=None
+		area=None,
 	)
 
 	# Update statistics based on whether intent was newly created
@@ -178,5 +179,5 @@ async def process_create_decision(
 		"is_l2_new": is_l2_new,
 		"is_l3_new": is_l3_new,
 		"confidence": llm_result.get("confidence"),
-		"reasoning": llm_result.get("reasoning")
+		"reasoning": llm_result.get("reasoning"),
 	}
