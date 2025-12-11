@@ -19,6 +19,7 @@ from ai_ticket_platform.services.content_generation.langgraph_rag_workflow impor
 	RAGWorkflow,
 )
 from ai_ticket_platform.services.infra.storage.storage import get_storage_service
+from ai_ticket_platform.core.clients.slack import Slack
 
 logger = logging.getLogger(__name__)
 
@@ -296,6 +297,24 @@ class ArticleGenerationService:
 				IntentUpdate(is_processed=True),
 			)
 			logger.info(f"Updated intent {intent_id}: is_processed=True")
+   
+			# 8. Send Slack notification
+			try:
+				# Construct frontend URL with intent_id
+				frontend_url = f"{self.settings.FRONTEND_URL}/cluster/{intent_id}"
+				slack = Slack(slack_bot_token=self.settings.SLACK_BOT_TOKEN)
+				result = slack.send_new_article_proposal(
+					slack_channel_id=self.settings.SLACK_CHANNEL_ID,
+					url=frontend_url,
+					content=article_summary,
+				)
+				if result is None:
+					logger.warning(f"Failed to send Slack notification for article {article_article.id}")
+				else:
+					channel_id, message_id = result
+					logger.info(f"Sent Slack notification for article {article_article.id} (channel: {channel_id}, message: {message_id})")
+			except Exception as e:
+				logger.error(f"Error sending Slack notification for article {article_article.id}: {str(e)}", exc_info=True)
 
 			return {
 				"status": "success",
@@ -362,6 +381,23 @@ class ArticleGenerationService:
 			logger.info(
 				f"Approved {len(articles)} articles (types: {approved_types}) for intent {intent_id} version {version}"
 			)
+
+			# 8. Send Slack notification
+			try:
+				# Construct frontend URL with intent_id
+				frontend_url = f"{self.settings.FRONTEND_URL}/cluster/{intent_id}"
+				slack = Slack(slack_bot_token=self.settings.SLACK_BOT_TOKEN)
+				result = slack.send_confirmation_message(
+					slack_channel_id=self.settings.SLACK_CHANNEL_ID,
+					url=frontend_url,
+				)
+				if result is None:
+					logger.warning(f"Failed to send Slack notification for approved article {article_id}")
+				else:
+					channel_id, message_id = result
+					logger.info(f"Sent Slack notification for approved article {article_id} (channel: {channel_id}, message: {message_id})")
+			except Exception as e:
+				logger.error(f"Error sending Slack notification for approved article {article_id}: {str(e)}", exc_info=True)
 
 			return {
 				"status": "success",

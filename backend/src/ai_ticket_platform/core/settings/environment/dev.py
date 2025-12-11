@@ -87,6 +87,7 @@ class DevSettings(BaseSettings):
 	def _extract_slack_variables(self):
 		self.SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")
 		self.SLACK_CHANNEL_ID = os.getenv("SLACK_CHANNEL_ID")
+		self.FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
 	def _extract_llm_variables(self):
 		self.GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
