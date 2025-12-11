@@ -125,15 +125,18 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_SECURITY_ADMIN_USER=admin
+      - GF_UNIFIED_ALERTING_ENABLED=true
     volumes:
       - grafana_data:/var/lib/grafana
       - ./telemetry/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
       - ./telemetry/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ./telemetry/grafana/provisioning/alerting:/etc/grafana/provisioning/alerting
     depends_on:
       prometheus:
         condition: service_started
+    env_file:
+      - ${BACKEND_ENV_FILE}
 
   # ChromaDB Vector Database for RAG
   chromadb:

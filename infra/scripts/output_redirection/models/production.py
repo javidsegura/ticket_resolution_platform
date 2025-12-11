@@ -27,10 +27,9 @@ class ProductionAnsibleOutputs(BaseModel):
       # AWS
       EC2_APP_SERVER_PUBLIC_IP: str
       EC2_APP_SERVER_SSH_USER: str
-      EC2_SERVERS_SSH_PRIVATE_KEY_FILE_PATH: str
-
+      SSH_KEY_SECRET_NAME: str
 
       # AZURE
       VM_APP_SERVER_PUBLIC_IP: str
       VM_APP_SERVER_SSH_USER: str
-      VM_APP_SERVER_SSH_PRIVATE_KEY_FILE_PATH: str
+      VM_APP_SERVER_SSH_PRIVATE_KEY_FILE_PATH: str  # Azure still uses local file

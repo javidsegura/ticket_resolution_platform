@@ -71,6 +71,7 @@ services:
       - grafana_data:/var/lib/grafana
       - ./telemetry/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
       - ./telemetry/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ./telemetry/grafana/provisioning/alerting:/etc/grafana/provisioning/alerting
     depends_on:
       prometheus:
         condition: service_started

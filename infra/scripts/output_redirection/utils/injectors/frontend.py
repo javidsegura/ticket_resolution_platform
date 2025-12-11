@@ -11,14 +11,14 @@ class FrontendInjector:
       def __init__(self, environment) -> None:
             self.environment = environment
 
-      def _extract_server_ip(self, ansible_outputs: BaseModel):
+      def _extract_server_ip(self, ansible_outputs: dict):
             cloud_provider = os.getenv("CLOUD_PROVIDER").lower()
             if cloud_provider == "aws":
                   return ansible_outputs.get("EC2_APP_SERVER_PUBLIC_IP")
             elif cloud_provider == "azure":
                   return ansible_outputs.get("VM_APP_SERVER_PUBLIC_IP")
 
-      def _resolve_base_url(self, ansible_outputs: BaseModel):
+      def _resolve_base_url(self, ansible_outputs: dict):
             server_ip = self._extract_server_ip(ansible_outputs)
             if self.environment == "dev":
                   return {"VITE_BASE_URL": "http://localhost/api/"}

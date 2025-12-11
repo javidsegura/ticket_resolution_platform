@@ -4,7 +4,9 @@ import json
 import os
 import subprocess
 
-from .utils import ProdConnectionModelAWS, ProdConnectionModelAzure, StagingConnectionModel
+from .utils.models.production import ProdConnectionModelAWS, ProdConnectionModelAzure
+from .utils.models.staging import StagingConnectionModel
+from .utils.secrets.ssh import get_ssh_key_path
 
 class ConnectionEstabisher():
       """
@@ -61,11 +63,14 @@ class ConnectionEstabisher():
                   return StagingConnectionModel(**filtered)
 
       def _handle_ssh_connection(self):
+            # Fetch SSH key from Secrets Manager (always fresh)
+            SSH_PRIVATE_KEY_FILE_PATH = get_ssh_key_path(self.terraform_dir)
+            print(f"SSH_PRIVATE_KEY_FILE_PATH: {SSH_PRIVATE_KEY_FILE_PATH}")
+
             if self.environment == "production":
                   if self.cloud_provider == "AWS":
                         SSH_USER = self.terraform_outputs.EC2_APP_SERVER_SSH_USER
                         PUBLIC_IP = self.terraform_outputs.EC2_APP_SERVER_PUBLIC_IP
-                        SSH_PRIVATE_KEY_FILE_PATH = self.terraform_outputs.EC2_SERVERS_SSH_PRIVATE_KEY_FILE_PATH
                   elif self.cloud_provider == "AZURE":
                         SSH_USER = self.terraform_outputs.VM_APP_SERVER_SSH_USER
                         PUBLIC_IP = self.terraform_outputs.VM_APP_SERVER_PUBLIC_IP
@@ -79,13 +84,12 @@ class ConnectionEstabisher():
                   EC2_APP_SERVER_PRIVATE_IP = self.terraform_outputs.EC2_APP_SERVER_PRIVATE_IP
                   EC2_BASTION_SERVER_SSH_USER = self.terraform_outputs.EC2_BASTION_SERVER_SSH_USER
                   EC2_BASTION_SERVER_PUBLIC_IP = self.terraform_outputs.EC2_BASTION_SERVER_PUBLIC_IP
-                  EC2_SERVERS_SSH_PRIVATE_KEY_FILE_PATH = self.terraform_outputs.EC2_SERVERS_SSH_PRIVATE_KEY_FILE_PATH
 
-                  proxy_command = f"ssh -i {EC2_SERVERS_SSH_PRIVATE_KEY_FILE_PATH} -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -W %h:%p -q {EC2_BASTION_SERVER_SSH_USER}@{EC2_BASTION_SERVER_PUBLIC_IP}"
+                  proxy_command = f"ssh -i {SSH_PRIVATE_KEY_FILE_PATH} -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -W %h:%p -q {EC2_BASTION_SERVER_SSH_USER}@{EC2_BASTION_SERVER_PUBLIC_IP}"
 
                   cmd = [
                         "ssh",
-                        "-i", EC2_SERVERS_SSH_PRIVATE_KEY_FILE_PATH,
+                        "-i", SSH_PRIVATE_KEY_FILE_PATH,
                         "-o", f"ProxyCommand={proxy_command}",
                         f"{EC2_APP_SERVER_SSH_USER}@{EC2_APP_SERVER_PRIVATE_IP}"
                   ]
@@ -106,11 +110,13 @@ class ConnectionEstabisher():
                   target_host: Target host (if None, uses app server)
                   connection_name: Name for logging purposes
             """
+            # Fetch SSH key from Secrets Manager (always fresh)
+            SSH_PRIVATE_KEY_FILE_PATH = get_ssh_key_path(self.terraform_dir)
+
             if self.environment == "production":
                   if self.cloud_provider == "AWS":
                         SSH_USER = self.terraform_outputs.EC2_APP_SERVER_SSH_USER
                         PUBLIC_IP = self.terraform_outputs.EC2_APP_SERVER_PUBLIC_IP
-                        SSH_PRIVATE_KEY_FILE_PATH = self.terraform_outputs.EC2_SERVERS_SSH_PRIVATE_KEY_FILE_PATH
                   elif self.cloud_provider == "AZURE":
                         SSH_USER = self.terraform_outputs.VM_APP_SERVER_SSH_USER
                         PUBLIC_IP = self.terraform_outputs.VM_APP_SERVER_PUBLIC_IP
@@ -129,12 +135,11 @@ class ConnectionEstabisher():
                   EC2_BASTION_SERVER_SSH_USER = self.terraform_outputs.EC2_BASTION_SERVER_SSH_USER
                   EC2_BASTION_SERVER_PUBLIC_IP = self.terraform_outputs.EC2_BASTION_SERVER_PUBLIC_IP
                   EC2_APP_SERVER_PRIVATE_IP = self.terraform_outputs.EC2_APP_SERVER_PRIVATE_IP
-                  EC2_SERVERS_SSH_PRIVATE_KEY_FILE_PATH = self.terraform_outputs.EC2_SERVERS_SSH_PRIVATE_KEY_FILE_PATH
 
                   # Use provided target_host or default to app server private IP
                   remote_host = target_host if target_host else EC2_APP_SERVER_PRIVATE_IP
 
-                  cmd = ["ssh", "-i", f"{EC2_SERVERS_SSH_PRIVATE_KEY_FILE_PATH}", "-N", "-L",
+                  cmd = ["ssh", "-i", f"{SSH_PRIVATE_KEY_FILE_PATH}", "-N", "-L",
                          f"{local_port_to_send_from}:{remote_host}:{local_port_to_receive_from}",
                          f"{EC2_BASTION_SERVER_SSH_USER}@{EC2_BASTION_SERVER_PUBLIC_IP}"]
 

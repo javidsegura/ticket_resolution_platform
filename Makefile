@@ -78,7 +78,7 @@ dev-destroy-infra: ## Destroy terraform infra for development environmnet
 	$(MAKE) -C infra terraform-stop
 
 # 3) Deployment environment
-deploy-start: ## Deploy to production (process: build artifacts + ansible)
+deploy-start-artifacts: ## Deploy to production (process: build artifacts + ansible)
 	@echo "$(GREEN)Starting production deployment (app only)...$(RESET)"
 	$(MAKE) check-enviroment-variables
 	$(MAKE) check-backend-version

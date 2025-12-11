@@ -18,25 +18,25 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        cloud_provider: [azure] #   Consider expanding 
+        cloud_provider: [azur, aws] #   Consider expanding
         environment: [production]
       fail-fast: false
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: '1.2.0'
-      
+
       - name: Check Terraform formatting
         working-directory: ./infra
         env:
           ENVIRONMENT: ${{ matrix.environment }}
           CLOUD_PROVIDER: ${{ matrix.cloud_provider }}
         run: make terraform-fmt-check
-      
+
       - name: Validate Terraform configuration
         working-directory: ./infra
         env:
