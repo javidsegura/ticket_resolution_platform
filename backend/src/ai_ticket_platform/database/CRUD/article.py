@@ -116,6 +116,23 @@ async def delete_article(db: AsyncSession, article_id: int) -> bool:
 	return False
 
 
+async def get_articles_by_intent(
+	db: AsyncSession, intent_id: int
+) -> List[Article]:
+	"""
+	Get all articles for a specific intent.
+
+	Returns a list of all articles (all versions, both micro and article types).
+	"""
+	query = (
+		select(Article)
+		.where(Article.intent_id == intent_id)
+		.order_by(Article.version.desc(), Article.type)
+	)
+	result = await db.execute(query)
+	return result.scalars().all()
+
+
 async def get_latest_articles_for_intent(
 	db: AsyncSession, intent_id: int
 ) -> Dict[str, Optional[Article]]:
