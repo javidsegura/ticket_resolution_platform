@@ -45,6 +45,7 @@ class DeploymentSettings(BaseSettings):
 		self._extract_app_logic_variables()
 		self._extract_database_variables()
 		self._extract_llm_variables()
+		self._extract_slack_variables()
 
 	def _extract_llm_variables(self):
 		self.GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -82,6 +83,11 @@ class DeploymentSettings(BaseSettings):
 		elif self.CLOUD_PROVIDER == "azure":
 			self.MYSQL_HOST = os.getenv("MYSQL_HOST")
 		self._extract_secret_manger_databaseb_credentials()
+
+	def _extract_slack_variables(self):
+		self.SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")
+		self.SLACK_CHANNEL_ID = os.getenv("SLACK_CHANNEL_ID")
+		self.FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
 	def _extract_storage_variables(self):
 		self.CLOUD_PROVIDER = os.getenv("CLOUD_PROVIDER", "aws").lower()
