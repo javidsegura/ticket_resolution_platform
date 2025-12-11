@@ -269,6 +269,15 @@ jobs:
           ENVIRONMENT: ${{ env.ENVIRONMENT }}
           CLOUD_PROVIDER: ${{ env.CLOUD_PROVIDER }}
 
+      - name: Create Terraform tfvars file
+        run: |
+            cat > infra/terraform/${{ env.CLOUD_PROVIDER }}/environment/${{ env.ENVIRONMENT }}/terraform.tfvars <<EOF
+            environment  = "${{ env.ENVIRONMENT }}"
+            main_region  = "us-east-1"
+            db_username  = "root"
+            project_name = "ai_ticket_platform"
+            EOF
+
       - name: Cleanup failed deployment
         run: |
           echo "⚠️ Deployment failed - cleaning up infrastructure..."
