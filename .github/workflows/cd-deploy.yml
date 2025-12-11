@@ -53,11 +53,13 @@ jobs:
           else
             CHANGED_FILES=$(git diff --name-only $PREV_TAG $TAG_COMMIT)
 
-            if echo "$CHANGED_FILES" | grep -qE '^infra/terraform/'; then
-              echo "infra_changed=true" >> $GITHUB_OUTPUT
-            else
-              echo "infra_changed=false" >> $GITHUB_OUTPUT
-            fi
+            # if echo "$CHANGED_FILES" | grep -qE '^infra/terraform/'; then
+            #   echo "infra_changed=true" >> $GITHUB_OUTPUT
+            # else
+            #   echo "infra_changed=false" >> $GITHUB_OUTPUT
+            # fi
+            echo "infra_changed=true" >> $GITHUB_OUTPUT
+
 
             if echo "$CHANGED_FILES" | grep -qE '^(backend/|frontend/)'; then
               echo "app_changed=true" >> $GITHUB_OUTPUT

@@ -20,6 +20,7 @@ def get_secret_name_from_terraform(terraform_dir: str) -> str:
             capture_output=True
         )
         outputs = json.loads(output.stdout)
+        print(f"Outputs: {outputs}")
         return outputs.get("ssh_key_secret_name", {}).get("value")
     except subprocess.CalledProcessError as e:
         print(f"Error getting Terraform outputs: {e}", file=sys.stderr)

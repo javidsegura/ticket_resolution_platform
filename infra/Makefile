@@ -51,11 +51,11 @@ install: ## Initialize Terraform (Local Dev)
 	$(PYTHON) -m ansible.galaxy collection install -r ./ansible/dependencies.yml
 
 install-ci-cd: ## CI/CD Installation
+	cd $(TERRAFORM_ENVIRONMENT_PATH) && terraform init
 	$(UV) venv $(VENV) --python 3.11
 	$(UV) pip install -r ./requirements.txt
 	$(MAKE) check_enviroment_variables
 	ansible-galaxy install -r ./ansible/dependencies.yml
-	cd $(TERRAFORM_ENVIRONMENT_PATH) && terraform init
 
 
 
