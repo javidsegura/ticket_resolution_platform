@@ -55,6 +55,7 @@ install-ci-cd: ## CI/CD Installation
 	$(UV) pip install -r ./requirements.txt
 	$(MAKE) check_enviroment_variables
 	ansible-galaxy install -r ./ansible/dependencies.yml
+	cd $(TERRAFORM_ENVIRONMENT_PATH) && terraform init
 
 
 
