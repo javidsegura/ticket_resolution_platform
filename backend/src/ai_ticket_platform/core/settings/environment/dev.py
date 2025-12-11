@@ -28,6 +28,9 @@ class DevSettings(BaseSettings):
 			"MYSQL_SYNC_DRIVER",
 			"MYSQL_ASYNC_DRIVER",
 			"CLOUD_PROVIDER",
+			"CHROMA_HOST",
+			"CHROMA_PORT",
+			"GEMINI_API_KEY",
 			# "OPENAI_API_KEY",  # Required for LLM clustering
 			# "USING_FIREBASE_EMULATOR", "FB_AUTH_EMULATOR_HOST", "FB_PROJECT_ID"
 		]
@@ -57,6 +60,7 @@ class DevSettings(BaseSettings):
 		self._extract_app_logic_variables()
 		self._extract_slack_variables()
 		self._extract_llm_variables()
+		self._extract_chroma_variables()
 
 	def _extract_database_variables(self):
 		self.REDIS_URL = os.getenv("REDIS_URL")
@@ -87,7 +91,16 @@ class DevSettings(BaseSettings):
 	def _extract_slack_variables(self):
 		self.SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")
 		self.SLACK_CHANNEL_ID = os.getenv("SLACK_CHANNEL_ID")
+	
+	def _extract_app_logic_variables(self):
+		self.FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
 	def _extract_llm_variables(self):
 		self.OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 		self.OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
+		self.GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+	def _extract_chroma_variables(self):
+		self.CHROMA_HOST = os.getenv("CHROMA_HOST")
+		self.CHROMA_PORT = os.getenv("CHROMA_PORT")
+		self.CHROMA_COLLECTION_NAME = os.getenv("CHROMA_COLLECTION_NAME")
