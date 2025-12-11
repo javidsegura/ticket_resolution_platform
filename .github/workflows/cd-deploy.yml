@@ -158,6 +158,15 @@ jobs:
           mkdir -p backend/src/ai_ticket_platform/core/clients/
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' > backend/src/ai_ticket_platform/core/clients/secret.ai-ticket-platform-firebase.json
 
+      - name: Create Terraform tfvars file
+        run: |
+          cat > infra/terraform/${{ env.CLOUD_PROVIDER }}/environment/${{ env.ENVIRONMENT }}/terraform.tfvars <<EOF
+          environment  = "${{ env.ENVIRONMENT }}"
+          main_region  = "us-east-1"
+          db_username  = "root"
+          project_name = "ai_ticket_platform"
+          EOF
+
       - name: Install dependencies
         run: make install-ci-cd
         env:
