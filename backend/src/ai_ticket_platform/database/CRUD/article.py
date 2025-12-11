@@ -1,8 +1,8 @@
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.exc import SQLAlchemyError
-from typing import Optional, List
+from typing import Optional, List, Dict
 from sqlalchemy.ext.asyncio import AsyncSession
-from ai_ticket_platform.database.generated_models import Article
+from ai_ticket_platform.database.generated_models import Article, Intent
 
 
 async def create_article(
@@ -116,26 +116,42 @@ async def delete_article(db: AsyncSession, article_id: int) -> bool:
 	return False
 
 
-async def get_articles_by_intent(
-	db: AsyncSession, intent_id: int, article_type: Optional[str] = None
-) -> List[Article]:
+async def get_latest_articles_for_intent(
+	db: AsyncSession, intent_id: int
+) -> Dict[str, Optional[Article]]:
 	"""
-	Get all articles for a given intent, ordered by version descending.
+	Get the latest version articles (both micro and full) for a specific intent.
 
-	Args:
-		db: Database session
-		intent_id: Intent ID to fetch articles for
-		article_type: Optional filter by type ('micro' or 'article')
-
-	Returns:
-		List of articles for the intent
+	Returns a dictionary with 'micro' and 'article' keys.
+	Example: {'micro': Article(...), 'article': Article(...)}
 	"""
-	query = select(Article).where(Article.intent_id == intent_id)
+	# Get the maximum version for this intent
+	max_version_query = (
+		select(func.max(Article.version))
+		.where(Article.intent_id == intent_id)
+	)
+	result = await db.execute(max_version_query)
+	max_version = result.scalar()
 
-	if article_type:
-		query = query.where(Article.type == article_type)
+	if max_version is None:
+		return {'micro': None, 'article': None}
 
-	query = query.order_by(Article.version.desc(), Article.created_at.desc())
+	# Get both micro and article for the latest version
+	query = (
+		select(Article)
+		.where(
+			Article.intent_id == intent_id,
+			Article.version == max_version
+		)
+		.order_by(Article.type)
+	)
 
 	result = await db.execute(query)
-	return result.scalars().all()
+	articles = result.scalars().all()
+
+	# Organize by type
+	articles_dict: Dict[str, Optional[Article]] = {'micro': None, 'article': None}
+	for article in articles:
+		articles_dict[article.type] = article
+
+	return articles_dict
