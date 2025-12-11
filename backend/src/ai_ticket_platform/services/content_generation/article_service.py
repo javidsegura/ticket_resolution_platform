@@ -10,7 +10,6 @@ from ai_ticket_platform.database.CRUD.article import (
 	get_article_by_id as read_article,
 	create_article,
 	get_articles_by_intent,
-	update_article
 )
 from ai_ticket_platform.database.CRUD.intents import get_intent, update_intent
 from ai_ticket_platform.database.CRUD.ticket import list_tickets_by_intent
@@ -299,17 +298,20 @@ class ArticleGenerationService:
 			if not articles:
 				return {"status": "error", "error": "No articles found for this version"}
 
-			# Update all articles (both micro and article) to accepted status using CRUD
+			# Update all articles (both micro and article) to accepted status
+			# Perform all updates in a single transaction for atomicity and efficiency
 			approved_types = []
 			for art in articles:
-				updated = await update_article(
-					db,
-					art.id,
-					status="accepted",
-					feedback=None
-				)
-				if updated:
-					approved_types.append(updated.type)
+				art.status = "accepted"
+				art.feedback = None  # Clear feedback when approving
+				approved_types.append(art.type)
+
+			await db.commit()
+
+			# Refresh articles to get updated data
+			for art in articles:
+				await db.refresh(art)
+
 			logger.info(f"Approved {len(articles)} articles (types: {approved_types}) for intent {intent_id} version {version}")
 
 			return {

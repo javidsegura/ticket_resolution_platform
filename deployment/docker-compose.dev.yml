@@ -92,6 +92,21 @@ services:
     image: ai_ticket_platform_worker:dev
     volumes:
       - ../backend/src:/app/src
+    command: rq worker --url redis://redis:6379/0 --with-scheduler
+    depends_on:
+      redis:
+        condition: service_healthy
+      db-migration:
+        condition: service_completed_successfully
+      chromadb:
+        condition: service_started
+    env_file:
+      - ${BACKEND_ENV_FILE}
+    environment:
+      - REDIS_HOST=redis
+      - ENVIRONMENT=${ENVIRONMENT}
+    deploy:
+      replicas: 3
 
   #Telemetry section
   prometheus:
