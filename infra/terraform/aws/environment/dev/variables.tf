@@ -5,3 +5,7 @@ variable "main_region" {
 variable "environment" {
   type = string
 }
+
+variable "project_name" {
+  type = string
+}

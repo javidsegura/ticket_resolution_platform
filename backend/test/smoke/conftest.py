@@ -50,7 +50,7 @@ def pytest_unconfigure(config):
 
 @pytest.fixture(scope="session")
 def fastapi_client():
-      from url_shortener.main import app
+      from ai_ticket_platform.main import app
       with TestClient(app) as client:
         yield client
 
@@ -125,7 +125,7 @@ def start_docker_compose_services():
     )
 
 
-# @ALEX ADJUST THIS BELOW IF NEEDED 
+# @ALEX ADJUST THIS BELOW IF NEEDED
 # @pytest_asyncio.fixture(scope="session")
 # async def db_session(start_docker_compose_services):
 #     """Provide a database session for tests."""

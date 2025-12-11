@@ -87,7 +87,13 @@ class DevSettings(BaseSettings):
 	def _extract_slack_variables(self):
 		self.SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")
 		self.SLACK_CHANNEL_ID = os.getenv("SLACK_CHANNEL_ID")
+		self.FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
 	def _extract_llm_variables(self):
-		self.OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-		self.OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
+		self.GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+		self.GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+		self.CHROMA_HOST = os.getenv("CHROMA_HOST", "chromadb")
+		self.CHROMA_PORT = os.getenv("CHROMA_PORT", "8000")
+		self.CHROMA_COLLECTION_NAME = os.getenv(
+			"CHROMA_COLLECTION_NAME", "company-docs"
+		)

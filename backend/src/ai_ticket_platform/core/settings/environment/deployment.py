@@ -19,6 +19,7 @@ class DeploymentSettings(BaseSettings):
 			"MYSQL_SYNC_DRIVER",
 			"MYSQL_ASYNC_DRIVER",
 			"CLOUD_PROVIDER",
+			"GEMINI_API_KEY",
 		]
 
 		# Dynamically add cloud-specific required vars
@@ -43,6 +44,17 @@ class DeploymentSettings(BaseSettings):
 		self._extract_storage_variables()
 		self._extract_app_logic_variables()
 		self._extract_database_variables()
+		self._extract_llm_variables()
+		self._extract_slack_variables()
+
+	def _extract_llm_variables(self):
+		self.GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+		self.GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+		self.CHROMA_HOST = os.getenv("CHROMA_HOST", "chromadb")
+		self.CHROMA_PORT = os.getenv("CHROMA_PORT", "8000")
+		self.CHROMA_COLLECTION_NAME = os.getenv(
+			"CHROMA_COLLECTION_NAME", "company-docs"
+		)
 
 	def _extract_secret_manger_databaseb_credentials(self):
 		from ai_ticket_platform.services.infra.secrets import get_secrets_service
@@ -71,6 +83,11 @@ class DeploymentSettings(BaseSettings):
 		elif self.CLOUD_PROVIDER == "azure":
 			self.MYSQL_HOST = os.getenv("MYSQL_HOST")
 		self._extract_secret_manger_databaseb_credentials()
+
+	def _extract_slack_variables(self):
+		self.SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")
+		self.SLACK_CHANNEL_ID = os.getenv("SLACK_CHANNEL_ID")
+		self.FRONTEND_URL = os.getenv("FRONTEND_URL")
 
 	def _extract_storage_variables(self):
 		self.CLOUD_PROVIDER = os.getenv("CLOUD_PROVIDER", "aws").lower()

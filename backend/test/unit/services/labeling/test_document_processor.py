@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import Mock, AsyncMock, patch
 
-from ai_ticket_platform.services.labeling.document_processor import process_document
+from ai_ticket_platform.services.company_docs.document_processor import process_document
 from ai_ticket_platform.core.clients import LLMClient
 
 
@@ -28,20 +28,20 @@ class TestProcessDocument:
 		content = b"PDF document content"
 
 		# mock decode_document
-		with patch("ai_ticket_platform.services.labeling.document_processor.decode_document") as mock_decode:
+		with patch("ai_ticket_platform.services.company_docs.document_processor.decode_document") as mock_decode:
 			mock_decode.return_value = {
 				"success": True,
 				"content": "PDF document content"
 			}
 
 			# mock label_document
-			with patch("ai_ticket_platform.services.labeling.document_processor.label_document") as mock_label:
+			with patch("ai_ticket_platform.services.company_docs.document_processor.label_document") as mock_label:
 				mock_label.return_value = {
 					"department_area": "Tech"
 				}
 
 				# mock create_company_file
-				with patch("ai_ticket_platform.services.labeling.document_processor.create_company_file") as mock_create:
+				with patch("ai_ticket_platform.services.company_docs.document_processor.create_company_file") as mock_create:
 					mock_db_file = Mock()
 					mock_db_file.id = 123
 					mock_create.return_value = mock_db_file
@@ -73,7 +73,7 @@ class TestProcessDocument:
 		content = b"Invalid content"
 
 		# mock decode_document to fail
-		with patch("ai_ticket_platform.services.labeling.document_processor.decode_document") as mock_decode:
+		with patch("ai_ticket_platform.services.company_docs.document_processor.decode_document") as mock_decode:
 			mock_decode.return_value = {
 				"success": False,
 				"error": "File encoding not supported"
@@ -101,14 +101,14 @@ class TestProcessDocument:
 		content = b"PDF content"
 
 		# mock decode_document success
-		with patch("ai_ticket_platform.services.labeling.document_processor.decode_document") as mock_decode:
+		with patch("ai_ticket_platform.services.company_docs.document_processor.decode_document") as mock_decode:
 			mock_decode.return_value = {
 				"success": True,
 				"content": "PDF content"
 			}
 
 			# mock label_document to return error
-			with patch("ai_ticket_platform.services.labeling.document_processor.label_document") as mock_label:
+			with patch("ai_ticket_platform.services.company_docs.document_processor.label_document") as mock_label:
 				mock_label.return_value = {
 					"error": "LLM API rate limit exceeded"
 				}
@@ -134,20 +134,20 @@ class TestProcessDocument:
 		content = b"PDF content"
 
 		# mock decode_document
-		with patch("ai_ticket_platform.services.labeling.document_processor.decode_document") as mock_decode:
+		with patch("ai_ticket_platform.services.company_docs.document_processor.decode_document") as mock_decode:
 			mock_decode.return_value = {
 				"success": True,
 				"content": "PDF content"
 			}
 
 			# mock label_document
-			with patch("ai_ticket_platform.services.labeling.document_processor.label_document") as mock_label:
+			with patch("ai_ticket_platform.services.company_docs.document_processor.label_document") as mock_label:
 				mock_label.return_value = {
 					"department_area": "Finance"
 				}
 
 				# mock create_company_file to raise exception
-				with patch("ai_ticket_platform.services.labeling.document_processor.create_company_file") as mock_create:
+				with patch("ai_ticket_platform.services.company_docs.document_processor.create_company_file") as mock_create:
 					mock_create.side_effect = Exception("Database connection error")
 
 					# execute
@@ -171,18 +171,18 @@ class TestProcessDocument:
 		content = b"PDF content"
 
 		# mock decode_document
-		with patch("ai_ticket_platform.services.labeling.document_processor.decode_document") as mock_decode:
+		with patch("ai_ticket_platform.services.company_docs.document_processor.decode_document") as mock_decode:
 			mock_decode.return_value = {
 				"success": True,
 				"content": "PDF content"
 			}
 
 			# mock label_document without department_area
-			with patch("ai_ticket_platform.services.labeling.document_processor.label_document") as mock_label:
+			with patch("ai_ticket_platform.services.company_docs.document_processor.label_document") as mock_label:
 				mock_label.return_value = {}
 
 				# mock create_company_file
-				with patch("ai_ticket_platform.services.labeling.document_processor.create_company_file") as mock_create:
+				with patch("ai_ticket_platform.services.company_docs.document_processor.create_company_file") as mock_create:
 					mock_db_file = Mock()
 					mock_db_file.id = 456
 					mock_create.return_value = mock_db_file
