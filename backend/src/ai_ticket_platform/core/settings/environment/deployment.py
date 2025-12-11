@@ -48,7 +48,7 @@ class DeploymentSettings(BaseSettings):
 
 	def _extract_llm_variables(self):
 		self.GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-		self.GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+		self.GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
 	def _extract_secret_manger_databaseb_credentials(self):
 		from ai_ticket_platform.services.infra.secrets import get_secrets_service
@@ -94,3 +94,6 @@ class DeploymentSettings(BaseSettings):
 			raise ValueError(
 				f"Unsupported CLOUD_PROVIDER: {self.CLOUD_PROVIDER}. Use 'aws' or 'azure'"
 			)
+	
+	def _extract_app_logic_variables(self):
+		self.FRONTEND_URL = os.getenv("FRONTEND_URL")

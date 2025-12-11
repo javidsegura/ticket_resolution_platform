@@ -20,7 +20,7 @@ def test_app():
 
 	mock_settings = SimpleNamespace(
 		GEMINI_API_KEY="test-api-key",
-		GEMINI_MODEL="gemini-1.5-flash",
+		GEMINI_MODEL="gemini-2.5-flash",
 	)
 
 	async def override_settings():

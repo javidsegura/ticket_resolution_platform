@@ -29,7 +29,7 @@ from src.ai_ticket_platform.dependencies.settings import get_app_settings
 # Set test environment before any app initialization
 os.environ.setdefault("ENVIRONMENT", "test")
 os.environ.setdefault("GEMINI_API_KEY", "test-key-123")
-os.environ.setdefault("GEMINI_MODEL", "gemini-1.5-flash")
+os.environ.setdefault("GEMINI_MODEL", "gemini-2.5-flash")
 os.environ.setdefault("SLACK_BOT_TOKEN", "xoxb-test-token")
 os.environ.setdefault("SLACK_CHANNEL_ID", "C123456789")
 
@@ -89,7 +89,7 @@ class TestSettings:
     """Test settings object for dependency injection"""
     ENVIRONMENT = 'test'
     GEMINI_API_KEY = 'test-key-123'
-    GEMINI_MODEL = 'gemini-1.5-flash'
+    GEMINI_MODEL = 'gemini-2.5-flash'
     SLACK_BOT_TOKEN = 'xoxb-test-token'
     SLACK_CHANNEL_ID = 'C123456789'
     DATABASE_URL = TEST_DATABASE_URL

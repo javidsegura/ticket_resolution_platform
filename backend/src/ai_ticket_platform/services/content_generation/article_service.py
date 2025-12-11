@@ -271,6 +271,8 @@ class ArticleGenerationService:
 					"micro": presigned_url_micro,
 					"article": presigned_url_article,
 				},
+				"article_summary": article_summary,
+				"article_title": article_title,
 			}
 
 		except Exception as e:

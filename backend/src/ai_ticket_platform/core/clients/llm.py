@@ -22,7 +22,7 @@ class LLMClient:
 		if not api_key:
 			raise ValueError("GEMINI_API_KEY is required but not set in environment variables")
 
-		self.model = getattr(settings, "GEMINI_MODEL", None) or "gemini-1.5-flash"
+		self.model = getattr(settings, "GEMINI_MODEL", None) or "gemini-2.5-flash"
 
 		genai.configure(api_key=api_key)
 		self.client = genai.GenerativeModel(self.model)

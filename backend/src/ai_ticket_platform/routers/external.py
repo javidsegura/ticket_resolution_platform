@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi.responses import HTMLResponse
 import logging
 from sqlalchemy.ext.asyncio import AsyncSession
 from ai_ticket_platform.dependencies import get_db
@@ -9,6 +10,7 @@ from ai_ticket_platform.database.CRUD.intents import (
 	get_intent,
 	get_ab_testing_totals,
 )
+from ai_ticket_platform.services.micro_answer_service import get_micro_answer_html
 
 router = APIRouter(
 	prefix="/external",
@@ -74,3 +76,37 @@ async def get_analytics(intent_id: int, db: AsyncSession = Depends(get_db)):
 		"variant_a_resolutions": intent.variant_a_resolutions,
 		"variant_b_resolutions": intent.variant_b_resolutions,
 	}
+
+
+@router.get("/microanswer", response_class=HTMLResponse)
+async def get_microanswer(
+	intent_id: int = Query(..., description="Intent ID to fetch the markdown article for"),
+	container_path: str | None = Query(None, description="Optional container path. If not provided, will be constructed from intent_id"),
+):
+	"""
+	Get markdown content from cloud storage and convert it to HTML.
+
+	Returns the HTML body content (not a full HTML document).
+
+	Args:
+		intent_id: The intent ID to fetch content for
+		container_path: Optional container path. If not provided, will mock a path based on intent_id
+
+	Returns:
+		HTMLResponse containing the converted HTML body
+	"""
+	try:
+		# If container_path is not provided, construct a mock path from intent_id
+		if not container_path:
+			container_path = f"articles/article-{intent_id}.md"
+
+		html_content = await get_micro_answer_html(container_path)
+		logger.info(f"Successfully retrieved and converted markdown to HTML for intent {intent_id}")
+
+		return HTMLResponse(content=html_content)
+
+	except Exception as e:
+		logger.error(f"Error retrieving micro answer for intent {intent_id}: {e}", exc_info=True)
+		raise HTTPException(status_code=500, detail=f"Error retrieving micro answer: {str(e)}")
+
+

@@ -14,7 +14,7 @@ class TestLLMClient:
 		"""Create mock settings object with required configuration."""
 		settings = Mock()
 		settings.GEMINI_API_KEY = "test-api-key-12345"
-		settings.GEMINI_MODEL = "gemini-1.5-flash"
+		settings.GEMINI_MODEL = "gemini-2.5-flash"
 		return settings
 	
 	@pytest.fixture
@@ -24,7 +24,7 @@ class TestLLMClient:
 		     patch("ai_ticket_platform.core.clients.llm.genai.GenerativeModel", return_value=Mock()) as mock_model:
 			client = LLMClient(mock_settings)
 			mock_configure.assert_called_once_with(api_key="test-api-key-12345")
-			mock_model.assert_called_once_with("gemini-1.5-flash")
+			mock_model.assert_called_once_with("gemini-2.5-flash")
 		return client
 
 	def test_init_with_valid_settings(self, mock_settings):
@@ -35,16 +35,16 @@ class TestLLMClient:
 
 			# verify Gemini client initialized with correct API key and model
 			mock_configure.assert_called_once_with(api_key="test-api-key-12345")
-			mock_model.assert_called_once_with("gemini-1.5-flash")
+			mock_model.assert_called_once_with("gemini-2.5-flash")
 
 			# verify model is set correctly
-			assert client.model == "gemini-1.5-flash"
+			assert client.model == "gemini-2.5-flash"
 
 	def test_init_without_api_key(self):
 		"""Test LLMClient initialization fails without API key."""
 		settings = Mock()
 		settings.GEMINI_API_KEY = None
-		settings.GEMINI_MODEL = "gemini-1.5-flash"
+		settings.GEMINI_MODEL = "gemini-2.5-flash"
 
 		with pytest.raises(ValueError, match="GEMINI_API_KEY is required"):
 			LLMClient(settings)
@@ -173,7 +173,7 @@ class TestInitializeLLMClient:
 		"""Create mock settings object."""
 		settings = Mock()
 		settings.GEMINI_API_KEY = "test-api-key"
-		settings.GEMINI_MODEL = "gemini-1.5-flash"
+		settings.GEMINI_MODEL = "gemini-2.5-flash"
 		return settings
 
 	def test_initialize_llm_client_first_time(self, mock_settings):

@@ -37,3 +37,15 @@ class ArticleRead(ArticleBase):
 	)
 
 	model_config = ConfigDict(from_attributes=True)
+
+
+class LatestArticlesResponse(BaseModel):
+	intent_id: int
+	version: int | None = Field(None, description="Latest version number")
+	status: str | None = Field(None, description="Article status (accepted, iteration, denied)")
+	presigned_url_micro: str | None = Field(
+		None, description="Presigned URL to download the micro article content from S3"
+	)
+	presigned_url_full: str | None = Field(
+		None, description="Presigned URL to download the full article content from S3"
+	)
