@@ -70,15 +70,22 @@ async def get_latest_articles_by_intent(
 	# Get latest articles
 	articles = await get_latest_articles_for_intent(db, intent_id)
 
-	# Extract version and status from articles (both should have same version/status)
+	# Extract version, status, and IDs from articles (both should have same version/status)
 	version = None
 	status = None
+	article_id_micro = None
+	article_id_full = None
+	
 	if articles["micro"]:
 		version = articles["micro"].version
 		status = articles["micro"].status
+		article_id_micro = articles["micro"].id
 	elif articles["article"]:
 		version = articles["article"].version
 		status = articles["article"].status
+	
+	if articles["article"]:
+		article_id_full = articles["article"].id
 
 	# Generate presigned URLs for article content
 	storage = get_storage_service()
@@ -112,6 +119,8 @@ async def get_latest_articles_by_intent(
 		intent_id=intent_id,
 		version=version,
 		status=status,
+		article_id_micro=article_id_micro,
+		article_id_full=article_id_full,
 		presigned_url_micro=presigned_url_micro,
 		presigned_url_full=presigned_url_full,
 	)

@@ -16,7 +16,6 @@ export interface Cluster {
   status: "active" | "resolved" | "pending";
   resolution?: string; // AI-generated resolution in markdown format
   area?: string | null;
-  isProcessed?: boolean;
   categories?: {
     level1?: CategoryRef;
     level2?: CategoryRef;
@@ -69,9 +68,8 @@ const mapIntentToCluster = (intent: IntentResponse): Cluster => {
     createdAt: intent.created_at,
     updatedAt: intent.updated_at,
     mainTopics: categoryNames,
-    status: intent.is_processed ? "resolved" : "pending",
+    status: "active",
     area: intent.area,
-    isProcessed: intent.is_processed,
     categories: {
       level1: intent.category_level_1,
       level2: intent.category_level_2,
@@ -274,8 +272,22 @@ By implementing these recommendations, we expect to see a 60-80% reduction in pa
 ];
 
 /**
- * Fetch all clusters from the backend API
- * @returns Promise<Cluster[]> Array of clusters
+ * Helper function to map article status to cluster status
+ * @param articleStatus - Article status from API
+ * @returns Cluster status string
+ */
+const getClusterStatusFromArticleStatus = (
+  articleStatus: string | null,
+): "pending" | "resolved" | "active" => {
+  if (!articleStatus) return "active";
+  if (articleStatus === "accepted") return "resolved";
+  if (articleStatus === "iteration") return "pending";
+  return "active"; // default fallback
+};
+
+/**
+ * Fetch all clusters from the backend API with their article statuses
+ * @returns Promise<Cluster[]> Array of clusters with correct status based on article status
  */
 export const fetchClusters = async (): Promise<Cluster[]> => {
   const apiBase = buildApiBaseUrl();
@@ -303,7 +315,41 @@ export const fetchClusters = async (): Promise<Cluster[]> => {
     }
 
     const data = (await response.json()) as IntentResponse[];
-    return data.map(mapIntentToCluster);
+    const clusters = data.map(mapIntentToCluster);
+
+    // Fetch article statuses for all clusters in parallel
+    const statusPromises = clusters.map(async (cluster) => {
+      try {
+        const articlesResponse = await fetch(
+          `${apiBase}/intents/${cluster.id}/articles/latest`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
+        );
+
+        if (articlesResponse.ok) {
+          const articlesData =
+            (await articlesResponse.json()) as LatestArticlesResponse;
+          // Update cluster status based on article status
+          cluster.status = getClusterStatusFromArticleStatus(
+            articlesData.status,
+          );
+        }
+      } catch (error) {
+        // If article fetch fails, keep the default status
+        console.warn(
+          `Failed to fetch article status for cluster ${cluster.id}:`,
+          error,
+        );
+      }
+      return cluster;
+    });
+
+    // Wait for all status fetches to complete
+    return await Promise.all(statusPromises);
   } catch (error) {
     console.error("Error fetching clusters:", error);
     // Fallback to dummy data on error
@@ -354,4 +400,50 @@ export const fetchClusterById = async (
     const cluster = dummyClusters.find((c) => c.id === clusterId);
     return cluster || null;
   }
+};
+
+export interface LatestArticlesResponse {
+  intent_id: number;
+  version: number | null;
+  status: string | null;
+  article_id_micro: number | null;
+  article_id_full: number | null;
+  presigned_url_micro: string | null;
+  presigned_url_full: string | null;
+}
+
+/**
+ * Fetch the latest articles for a specific intent/cluster
+ * @param intentId - The ID of the intent/cluster
+ * @returns Promise<LatestArticlesResponse> The latest articles information
+ */
+export const fetchLatestArticles = async (
+  intentId: string | number,
+): Promise<LatestArticlesResponse> => {
+  const apiBase = buildApiBaseUrl();
+
+  if (!apiBase) {
+    throw new Error("BASE_API_URL not configured; cannot fetch articles");
+  }
+
+  const response = await fetch(`${apiBase}/intents/${intentId}/articles/latest`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      // TODO: Add authorization header when auth is implemented
+      // "Authorization": `Bearer ${token}`
+    },
+  });
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error("Intent not found");
+    }
+    throw new Error(
+      `Failed to fetch articles: ${response.status} ${response.statusText}`,
+    );
+  }
+
+  const data = await response.json();
+  return data as LatestArticlesResponse;
 };

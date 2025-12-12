@@ -45,6 +45,12 @@ class LatestArticlesResponse(BaseModel):
 	status: str | None = Field(
 		None, description="Article status (accepted, iteration, denied)"
 	)
+	article_id_micro: int | None = Field(
+		None, description="ID of the micro article"
+	)
+	article_id_full: int | None = Field(
+		None, description="ID of the full article"
+	)
 	presigned_url_micro: str | None = Field(
 		None, description="Presigned URL to download the micro article content from S3"
 	)
