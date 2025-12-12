@@ -168,3 +168,73 @@ async def get_latest_articles_for_intent(
 		articles_dict[article.type] = article
 
 	return articles_dict
+
+
+async def get_latest_article_statuses_for_intents(
+	db: AsyncSession, intent_ids: List[int]
+) -> Dict[int, Dict[str, Optional[int | str]]]:
+	"""
+	Get the latest article status and version for multiple intents in a single query.
+
+	This is optimized to avoid N+1 query problems when fetching statuses for many intents.
+
+	Args:
+		db: Database session
+		intent_ids: List of intent IDs to fetch article statuses for
+
+	Returns:
+		Dictionary mapping intent_id to a dict with 'version' and 'status' keys.
+		Example: {1: {'version': 2, 'status': 'accepted'}, 2: {'version': None, 'status': None}}
+	"""
+	if not intent_ids:
+		return {}
+
+	# Subquery to get max version per intent
+	max_version_subq = (
+		select(
+			Article.intent_id,
+			func.max(Article.version).label("max_version"),
+		)
+		.where(Article.intent_id.in_(intent_ids))
+		.group_by(Article.intent_id)
+		.subquery()
+	)
+
+	# Get the latest article for each intent, preferring 'article' type over 'micro'
+	# Order by type ASC so 'article' (alphabetically first) comes before 'micro'
+	latest_articles_query = (
+		select(
+			Article.intent_id,
+			Article.version,
+			Article.status,
+			Article.type,
+		)
+		.join(
+			max_version_subq,
+			(Article.intent_id == max_version_subq.c.intent_id)
+			& (Article.version == max_version_subq.c.max_version),
+		)
+		.where(Article.intent_id.in_(intent_ids))
+		.order_by(Article.intent_id, Article.type.asc())  # 'article' comes before 'micro' alphabetically
+	)
+
+	result = await db.execute(latest_articles_query)
+	rows = result.all()
+
+	# Build result dictionary, preferring 'article' type over 'micro'
+	# Since we ordered by type ASC, 'article' will come first for each intent_id
+	statuses: Dict[int, Dict[str, Optional[int | str]]] = {}
+	for intent_id, version, status, article_type in rows:
+		# Store the first row for each intent_id (which will be 'article' if it exists)
+		if intent_id not in statuses:
+			statuses[intent_id] = {
+				"version": version,
+				"status": status,
+			}
+
+	# Add entries for intents with no articles
+	for intent_id in intent_ids:
+		if intent_id not in statuses:
+			statuses[intent_id] = {"version": None, "status": None}
+
+	return statuses

@@ -41,6 +41,8 @@ type IntentResponse = {
   variant_b_impressions?: number;
   variant_a_resolutions?: number;
   variant_b_resolutions?: number;
+  article_version?: number | null;
+  article_status?: string | null;
 };
 
 const buildApiBaseUrl = () => {
@@ -68,7 +70,7 @@ const mapIntentToCluster = (intent: IntentResponse): Cluster => {
     createdAt: intent.created_at,
     updatedAt: intent.updated_at,
     mainTopics: categoryNames,
-    status: "active",
+    status: "pending", // Default to pending, will be updated based on article_status
     area: intent.area,
     categories: {
       level1: intent.category_level_1,
@@ -274,15 +276,14 @@ By implementing these recommendations, we expect to see a 60-80% reduction in pa
 /**
  * Helper function to map article status to cluster status
  * @param articleStatus - Article status from API
- * @returns Cluster status string
+ * @returns Cluster status string (pending or resolved only)
  */
 const getClusterStatusFromArticleStatus = (
   articleStatus: string | null,
-): "pending" | "resolved" | "active" => {
-  if (!articleStatus) return "active";
+): "pending" | "resolved" => {
   if (articleStatus === "accepted") return "resolved";
-  if (articleStatus === "iteration") return "pending";
-  return "active"; // default fallback
+  // All other cases (null, "iteration", unknown) should be "pending"
+  return "pending";
 };
 
 /**
@@ -315,41 +316,16 @@ export const fetchClusters = async (): Promise<Cluster[]> => {
     }
 
     const data = (await response.json()) as IntentResponse[];
-    const clusters = data.map(mapIntentToCluster);
-
-    // Fetch article statuses for all clusters in parallel
-    const statusPromises = clusters.map(async (cluster) => {
-      try {
-        const articlesResponse = await fetch(
-          `${apiBase}/intents/${cluster.id}/articles/latest`,
-          {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-            },
-          },
-        );
-
-        if (articlesResponse.ok) {
-          const articlesData =
-            (await articlesResponse.json()) as LatestArticlesResponse;
-          // Update cluster status based on article status
-          cluster.status = getClusterStatusFromArticleStatus(
-            articlesData.status,
-          );
-        }
-      } catch (error) {
-        // If article fetch fails, keep the default status
-        console.warn(
-          `Failed to fetch article status for cluster ${cluster.id}:`,
-          error,
-        );
-      }
+    // Map intents to clusters, using article_status from the API response
+    const clusters = data.map((intent) => {
+      const cluster = mapIntentToCluster(intent);
+      // Set cluster status based on article status from API response
+      // This will always be either "pending" or "resolved"
+      cluster.status = getClusterStatusFromArticleStatus(intent.article_status);
       return cluster;
     });
 
-    // Wait for all status fetches to complete
-    return await Promise.all(statusPromises);
+    return clusters;
   } catch (error) {
     console.error("Error fetching clusters:", error);
     // Fallback to dummy data on error

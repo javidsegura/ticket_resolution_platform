@@ -75,11 +75,10 @@ export default function ClusterDetail() {
   const [copied, setCopied] = useState(false);
 
   // Helper function to map article status to cluster status
-  const getClusterStatusFromArticleStatus = (articleStatus: string | null): "pending" | "resolved" | "active" => {
-    if (!articleStatus) return "active";
+  const getClusterStatusFromArticleStatus = (articleStatus: string | null): "pending" | "resolved" => {
     if (articleStatus === "accepted") return "resolved";
-    if (articleStatus === "iteration") return "pending";
-    return "active"; // default fallback
+    // All other cases (null, "iteration", unknown) should be "pending"
+    return "pending";
   };
 
   // Check if article is accepted (buttons should be disabled)

@@ -3,7 +3,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import logging
 from ai_ticket_platform.dependencies import get_db
 from ai_ticket_platform.database.CRUD.intents import get_intent, list_intents
-from ai_ticket_platform.database.CRUD.article import get_latest_articles_for_intent
+from ai_ticket_platform.database.CRUD.article import (
+	get_latest_articles_for_intent,
+	get_latest_article_statuses_for_intents,
+)
 from ai_ticket_platform.schemas.endpoints.intent import IntentRead
 from ai_ticket_platform.schemas.endpoints.article import LatestArticlesResponse
 from ai_ticket_platform.services.infra.storage.storage import get_storage_service
@@ -25,6 +28,7 @@ async def get_intents(
 ):
 	"""
 	Return a paginated list of intents, optionally filtered by processing status.
+	Includes latest article version and status for each intent.
 	"""
 	intents = await list_intents(
 		db,
@@ -32,7 +36,21 @@ async def get_intents(
 		limit=limit,
 		is_processed=is_processed,
 	)
-	return [IntentRead.model_validate(intent) for intent in intents]
+
+	# Batch fetch article statuses for all intents to avoid N+1 query problem
+	intent_ids = [intent.id for intent in intents]
+	article_statuses = await get_latest_article_statuses_for_intents(db, intent_ids)
+
+	# Build response with article statuses
+	result = []
+	for intent in intents:
+		intent_data = IntentRead.model_validate(intent)
+		status_info = article_statuses.get(intent.id, {"version": None, "status": None})
+		intent_data.article_version = status_info.get("version")
+		intent_data.article_status = status_info.get("status")
+		result.append(intent_data)
+
+	return result
 
 
 @router.get("/{intent_id}", response_model=IntentRead)
