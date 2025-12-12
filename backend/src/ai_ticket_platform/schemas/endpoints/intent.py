@@ -86,7 +86,11 @@ class IntentRead(IntentBase):
 	category_level_1: IntentCategoryInfo | None = None
 	category_level_2: IntentCategoryInfo | None = None
 	category_level_3: IntentCategoryInfo | None = None
-	article_version: int | None = Field(None, description="Latest article version for this intent")
-	article_status: str | None = Field(None, description="Latest article status (iteration, accepted, denied)")
+	article_version: int | None = Field(
+		None, description="Latest article version for this intent"
+	)
+	article_status: str | None = Field(
+		None, description="Latest article status (iteration, accepted, denied)"
+	)
 
 	model_config = ConfigDict(from_attributes=True)

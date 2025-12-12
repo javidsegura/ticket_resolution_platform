@@ -93,7 +93,7 @@ async def get_latest_articles_by_intent(
 	status = None
 	article_id_micro = None
 	article_id_full = None
-	
+
 	if articles["micro"]:
 		version = articles["micro"].version
 		status = articles["micro"].status
@@ -101,7 +101,7 @@ async def get_latest_articles_by_intent(
 	elif articles["article"]:
 		version = articles["article"].version
 		status = articles["article"].status
-	
+
 	if articles["article"]:
 		article_id_full = articles["article"].id
 

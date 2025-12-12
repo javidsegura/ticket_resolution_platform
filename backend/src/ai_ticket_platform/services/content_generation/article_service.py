@@ -297,7 +297,7 @@ class ArticleGenerationService:
 				IntentUpdate(is_processed=True),
 			)
 			logger.info(f"Updated intent {intent_id}: is_processed=True")
-   
+
 			# 8. Send Slack notification
 			try:
 				# Construct frontend URL with intent_id
@@ -309,12 +309,19 @@ class ArticleGenerationService:
 					content=article_summary,
 				)
 				if result is None:
-					logger.warning(f"Failed to send Slack notification for article {article_article.id}")
+					logger.warning(
+						f"Failed to send Slack notification for article {article_article.id}"
+					)
 				else:
 					channel_id, message_id = result
-					logger.info(f"Sent Slack notification for article {article_article.id} (channel: {channel_id}, message: {message_id})")
+					logger.info(
+						f"Sent Slack notification for article {article_article.id} (channel: {channel_id}, message: {message_id})"
+					)
 			except Exception as e:
-				logger.error(f"Error sending Slack notification for article {article_article.id}: {str(e)}", exc_info=True)
+				logger.error(
+					f"Error sending Slack notification for article {article_article.id}: {str(e)}",
+					exc_info=True,
+				)
 
 			return {
 				"status": "success",
@@ -392,12 +399,19 @@ class ArticleGenerationService:
 					url=frontend_url,
 				)
 				if result is None:
-					logger.warning(f"Failed to send Slack notification for approved article {article_id}")
+					logger.warning(
+						f"Failed to send Slack notification for approved article {article_id}"
+					)
 				else:
 					channel_id, message_id = result
-					logger.info(f"Sent Slack notification for approved article {article_id} (channel: {channel_id}, message: {message_id})")
+					logger.info(
+						f"Sent Slack notification for approved article {article_id} (channel: {channel_id}, message: {message_id})"
+					)
 			except Exception as e:
-				logger.error(f"Error sending Slack notification for approved article {article_id}: {str(e)}", exc_info=True)
+				logger.error(
+					f"Error sending Slack notification for approved article {article_id}: {str(e)}",
+					exc_info=True,
+				)
 
 			return {
 				"status": "success",
