@@ -3,7 +3,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import logging
 from ai_ticket_platform.dependencies import get_db
 from ai_ticket_platform.database.CRUD.intents import get_intent, list_intents
-from ai_ticket_platform.database.CRUD.article import get_latest_articles_for_intent
+from ai_ticket_platform.database.CRUD.article import (
+	get_latest_articles_for_intent,
+	get_latest_article_statuses_for_intents,
+)
 from ai_ticket_platform.schemas.endpoints.intent import IntentRead
 from ai_ticket_platform.schemas.endpoints.article import LatestArticlesResponse
 from ai_ticket_platform.services.infra.storage.storage import get_storage_service
@@ -25,6 +28,7 @@ async def get_intents(
 ):
 	"""
 	Return a paginated list of intents, optionally filtered by processing status.
+	Includes latest article version and status for each intent.
 	"""
 	intents = await list_intents(
 		db,
@@ -32,7 +36,21 @@ async def get_intents(
 		limit=limit,
 		is_processed=is_processed,
 	)
-	return [IntentRead.model_validate(intent) for intent in intents]
+
+	# Batch fetch article statuses for all intents to avoid N+1 query problem
+	intent_ids = [intent.id for intent in intents]
+	article_statuses = await get_latest_article_statuses_for_intents(db, intent_ids)
+
+	# Build response with article statuses
+	result = []
+	for intent in intents:
+		intent_data = IntentRead.model_validate(intent)
+		status_info = article_statuses.get(intent.id, {"version": None, "status": None})
+		intent_data.article_version = status_info.get("version")
+		intent_data.article_status = status_info.get("status")
+		result.append(intent_data)
+
+	return result
 
 
 @router.get("/{intent_id}", response_model=IntentRead)
@@ -70,15 +88,22 @@ async def get_latest_articles_by_intent(
 	# Get latest articles
 	articles = await get_latest_articles_for_intent(db, intent_id)
 
-	# Extract version and status from articles (both should have same version/status)
+	# Extract version, status, and IDs from articles (both should have same version/status)
 	version = None
 	status = None
+	article_id_micro = None
+	article_id_full = None
+
 	if articles["micro"]:
 		version = articles["micro"].version
 		status = articles["micro"].status
+		article_id_micro = articles["micro"].id
 	elif articles["article"]:
 		version = articles["article"].version
 		status = articles["article"].status
+
+	if articles["article"]:
+		article_id_full = articles["article"].id
 
 	# Generate presigned URLs for article content
 	storage = get_storage_service()
@@ -112,6 +137,8 @@ async def get_latest_articles_by_intent(
 		intent_id=intent_id,
 		version=version,
 		status=status,
+		article_id_micro=article_id_micro,
+		article_id_full=article_id_full,
 		presigned_url_micro=presigned_url_micro,
 		presigned_url_full=presigned_url_full,
 	)

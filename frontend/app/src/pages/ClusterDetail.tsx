@@ -18,8 +18,15 @@ import {
   Send,
   Info,
   FlaskConical,
+  Copy,
+  CheckCircle2,
 } from "lucide-react";
-import { fetchClusterById, type Cluster } from "@/services/clusters";
+import {
+  fetchClusterById,
+  fetchLatestArticles,
+  type Cluster,
+} from "@/services/clusters";
+import { approveArticle, iterateArticle } from "@/services/articles";
 import ReactMarkdown from "react-markdown";
 
 const formatDate = (dateString: string) => {
@@ -47,118 +54,9 @@ const getClusterStatusBadge = (status: string) => {
   );
 };
 
-// Helper function to check if cluster is resolved
-const isClusterResolved = (cluster: Cluster | null) => {
-  return cluster?.status === "resolved";
-};
+// Note: These handlers will be updated to use articleIdFull from component state
 
-// Dummy API call handlers
-const handleApprove = (cluster: Cluster | null) => {
-  if (isClusterResolved(cluster)) {
-    alert(
-      "This cluster has already been resolved. No further actions can be taken.",
-    );
-    return;
-  }
-  console.log("API Call: Approve cluster", cluster?.id);
-  // TODO: Replace with actual API call
-  alert(`Cluster ${cluster?.id} approved (dummy action)`);
-};
-
-const handleSubmitFeedback = async (
-  cluster: Cluster | null,
-  feedback: string,
-) => {
-  if (isClusterResolved(cluster)) {
-    alert(
-      "This cluster has already been resolved. No further actions can be taken.",
-    );
-    return false;
-  }
-
-  // TODO: Replace with actual API call - this will reprompt the AI assistant in the backend
-  // Expected endpoint: POST /api/clusters/:id/feedback
-  // Body: { feedback: string }
-  try {
-    console.log("API Call: Submit feedback for cluster", cluster?.id, feedback);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    alert(
-      `Feedback submitted for cluster ${cluster?.id}. The AI assistant will regenerate the resolution based on your feedback.`,
-    );
-    return true;
-  } catch (error) {
-    console.error("Error submitting feedback:", error);
-    alert("Failed to submit feedback. Please try again.");
-    return false;
-  }
-};
-
-const handleDecline = (cluster: Cluster | null) => {
-  if (isClusterResolved(cluster)) {
-    alert(
-      "This cluster has already been resolved. No further actions can be taken.",
-    );
-    return;
-  }
-  console.log("API Call: Decline/Delete cluster", cluster?.id);
-  // TODO: Replace with actual API call
-  if (
-    confirm(`Are you sure you want to decline/delete cluster ${cluster?.id}?`)
-  ) {
-    alert(`Cluster ${cluster?.id} declined/deleted (dummy action)`);
-  }
-};
-
-const handleDownloadMarkdown = (cluster: Cluster) => {
-  console.log("Download as Markdown:", cluster.id);
-  let markdown = `# ${cluster.title}\n\n## Summary\n${cluster.summary}\n\n## Main Topics\n${cluster.mainTopics.map((t) => `- ${t}`).join("\n")}`;
-
-  if (cluster.resolution) {
-    markdown += `\n\n## AI Generated Resolution\n\n${cluster.resolution}`;
-  }
-
-  const blob = new Blob([markdown], { type: "text/markdown" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `cluster-${cluster.id}.md`;
-  a.click();
-  URL.revokeObjectURL(url);
-};
-
-const handleDownloadHTML = (cluster: Cluster) => {
-  console.log("Download as HTML:", cluster.id);
-  // TODO: Implement HTML download
-  const html = `<!DOCTYPE html>
-<html>
-<head>
-  <title>${cluster.title}</title>
-  <style>
-    body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; }
-    h1 { color: #333; }
-    .summary { color: #666; line-height: 1.6; }
-    .topics { margin-top: 20px; }
-    .topic { display: inline-block; background: #f0f0f0; padding: 5px 10px; margin: 5px; border-radius: 4px; }
-  </style>
-</head>
-<body>
-  <h1>${cluster.title}</h1>
-  <div class="summary">${cluster.summary}</div>
-  <div class="topics">
-    <h2>Main Topics</h2>
-    ${cluster.mainTopics.map((t) => `<span class="topic">${t}</span>`).join("")}
-  </div>
-</body>
-</html>`;
-  const blob = new Blob([html], { type: "text/html" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `cluster-${cluster.id}.html`;
-  a.click();
-  URL.revokeObjectURL(url);
-};
+// Note: Download handlers are defined inside the component to access article state
 
 export default function ClusterDetail() {
   const { id } = useParams<{ id: string }>();
@@ -168,6 +66,23 @@ export default function ClusterDetail() {
   const [showFeedbackForm, setShowFeedbackForm] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [articleVersion, setArticleVersion] = useState<number | null>(null);
+  const [articleIdFull, setArticleIdFull] = useState<number | null>(null);
+  const [articleContent, setArticleContent] = useState<string | null>(null);
+  const [articleStatus, setArticleStatus] = useState<string | null>(null);
+  const [loadingArticle, setLoadingArticle] = useState(true);
+  const [approving, setApproving] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  // Helper function to map article status to cluster status
+  const getClusterStatusFromArticleStatus = (articleStatus: string | null): "pending" | "resolved" => {
+    if (articleStatus === "accepted") return "resolved";
+    // All other cases (null, "iteration", unknown) should be "pending"
+    return "pending";
+  };
+
+  // Check if article is accepted (buttons should be disabled)
+  const isArticleAccepted = articleStatus === "accepted";
 
   useEffect(() => {
     const loadCluster = async () => {
@@ -186,6 +101,409 @@ export default function ClusterDetail() {
 
     loadCluster();
   }, [id]);
+
+  useEffect(() => {
+    const loadArticle = async () => {
+      if (!id) return;
+
+      try {
+        setLoadingArticle(true);
+        const articlesData = await fetchLatestArticles(id);
+
+        // Store version, article ID, and status for later use
+        setArticleVersion(articlesData.version);
+        setArticleIdFull(articlesData.article_id_full);
+        setArticleStatus(articlesData.status);
+
+        // Fetch and load the markdown content from the presigned URL
+        if (articlesData.presigned_url_full) {
+          try {
+            const response = await fetch(articlesData.presigned_url_full);
+            if (response.ok) {
+              const markdownContent = await response.text();
+              setArticleContent(markdownContent);
+            } else {
+              console.error("Failed to fetch article content from presigned URL");
+              setArticleContent(null);
+            }
+          } catch (error) {
+            console.error("Error fetching article content:", error);
+            setArticleContent(null);
+          }
+        } else {
+          setArticleContent(null);
+        }
+      } catch (error) {
+        console.error("Error loading articles:", error);
+        setArticleVersion(null);
+        setArticleIdFull(null);
+        setArticleStatus(null);
+        setArticleContent(null);
+      } finally {
+        setLoadingArticle(false);
+      }
+    };
+
+    loadArticle();
+  }, [id]);
+
+  // Handler functions
+  const handleApprove = async () => {
+    if (!articleIdFull) {
+      alert("No article available to approve. Please wait for the article to load.");
+    return;
+  }
+
+    try {
+      setApproving(true);
+      const result = await approveArticle(articleIdFull);
+      alert(`Article approved successfully! ${result.message}`);
+      
+      // Reload article to get updated status
+      const articlesData = await fetchLatestArticles(id!);
+      setArticleVersion(articlesData.version);
+      setArticleIdFull(articlesData.article_id_full);
+      setArticleStatus(articlesData.status);
+      
+      if (articlesData.presigned_url_full) {
+        const response = await fetch(articlesData.presigned_url_full);
+        if (response.ok) {
+          const markdownContent = await response.text();
+          setArticleContent(markdownContent);
+        }
+      }
+    } catch (error) {
+      console.error("Error approving article:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to approve article. Please try again.";
+      alert(errorMessage);
+    } finally {
+      setApproving(false);
+    }
+  };
+
+  const handleSubmitFeedback = async (feedbackText: string) => {
+    if (!articleIdFull) {
+      alert("No article available to provide feedback on. Please wait for the article to load.");
+    return false;
+  }
+
+    if (!feedbackText.trim()) {
+      alert("Please provide feedback before submitting.");
+      return false;
+    }
+
+    try {
+      setSubmitting(true);
+      const result = await iterateArticle(articleIdFull, feedbackText);
+    alert(
+        `Feedback submitted successfully! A new version (v${result.next_version}) is being generated. Job ID: ${result.job_id}`
+    );
+    return true;
+  } catch (error) {
+    console.error("Error submitting feedback:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to submit feedback. Please try again.";
+      alert(errorMessage);
+    return false;
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Download handlers
+  const handleDownloadMarkdown = () => {
+    if (!cluster) return;
+
+    let markdown = `# ${cluster.title}\n\n`;
+    
+    // Metadata
+    markdown += `## Cluster Information\n\n`;
+    markdown += `- **Cluster ID:** ${cluster.id}\n`;
+    markdown += `- **Created:** ${formatDate(cluster.createdAt)}\n`;
+    markdown += `- **Last Updated:** ${formatDate(cluster.updatedAt)}\n`;
+    
+    if (articleVersion !== null) {
+      markdown += `- **Article Version:** v${articleVersion}\n`;
+    }
+    
+    const clusterStatus = getClusterStatusFromArticleStatus(articleStatus);
+    markdown += `- **Status:** ${clusterStatus}\n`;
+    
+    if (articleStatus) {
+      markdown += `- **Article Status:** ${articleStatus}\n`;
+    }
+    markdown += `\n`;
+
+    // Main Topics
+    if (cluster.mainTopics && cluster.mainTopics.length > 0) {
+      markdown += `## Main Topics\n\n`;
+      cluster.mainTopics.forEach((topic) => {
+        markdown += `- ${topic}\n`;
+      });
+      markdown += `\n`;
+    }
+
+    // Categories
+    if (cluster.categories) {
+      const categories = [
+        cluster.categories.level1,
+        cluster.categories.level2,
+        cluster.categories.level3,
+      ].filter((cat): cat is { id: number; name: string } => Boolean(cat));
+      
+      if (categories.length > 0) {
+        markdown += `## Categories\n\n`;
+        categories.forEach((cat, idx) => {
+          markdown += `- Level ${idx + 1}: ${cat.name}\n`;
+        });
+        markdown += `\n`;
+      }
+    }
+
+    // Article Content
+    if (articleContent) {
+      markdown += `## AI Generated Article\n\n`;
+      markdown += `${articleContent}\n`;
+    } else {
+      markdown += `## AI Generated Article\n\n`;
+      markdown += `_No article content available._\n`;
+  }
+
+  const blob = new Blob([markdown], { type: "text/markdown" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+    a.download = `cluster-${cluster.id}-v${articleVersion || "draft"}.md`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+  const handleDownloadHTML = () => {
+    if (!cluster) return;
+
+    const clusterStatus = getClusterStatusFromArticleStatus(articleStatus);
+    
+    // Convert markdown content to HTML if available
+    let articleHtml = "";
+    if (articleContent) {
+      // Basic markdown to HTML conversion
+      articleHtml = articleContent
+        .replace(/\n\n/g, "</p><p>")
+        .replace(/\n/g, "<br>")
+        .replace(/#{3} (.*)/g, "<h3>$1</h3>")
+        .replace(/#{2} (.*)/g, "<h2>$1</h2>")
+        .replace(/#{1} (.*)/g, "<h1>$1</h1>")
+        .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+        .replace(/\*(.*?)\*/g, "<em>$1</em>");
+      articleHtml = `<div class="article-content"><p>${articleHtml}</p></div>`;
+    } else {
+      articleHtml = `<div class="article-content"><p><em>No article content available.</em></p></div>`;
+    }
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>${cluster.title}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      background: #f5f5f5;
+      padding: 40px 20px;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      padding: 40px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 { 
+      color: #1a1a1a;
+      font-size: 2em;
+      margin-bottom: 20px;
+      border-bottom: 3px solid #4a90e2;
+      padding-bottom: 10px;
+    }
+    h2 {
+      color: #2c3e50;
+      font-size: 1.5em;
+      margin-top: 30px;
+      margin-bottom: 15px;
+      border-bottom: 2px solid #e0e0e0;
+      padding-bottom: 8px;
+    }
+    h3 {
+      color: #34495e;
+      font-size: 1.2em;
+      margin-top: 20px;
+      margin-bottom: 10px;
+    }
+    .metadata {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 6px;
+      margin-bottom: 30px;
+      border-left: 4px solid #4a90e2;
+    }
+    .metadata-item {
+      margin-bottom: 8px;
+      font-size: 0.95em;
+    }
+    .metadata-item strong {
+      color: #555;
+      min-width: 140px;
+      display: inline-block;
+    }
+    .summary {
+      color: #666;
+      line-height: 1.8;
+      font-size: 1.05em;
+      margin-bottom: 30px;
+      padding: 15px;
+      background: #fafafa;
+      border-radius: 6px;
+    }
+    .topics {
+      margin: 20px 0;
+    }
+    .topic {
+      display: inline-block;
+      background: #e8f4f8;
+      color: #2c3e50;
+      padding: 6px 12px;
+      margin: 4px 8px 4px 0;
+      border-radius: 20px;
+      font-size: 0.9em;
+      border: 1px solid #cce7f0;
+    }
+    .categories {
+      margin: 20px 0;
+    }
+    .category {
+      margin: 8px 0;
+      padding: 8px 12px;
+      background: #f0f7ff;
+      border-left: 3px solid #4a90e2;
+      border-radius: 4px;
+    }
+    .article-content {
+      margin-top: 30px;
+      line-height: 1.8;
+    }
+    .article-content p {
+      margin-bottom: 16px;
+    }
+    .article-content ul, .article-content ol {
+      margin: 16px 0;
+      padding-left: 30px;
+    }
+    .article-content li {
+      margin-bottom: 8px;
+    }
+    .article-content code {
+      background: #f4f4f4;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9em;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 0.85em;
+      font-weight: 600;
+      text-transform: capitalize;
+    }
+    .status-pending { background: #fff3cd; color: #856404; }
+    .status-resolved { background: #d4edda; color: #155724; }
+    .status-active { background: #d1ecf1; color: #0c5460; }
+  </style>
+</head>
+<body>
+  <div class="container">
+  <h1>${cluster.title}</h1>
+    
+    <div class="metadata">
+      <div class="metadata-item"><strong>Cluster ID:</strong> ${cluster.id}</div>
+      <div class="metadata-item"><strong>Created:</strong> ${formatDate(cluster.createdAt)}</div>
+      <div class="metadata-item"><strong>Last Updated:</strong> ${formatDate(cluster.updatedAt)}</div>
+      ${articleVersion !== null ? `<div class="metadata-item"><strong>Article Version:</strong> v${articleVersion}</div>` : ""}
+      <div class="metadata-item"><strong>Status:</strong> <span class="status-badge status-${clusterStatus}">${clusterStatus}</span></div>
+      ${articleStatus ? `<div class="metadata-item"><strong>Article Status:</strong> ${articleStatus}</div>` : ""}
+    </div>
+
+    ${cluster.mainTopics && cluster.mainTopics.length > 0 ? `
+  <div class="topics">
+    <h2>Main Topics</h2>
+    ${cluster.mainTopics.map((t) => `<span class="topic">${t}</span>`).join("")}
+    </div>
+    ` : ""}
+
+    ${cluster.categories && (cluster.categories.level1 || cluster.categories.level2 || cluster.categories.level3) ? `
+    <div class="categories">
+      <h2>Categories</h2>
+      ${[cluster.categories.level1, cluster.categories.level2, cluster.categories.level3]
+        .filter((cat): cat is { id: number; name: string } => Boolean(cat))
+        .map((cat, idx) => `<div class="category"><strong>Level ${idx + 1}:</strong> ${cat.name}</div>`)
+        .join("")}
+    </div>
+    ` : ""}
+
+    <div class="article-content">
+      <h2>AI Generated Article</h2>
+      ${articleHtml}
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const blob = new Blob([html], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+    a.download = `cluster-${cluster.id}-v${articleVersion || "draft"}.html`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+  const handleCopyReactComponent = async () => {
+    if (!cluster) return;
+
+    const componentCode = `<MicroAnswer intentId="${cluster.id}" />`;
+    
+    try {
+      await navigator.clipboard.writeText(componentCode);
+      setCopied(true);
+      setTimeout(() => {
+        setCopied(false);
+      }, 2000);
+      } catch (error) {
+      console.error("Failed to copy to clipboard:", error);
+      // Fallback for older browsers
+      const textArea = document.createElement("textarea");
+      textArea.value = componentCode;
+      textArea.style.position = "fixed";
+      textArea.style.opacity = "0";
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand("copy");
+        setCopied(true);
+        setTimeout(() => {
+          setCopied(false);
+        }, 2000);
+      } catch (err) {
+        console.error("Fallback copy failed:", err);
+        alert("Failed to copy to clipboard");
+      }
+      document.body.removeChild(textArea);
+    }
+  };
 
   if (loading) {
     return (
@@ -226,51 +544,49 @@ export default function ClusterDetail() {
 
       {/* Key Information & A/B Testing */}
       <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
-        <Card>
+        <Card className="lg:h-full flex flex-col">
           <CardHeader>
             <CardTitle>Key Information</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              <div>
-                <p className="text-sm text-muted-foreground">Status</p>
-                <div className="mt-1">
-                  {getClusterStatusBadge(cluster.status)}
+          <CardContent className="flex-1 flex flex-col gap-6">
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground font-medium">Status</p>
+                <div className="mt-2">
+                  {getClusterStatusBadge(getClusterStatusFromArticleStatus(articleStatus))}
                 </div>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Created</p>
-                <p className="font-medium text-sm">
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground font-medium">Version</p>
+                <p className="font-semibold text-base">
+                  {articleVersion !== null ? `v${articleVersion}` : "N/A"}
+                </p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground font-medium">Created</p>
+                <p className="font-semibold text-base">
                   {formatDate(cluster.createdAt)}
                 </p>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Last Updated</p>
-                <p className="font-medium text-sm">
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground font-medium">Last Updated</p>
+                <p className="font-semibold text-base">
                   {formatDate(cluster.updatedAt)}
                 </p>
               </div>
             </div>
 
-            {/* Area */}
-            <div className="mt-4 pt-4 border-t">
-              <p className="text-sm text-muted-foreground mb-2">Area</p>
-              <p className="text-gray-700 leading-relaxed">
-                {cluster.area ?? cluster.summary}
-              </p>
-            </div>
-
             {/* Main Topics */}
             {cluster.mainTopics && cluster.mainTopics.length > 0 && (
-              <div className="mt-4 pt-4 border-t">
-                <p className="text-sm text-muted-foreground mb-2">
+              <div className="flex-1 flex flex-col pt-4 border-t">
+                <p className="text-sm text-muted-foreground font-medium mb-3">
                   Main Topics
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {cluster.mainTopics.map((topic, idx) => (
                     <span
                       key={idx}
-                      className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-md text-sm font-medium"
+                      className="px-3 py-2 bg-gray-100 text-gray-700 rounded-md text-sm font-medium"
                     >
                       {topic}
                     </span>
@@ -401,7 +717,14 @@ export default function ClusterDetail() {
               </CardDescription>
             </CardHeader>
             <CardContent className="flex-1 overflow-hidden flex flex-col">
-              {cluster.resolution ? (
+              {loadingArticle ? (
+                <div className="flex-1 flex items-center justify-center py-12">
+                  <div className="text-center text-gray-500">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-3"></div>
+                    <p className="text-sm">Loading article...</p>
+                  </div>
+                </div>
+              ) : articleContent ? (
                 <div className="prose prose-sm max-w-none overflow-y-auto flex-1 pr-2">
                   <ReactMarkdown
                     components={{
@@ -458,17 +781,16 @@ export default function ClusterDetail() {
                       ),
                     }}
                   >
-                    {cluster.resolution}
+                    {articleContent}
                   </ReactMarkdown>
                 </div>
               ) : (
                 <div className="flex-1 flex items-center justify-center py-12">
                   <div className="text-center text-gray-500">
                     <Layers className="h-12 w-12 mx-auto mb-3 text-gray-400" />
-                    <p className="text-sm">Resolution is being generated...</p>
+                    <p className="text-sm">No article available</p>
                     <p className="text-xs mt-1 text-gray-400">
-                      The AI-generated resolution will appear here once
-                      available
+                      The AI-generated article will appear here once available
                     </p>
                   </div>
                 </div>
@@ -488,63 +810,43 @@ export default function ClusterDetail() {
               {/* Action Buttons */}
               <div className="space-y-3">
                 <Button
-                  onClick={() => handleApprove(cluster)}
-                  disabled={isClusterResolved(cluster)}
+                  onClick={handleApprove}
+                  disabled={approving || !articleIdFull || isArticleAccepted}
                   className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  title={
-                    isClusterResolved(cluster)
-                      ? "Cluster has already been resolved"
-                      : ""
-                  }
+                  title={isArticleAccepted ? "Article has already been accepted" : ""}
                 >
+                  {approving ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Approving...
+                    </>
+                  ) : (
+                    <>
                   <Check className="mr-2 h-4 w-4" />
                   Approve
+                    </>
+                  )}
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => {
-                    if (isClusterResolved(cluster)) {
-                      alert(
-                        "This cluster has already been resolved. No further actions can be taken.",
-                      );
-                      return;
-                    }
                     setFeedback("");
                     setShowFeedbackForm(true);
                   }}
-                  disabled={isClusterResolved(cluster)}
+                  disabled={isArticleAccepted}
                   className="w-full disabled:opacity-50 disabled:cursor-not-allowed"
-                  title={
-                    isClusterResolved(cluster)
-                      ? "Cluster has already been resolved"
-                      : ""
-                  }
+                  title={isArticleAccepted ? "Article has already been accepted" : ""}
                 >
                   <MessageSquare className="mr-2 h-4 w-4" />
                   Give Feedback
                 </Button>
-                <Button
-                  variant="destructive"
-                  onClick={() => handleDecline(cluster)}
-                  disabled={isClusterResolved(cluster)}
-                  className="w-full disabled:opacity-50 disabled:cursor-not-allowed"
-                  title={
-                    isClusterResolved(cluster)
-                      ? "Cluster has already been resolved"
-                      : ""
-                  }
-                >
-                  <X className="mr-2 h-4 w-4" />
-                  Decline/Delete
-                </Button>
               </div>
 
-              {/* Resolved Notice */}
-              {isClusterResolved(cluster) && (
+              {/* Accepted Notice */}
+              {isArticleAccepted && (
                 <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-md">
                   <p className="text-xs text-green-800 text-center">
-                    ✓ This cluster has been resolved. No further actions are
-                    available.
+                    ✓ This article has been accepted. No further actions are available.
                   </p>
                 </div>
               )}
@@ -554,7 +856,7 @@ export default function ClusterDetail() {
                 <p className="text-sm font-medium text-gray-700">Download</p>
                 <Button
                   variant="outline"
-                  onClick={() => handleDownloadMarkdown(cluster)}
+                  onClick={handleDownloadMarkdown}
                   className="w-full"
                 >
                   <Download className="mr-2 h-4 w-4" />
@@ -562,11 +864,33 @@ export default function ClusterDetail() {
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => handleDownloadHTML(cluster)}
+                  onClick={handleDownloadHTML}
                   className="w-full"
                 >
                   <Download className="mr-2 h-4 w-4" />
                   Download as HTML
+                </Button>
+              </div>
+
+              {/* Copy React Component */}
+              <div className="pt-4 border-t space-y-3">
+                <p className="text-sm font-medium text-gray-700">Code</p>
+                <Button
+                  variant="outline"
+                  onClick={handleCopyReactComponent}
+                  className="w-full"
+                >
+                  {copied ? (
+                    <>
+                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="mr-2 h-4 w-4" />
+                      Copy React Component
+                    </>
+                  )}
                 </Button>
               </div>
             </CardContent>
@@ -649,24 +973,13 @@ export default function ClusterDetail() {
                     return;
                   }
 
-                  if (isClusterResolved(cluster)) {
-                    alert(
-                      "This cluster has already been resolved. No further actions can be taken.",
-                    );
-                    setShowFeedbackForm(false);
-                    setFeedback("");
-                    return;
-                  }
-
-                  setSubmitting(true);
-                  const success = await handleSubmitFeedback(cluster, feedback);
-                  setSubmitting(false);
+                  const success = await handleSubmitFeedback(feedback);
 
                   if (success) {
                     setShowFeedbackForm(false);
                     setFeedback("");
-                    // Optionally reload cluster data to show updated resolution
-                    // await loadCluster()
+                    // Optionally reload article data after feedback is submitted
+                    // The article will be regenerated in the background
                   }
                 }}
                 className="space-y-4"
@@ -729,3 +1042,4 @@ export default function ClusterDetail() {
     </div>
   );
 }
+
