@@ -20,6 +20,7 @@ class DeploymentSettings(BaseSettings):
 			"MYSQL_ASYNC_DRIVER",
 			"CLOUD_PROVIDER",
 			"GEMINI_API_KEY",
+			"FRONTEND_URL",
 		]
 
 		# Dynamically add cloud-specific required vars
