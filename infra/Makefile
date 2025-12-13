@@ -48,7 +48,7 @@ install: ## Initialize Terraform (Local Dev)
 	cd $(TERRAFORM_ENVIRONMENT_PATH) && terraform init
 	brew install ansible
 	$(UV) pip install ansible
-	$(PYTHON) -m ansible.galaxy collection install -r ./ansible/dependencies.yml
+	$(VENV)/bin/ansible-galaxy collection install -r ./ansible/dependencies.yml
 
 install-ci-cd: ## CI/CD Installation
 	cd $(TERRAFORM_ENVIRONMENT_PATH) && terraform init

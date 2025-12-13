@@ -30,7 +30,8 @@ services:
   db-migration:
       image: javidsegura/ai_ticket_platform:${BACKEND_IMAGE_TAG}
 
-  worker:
+  # Worker with scheduler (only 1 instance)
+  worker-scheduler:
       image: javidsegura/ai_ticket_platform:${BACKEND_IMAGE_TAG}
       command: rq worker --url redis://redis:6379/0 --with-scheduler
       depends_on:
@@ -45,8 +46,25 @@ services:
       environment:
         REDIS_HOST: redis
         ENVIRONMENT: ${ENVIRONMENT}
+
+  # Workers without scheduler (multiple instances)
+  worker:
+      image: javidsegura/ai_ticket_platform:${BACKEND_IMAGE_TAG}
+      command: rq worker --url redis://redis:6379/0
+      depends_on:
+        redis:
+          condition: service_healthy
+        db-migration:
+          condition: service_completed_successfully
+        chromadb:
+          condition: service_started
+      env_file:
+        - ${BACKEND_ENV_FILE}
+      environment:
+        REDIS_HOST: redis
+        ENVIRONMENT: ${ENVIRONMENT}
       deploy:
-        replicas: 3
+        replicas: 2
 
   # Telemetry section
   prometheus:

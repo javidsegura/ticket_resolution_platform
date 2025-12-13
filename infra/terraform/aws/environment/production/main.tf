@@ -9,7 +9,7 @@ terraform {
   }
 
   backend "s3" {
-    bucket  = "ai-ticket-platform-remote-state-bucket-zxmluk37"
+    bucket  = "ai-ticket-remote-state-bucket-2efbqdyz"
     key     = "remote-state/production/terraform.tfstate"
     region  = "us-east-1"
     encrypt = true

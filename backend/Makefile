@@ -188,7 +188,7 @@ push_docker: ## Push Docker image with version tag
 	docker buildx build \
 		-t javidsegura/ai_ticket_platform:$(ENVIRONMENT)-$(BACKEND_VERSION) \
 		-t javidsegura/ai_ticket_platform:$(ENVIRONMENT) \
-		--platform linux/amd64,linux/arm64 \
+		--platform linux/amd64 \
 		--push \
 		-f ./Dockerfile ./
 	@echo "$(GREEN)✓ Pushed: $(ENVIRONMENT)-$(BACKEND_VERSION)$(RESET)"
