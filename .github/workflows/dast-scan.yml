@@ -60,7 +60,6 @@ jobs:
         uses: zaproxy/action-baseline@v0.10.0
         with:
           target: 'http://localhost:8000'
-          rules_file_name: '.zap/rules.tsv'
           cmd_options: '-a'
           fail_action: false
         continue-on-error: true
