@@ -220,4 +220,10 @@ __marimo__/
 # Data folder
 data/
 
+# E2E Testing
+e2e-backend.log
+e2e-frontend.log
+e2e-backend.pid
+e2e-frontend.pid
+
 .DS_Store

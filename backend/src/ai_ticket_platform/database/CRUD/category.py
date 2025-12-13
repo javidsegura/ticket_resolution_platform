@@ -67,10 +67,10 @@ async def create_category(
 		await db.refresh(category)
 		logger.info(f"Created category: {name} (level {level}, parent_id {parent_id})")
 		return category
-	except Exception as e:
+	except SQLAlchemyError as e:
 		await db.rollback()
 		logger.error(f"Error creating category '{name}': {str(e)}")
-		raise
+		raise RuntimeError(f"Failed to create category: {str(e)}") from e
 
 
 async def get_or_create_category(

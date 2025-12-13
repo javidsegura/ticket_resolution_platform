@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/
+/playwright-results/
+
+# Test artifacts
+*.png
+*.webm
+trace.zip
+
+# Package manager
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

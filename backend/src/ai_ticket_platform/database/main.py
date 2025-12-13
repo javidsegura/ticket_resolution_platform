@@ -20,15 +20,29 @@ def initialize_db_engine():
 			f":{app_settings.MYSQL_PORT}/{app_settings.MYSQL_DATABASE}"
 		)
 
-		# Production engine configuration
-		engine = create_async_engine(
-			DATABASE_URL,
-			echo=False,  # Never True in production (performance impact)
-			pool_size=10,  # Connection pool size
-			max_overflow=20,  # Additional connections when pool is full
-			pool_pre_ping=True,  # Validate connections before use
-			pool_recycle=3600,  # Recycle connections every hour
-		)
+		# Use NullPool in test environment to avoid event loop issues
+		# In test, each pytest test runs in its own event loop, so connection pooling
+		# causes "Future attached to a different loop" errors
+		environment = os.getenv("ENVIRONMENT", "").lower()
+
+		if environment == "test":
+			from sqlalchemy.pool import NullPool
+
+			engine = create_async_engine(
+				DATABASE_URL,
+				echo=False,
+				poolclass=NullPool,  # No connection pooling in test
+			)
+		else:
+			# Production engine configuration with connection pooling
+			engine = create_async_engine(
+				DATABASE_URL,
+				echo=False,  # Never True in production (performance impact)
+				pool_size=10,  # Connection pool size
+				max_overflow=20,  # Additional connections when pool is full
+				pool_pre_ping=True,  # Validate connections before use
+				pool_recycle=3600,  # Recycle connections every hour
+			)
 
 		AsyncSessionLocal = async_sessionmaker(
 			engine, class_=AsyncSession, expire_on_commit=False

@@ -17,4 +17,3 @@ routers = [
 	articles_router,
 	s3_test_router,
 ]
-# widget router removed - requires PublishedArticle model not yet implemented
