@@ -40,11 +40,14 @@ install-packages: ## Install only packages
 
 install-ci-cd: ## Install dependencies for CI environment (no brew)
 	@echo "$(YELLOW)Installing CI dependencies...$(RESET)"
-	$(MAKE) check-enviroment-variables
-	sudo apt-get update && sudo apt-get install -y jq ansible
-	$(MAKE) -C backend install
-	$(MAKE) -C frontend install
-	$(MAKE) -C infra install-ci-cd
+
+# install-ci-cd: ## Install dependencies for CI environment (no brew)
+# 	@echo "$(YELLOW)Installing CI dependencies...$(RESET)"
+# 	$(MAKE) check-enviroment-variables
+# 	sudo apt-get update && sudo apt-get install -y jq ansible
+# 	$(MAKE) -C backend install
+# 	$(MAKE) -C frontend install
+# 	$(MAKE) -C infra install-ci-cd
 
 # 2) Dev environment
 dev-start: ## Hot reload enabled for both backend and frontend
@@ -80,35 +83,48 @@ dev-destroy-infra: ## Destroy terraform infra for development environmnet
 # 3) Deployment environment
 deploy-start-artifacts: ## Deploy to production (process: build artifacts + ansible)
 	@echo "$(GREEN)Starting production deployment (app only)...$(RESET)"
-	$(MAKE) check-enviroment-variables
-	$(MAKE) check-backend-version
-	$(MAKE) -C infra sync_all
-	$(MAKE) -C frontend build
-	$(MAKE) -C backend push_docker
-	$(MAKE) -C infra ansible-start
-	@echo "$(GREEN)✅ Deployment complete - version $(BACKEND_VERSION)$(RESET)"
+
 deploy-start-ansible: ## Deploy to production (process: ansible)
 	@echo "$(GREEN)Starting production deployment (app only)...$(RESET)"
-	$(MAKE) check-enviroment-variables
-	$(MAKE) check-backend-version
-	$(MAKE) -C infra ansible-start
-	@echo "$(GREEN)✅ Deployment complete - version $(BACKEND_VERSION)$(RESET)"
+
 deploy-start-infra: ## Deploy to production (process: infra + build artifacts + ansible)
 	@echo "$(GREEN)Starting production deployment (infra + app)...$(RESET)"
-	$(MAKE) check-enviroment-variables
-	$(MAKE) check-backend-version
-	$(MAKE) -C infra terraform-apply
-	$(MAKE) -C infra sync_all
-	$(MAKE) -C frontend build
-	$(MAKE) -C backend push_docker
-	$(MAKE) -C infra ansible-start
-	@echo "$(GREEN)✅ Deployment complete with infra - version $(BACKEND_VERSION)$(RESET)"
+
 
 deploy-stop-infra: ## Stop development environment
 	@echo "$(YELLOW)Stopping development environment...$(RESET)"
-	$(MAKE) check-enviroment-variables
-	$(MAKE) -C infra terraform-stop ENVIRONMENT="$(ENVIRONMENT)"
-	$(MAKE) delete_ci_artifacts
+
+# deploy-start-artifacts: ## Deploy to production (process: build artifacts + ansible)
+# 	@echo "$(GREEN)Starting production deployment (app only)...$(RESET)"
+# 	$(MAKE) check-enviroment-variables
+# 	$(MAKE) check-backend-version
+# 	$(MAKE) -C infra sync_all
+# 	$(MAKE) -C frontend build
+# 	$(MAKE) -C backend push_docker
+# 	$(MAKE) -C infra ansible-start
+# 	@echo "$(GREEN)✅ Deployment complete - version $(BACKEND_VERSION)$(RESET)"
+# deploy-start-ansible: ## Deploy to production (process: ansible)
+# 	@echo "$(GREEN)Starting production deployment (app only)...$(RESET)"
+# 	$(MAKE) check-enviroment-variables
+# 	$(MAKE) check-backend-version
+# 	$(MAKE) -C infra ansible-start
+# 	@echo "$(GREEN)✅ Deployment complete - version $(BACKEND_VERSION)$(RESET)"
+# deploy-start-infra: ## Deploy to production (process: infra + build artifacts + ansible)
+# 	@echo "$(GREEN)Starting production deployment (infra + app)...$(RESET)"
+# 	$(MAKE) check-enviroment-variables
+# 	$(MAKE) check-backend-version
+# 	$(MAKE) -C infra terraform-apply
+# 	$(MAKE) -C infra sync_all
+# 	$(MAKE) -C frontend build
+# 	$(MAKE) -C backend push_docker
+# 	$(MAKE) -C infra ansible-start
+# 	@echo "$(GREEN)✅ Deployment complete with infra - version $(BACKEND_VERSION)$(RESET)"
+
+# deploy-stop-infra: ## Stop development environment
+# 	@echo "$(YELLOW)Stopping development environment...$(RESET)"
+# 	$(MAKE) check-enviroment-variables
+# 	$(MAKE) -C infra terraform-stop ENVIRONMENT="$(ENVIRONMENT)"
+# 	$(MAKE) delete_ci_artifacts
 
 # 5) Uitls function
 delete_ci_artifacts:
