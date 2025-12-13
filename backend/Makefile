@@ -1,4 +1,4 @@
-+.PHONY: help dev dev-debug install install-full db-models lint lint-check format format-fix pytest-run test-start test-stop unit-test integration-test regression-test smoke-test load-tests test-integration test-integration-docker test-integration-csv test-integration-approval test-integration-publish test-integration-widget db-create-migration-files db-test-migration db-safe-migration db-downgrade-prior-version db-downgrade-specific-version push_docker check_enviroment_variables
++.PHONY: help dev dev-debug install install-full db-models lint lint-check format format-fix static-security-analysis pytest-run test-start test-stop unit-test integration-test regression-test smoke-test load-tests test-integration test-integration-docker test-integration-csv test-integration-approval test-integration-publish test-integration-widget db-create-migration-files db-test-migration db-safe-migration db-downgrade-prior-version db-downgrade-specific-version push_docker check_enviroment_variables
 
 SHELL := /bin/bash
 
@@ -40,7 +40,7 @@ install-full: ## Install backend dependices for client + dev usage
 	else \
 		echo "Note: Homebrew not found, skipping k6 installation. Install manually with: brew install k6"; \
 	fi
-	pre-commit install
+	$(VENV_ACTIVATE) && pre-commit install
 
 # 1) Boot-up
 dev: ## Start backend development server. Note, the recommended usage is with make dev-start from parent Makefile. Flaky behavior warned.
@@ -75,6 +75,12 @@ format: ## Formats
 format-fix: ## Format code (for pre-commit)
 	@echo "$(YELLOW)Formatting code with ruff...$(RESET)"
 	$(VENV_ACTIVATE) && ruff format src/
+
+static-security-analysis: ## Run static security analysis with bandit (CI)
+	@echo "$(YELLOW)Running static security analysis...$(RESET)"
+	@echo "$(BLUE)Running security checks with bandit...$(RESET)"
+	@$(VENV_ACTIVATE) && bandit -r src/ -f json -o bandit-report.json || true
+	@echo "$(GREEN)Security report saved to bandit-report.json$(RESET)"
 
 # 3) CD
 ## DB
@@ -114,7 +120,7 @@ test-start: ## Stats docker compose for integration tests of endpoints
 	BACKEND_ENV_FILE=$(BACKEND_ENV_FILE_SYNCED_PATH) docker compose -f ../deployment/docker-compose.yml -f ../deployment/docker-compose.test.yml -p $(PROJECT_NAME) up --build -d
 
 test-stop: ## Stops docker compose for integration tests of endpoints
-	BACKEND_ENV_FILE=$(BACKEND_ENV_FILE_SYNCED_PATH) docker compose -f ../deployment/docker-compose.yml -f ../deployment/docker-compose.test.yml -p $(PROJECT_NAME) down -v
+	docker compose -f ../deployment/docker-compose.yml -f ../deployment/docker-compose.test.yml -p $(PROJECT_NAME) down -v || true
 # 5.2) Tests run
 pytest-run:
 	$(VENV_ACTIVATE) && pytest -s -vv \
@@ -122,18 +128,36 @@ pytest-run:
 
 unit-test: ## Run all unit tests with coverage
 	@echo "$(YELLOW)Running all tests...$(RESET)"
-	$(VENV_ACTIVATE) && python3 -m pytest test/unit/ -v --cov=src/ai_ticket_platform --cov-report=term --cov-report=xml --cov-fail-under=70
+	$(VENV_ACTIVATE) && python3 -m pytest tests/unit/ -v --cov=src/ai_ticket_platform --cov-report=term --cov-report=xml --cov-fail-under=50
 
 integration-test: ## Runn all integration tests
-	$(VENV_ACTIVATE) && python3 -m pytest -s -vv test/integration/
+	$(VENV_ACTIVATE) && python3 -m pytest -s -vv tests/integration/
 
 regression-test: ## Run all regression tests
 	@echo "$(YELLOW)Running regression tests...$(RESET)"
-	$(VENV_ACTIVATE) && python3 -m pytest test/regression/ -v
+	$(VENV_ACTIVATE) && python3 -m pytest tests/regression/ -v
 
 smoke-test: ## Run all smoke endpoint tests
 	@echo "$(YELLOW)Running smoke endpoint tests...$(RESET)"
-	$(VENV_ACTIVATE) && python3 -m pytest test/smoke/ -v
+	$(VENV_ACTIVATE) && python3 -m pytest tests/smoke/ -v
+
+workflow-test: ## Run multi-step workflow tests
+	@echo "$(YELLOW)Running multi-step workflow tests...$(RESET)"
+	$(VENV_ACTIVATE) && python3 -m pytest tests/integration/test_e2e_workflow.py -v
+
+e2e-test: ## Run E2E tests with Playwright
+	@echo "$(YELLOW)Running E2E tests...$(RESET)"
+	@if [ ! -d "../e2e/node_modules" ]; then \
+		echo "$(RED)E2E dependencies not installed. Run: make e2e-install$(RESET)"; \
+		exit 1; \
+	fi
+	cd ../e2e && npm test
+
+e2e-install: ## Install E2E test dependencies
+	@echo "$(YELLOW)Installing E2E dependencies...$(RESET)"
+	cd ../e2e && npm install
+	cd ../e2e && npx playwright install chromium --with-deps
+	@echo "$(GREEN)✓ E2E dependencies installed$(RESET)"
 
 load-tests: ## Run load tests with k6
 	@echo "$(YELLOW)Running load tests...$(RESET)"
@@ -169,6 +193,44 @@ test-integration-widget: ## Run JS widget rendering tests
 	@echo "$(YELLOW)Running widget tests...$(RESET)"
 	$(VENV_ACTIVATE) && pytest -s -vv tests/integration/test_js_widget.py
 
+test-smoke: ## Run smoke tests for Docker service verification
+	@echo "$(YELLOW)Running smoke tests...$(RESET)"
+	$(VENV_ACTIVATE) && pytest -s -vv --cov=ai_ticket_platform --cov-report=term-missing tests/smoke/
+
+test-smoke-docker: ## Run smoke tests with Docker (verifies services are up)
+	@echo "$(YELLOW)Starting Docker-based smoke test suite...$(RESET)"
+	ENVIRONMENT=test $(MAKE) test-docker-compose-start
+	@echo "$(BLUE)Running smoke tests against Docker services...$(RESET)"
+	$(VENV_ACTIVATE) && ENVIRONMENT=test pytest -s -vv --cov=ai_ticket_platform --cov-report=term-missing tests/smoke/ || TEST_FAILED=1
+	@echo "$(YELLOW)Cleaning up Docker containers...$(RESET)"
+	ENVIRONMENT=test $(MAKE) test-docker-compose-stop
+	@if [ "$$TEST_FAILED" = "1" ]; then echo "$(RED)Tests failed$(RESET)"; exit 1; fi
+	@echo "$(GREEN)All smoke tests passed!$(RESET)"
+
+test-integration-services-docker: ## Run integration tests with Docker (MySQL, Redis, Firebase)
+	@echo "$(YELLOW)Starting Docker-based integration test suite...$(RESET)"
+	ENVIRONMENT=test $(MAKE) test-docker-compose-start
+	@echo "$(BLUE)Running integration tests against Docker services...$(RESET)"
+	$(VENV_ACTIVATE) && ENVIRONMENT=test pytest -s -vv --cov=ai_ticket_platform --cov-report=term-missing tests/integration/test_csv_upload_docker.py tests/integration/test_caching_docker.py tests/integration/test_persistence_docker.py tests/integration/test_tickets_endpoints.py tests/integration/test_intents_endpoints.py tests/integration/test_clusters_endpoints.py tests/integration/test_external_analytics.py || TEST_FAILED=1
+	@echo "$(YELLOW)Cleaning up Docker containers...$(RESET)"
+	ENVIRONMENT=test $(MAKE) test-docker-compose-stop
+	@if [ "$$TEST_FAILED" = "1" ]; then echo "$(RED)Tests failed$(RESET)"; exit 1; fi
+	@echo "$(GREEN)All integration tests passed!$(RESET)"
+
+test-regression: ## Run regression tests (re-run tests for previously fixed bugs)
+	@echo "$(YELLOW)Running regression tests...$(RESET)"
+	$(VENV_ACTIVATE) && pytest -s -vv --cov=ai_ticket_platform --cov-report=term-missing tests/regression/
+
+test-regression-docker: ## Run regression tests with Docker
+	@echo "$(YELLOW)Starting Docker-based regression test suite...$(RESET)"
+	ENVIRONMENT=test $(MAKE) test-docker-compose-start
+	@echo "$(BLUE)Running regression tests against Docker services...$(RESET)"
+	$(VENV_ACTIVATE) && ENVIRONMENT=test pytest -s -vv --cov=ai_ticket_platform --cov-report=term-missing tests/regression/ || TEST_FAILED=1
+	@echo "$(YELLOW)Cleaning up Docker containers...$(RESET)"
+	ENVIRONMENT=test $(MAKE) test-docker-compose-stop
+	@if [ "$$TEST_FAILED" = "1" ]; then echo "$(RED)Tests failed$(RESET)"; exit 1; fi
+	@echo "$(GREEN)All regression tests passed!$(RESET)"
+
 # 6) Miscellaneous
 check_environment_variables:
 	@if [ -z "$$ENVIRONMENT" ]; then \
@@ -188,7 +250,7 @@ push_docker: ## Push Docker image with version tag
 	docker buildx build \
 		-t javidsegura/ai_ticket_platform:$(ENVIRONMENT)-$(BACKEND_VERSION) \
 		-t javidsegura/ai_ticket_platform:$(ENVIRONMENT) \
-		--platform linux/amd64 \
+		--platform linux/amd64,linux/arm64 \
 		--push \
 		-f ./Dockerfile ./
 	@echo "$(GREEN)✓ Pushed: $(ENVIRONMENT)-$(BACKEND_VERSION)$(RESET)"

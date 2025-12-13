@@ -25,9 +25,29 @@ services:
       environment:
         ENVIRONMENT: ${ENVIRONMENT}
         MYSQL_HOST: database
+        MYSQL_PORT: "3306"
       depends_on:
         database:
           condition: service_healthy
+  worker:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    image: ai_ticket_platform_worker:test
+    env_file:
+      - ${BACKEND_ENV_FILE}
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT}
+      MYSQL_HOST: database
+      MYSQL_PORT: "3306"
+      REDIS_URL: redis://redis:6379
+      REDIS_HOST: redis
+    command: rq worker --url redis://redis:6379/0 --with-scheduler
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
   firebase-emulator:
     image: evolutecx/firebase-emulator:latest
     ports:
@@ -35,16 +55,8 @@ services:
       - 19099:9099
     environment:
       - FB_PROJECT_ID=url-shortener-abadb
+  # nginx not needed for testing - tests connect directly to services
   nginx:
-    volumes:
-      - ./reverse-proxy/nginx.dev.conf:/etc/nginx/conf.d/default.conf:ro
-    depends_on:
-      redis:
-        condition: service_started
-      database:
-        condition: service_started
-      firebase-emulator:
-        condition: service_started
-    healthcheck:
-      test: ["CMD", "curl", "--fail", "http://localhost/nginx-health"]
+    profiles:
+      - disabled
       

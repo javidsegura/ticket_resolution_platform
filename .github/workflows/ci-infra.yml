@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        cloud_provider: [azur, aws] #   Consider expanding
+        cloud_provider: [azure, aws] #   Consider expanding
         environment: [production]
       fail-fast: false
 

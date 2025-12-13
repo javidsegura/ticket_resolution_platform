@@ -1,4 +1,4 @@
-title,content
+subject,body
 Login Fails with SSO,Users cannot log in using Single Sign-On. Getting error code 401 Unauthorized. Issue started after recent security update.
 Password Reset Not Working,Clicking password reset sends no email. Users check spam folder but nothing arrives. Issue affects all email providers.
 Account Locked After 5 Attempts,User accounts are being locked after just 5 failed login attempts. Should be 10. Need to increase threshold.

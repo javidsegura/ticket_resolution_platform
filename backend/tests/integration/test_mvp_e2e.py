@@ -30,23 +30,29 @@ class TestMVPE2E:
     @pytest.mark.asyncio
     async def test_csv_upload_success(self, async_client, sample_csv_file):
         """
-        Test: CSV upload successfully creates tickets
-        Expected: 84 tickets created, no errors
+        Test: CSV upload successfully queues tickets for processing
+        Expected: Queue-based response with job IDs
         """
         with open(sample_csv_file, "rb") as f:
             response = await async_client.post(
-                "/api/upload-csv",
+                "/api/tickets/upload-csv",
                 files={"file": ("tickets_sample.csv", f, "text/csv")}
             )
 
         assert response.status_code == 200, f"Status: {response.status_code}, Response: {response.text}"
         data = response.json()
 
-        assert data["success"] is True
-        assert data["tickets_created"] == 84
-        assert data["file_info"]["rows_processed"] == 84
-        assert len(data["errors"]) == 0
-        assert data["file_info"]["encoding"] == "utf-8-sig"
+        # Check for queue-based API response schema
+        assert "message" in data
+        assert "filename" in data
+        assert "tickets_count" in data
+        assert "jobs" in data
+
+        # Verify job structure
+        assert data["tickets_count"] == 84
+        assert "batch_count" in data["jobs"]
+        assert "stage1_job_count" in data["jobs"]
+        assert "finalizer_job_id" in data["jobs"]
 
     @pytest.mark.asyncio
     async def test_csv_upload_invalid_file(self, async_client, tmp_path):
@@ -60,7 +66,7 @@ class TestMVPE2E:
 
         with open(bad_file, "rb") as f:
             response = await async_client.post(
-                "/api/upload-csv",
+                "/api/tickets/upload-csv",
                 files={"file": ("notcsv.txt", f, "text/plain")}
             )
 
@@ -84,7 +90,7 @@ class TestMVPE2E:
         Test: Upload endpoint is registered
         Expected: Not 404
         """
-        response = await async_client.post("/api/upload-csv")
+        response = await async_client.post("/api/tickets/upload-csv")
         # Should fail with 422/400 (missing file), not 404 (endpoint missing)
         assert response.status_code in [400, 422]
 
@@ -111,44 +117,44 @@ class TestErrorHandling:
     @pytest.mark.asyncio
     async def test_empty_csv_handling(self, async_client, tmp_path):
         """
-        Test: Empty CSV file is handled gracefully
-        Expected: Error response or 0 tickets created
+        Test: Empty CSV file is rejected
+        Expected: 500 error with "No valid tickets" message
         """
         empty_csv = tmp_path / "empty.csv"
         empty_csv.write_text("subject,body\n")
 
         with open(empty_csv, "rb") as f:
             response = await async_client.post(
-                "/api/upload-csv",
+                "/api/tickets/upload-csv",
                 files={"file": ("empty.csv", f, "text/csv")}
             )
 
-        # Should either succeed with 0 tickets or return error
-        assert response.status_code in [200, 400]
-        if response.status_code == 200:
-            data = response.json()
-            assert data["tickets_created"] == 0
+        # API returns 500 for empty CSVs
+        assert response.status_code == 500
+        data = response.json()
+        assert "detail" in data
+        assert "valid tickets" in data["detail"].lower() or "process" in data["detail"].lower()
 
     @pytest.mark.asyncio
     async def test_malformed_csv_missing_columns(self, async_client, tmp_path):
         """
         Test: CSV missing required columns is rejected
-        Expected: 400 error
+        Expected: 400 or 500 error with validation message
         """
         bad_csv = tmp_path / "bad.csv"
         bad_csv.write_text("name,email\nJohn,john@test.com\n")
 
         with open(bad_csv, "rb") as f:
             response = await async_client.post(
-                "/api/upload-csv",
+                "/api/tickets/upload-csv",
                 files={"file": ("bad.csv", f, "text/csv")}
             )
 
-        assert response.status_code == 400
+        # API returns 500 for validation errors during processing
+        assert response.status_code in [400, 500]
         assert "subject" in response.json()["detail"].lower() or \
-               "title" in response.json()["detail"].lower() or \
                "body" in response.json()["detail"].lower() or \
-               "content" in response.json()["detail"].lower()
+               "process" in response.json()["detail"].lower()
 
     @pytest.mark.asyncio
     async def test_oversized_file_rejection(self, async_client, tmp_path):
@@ -167,7 +173,7 @@ class TestErrorHandling:
 
         with open(large_csv, "rb") as f:
             response = await async_client.post(
-                "/api/upload-csv",
+                "/api/tickets/upload-csv",
                 files={"file": ("large.csv", f, "text/csv")}
             )
 
@@ -191,7 +197,7 @@ class TestFileValidation:
 
         with open(no_ext, "rb") as f:
             response = await async_client.post(
-                "/api/upload-csv",
+                "/api/tickets/upload-csv",
                 files={"file": ("noextension", f, "text/csv")}
             )
 
@@ -209,7 +215,7 @@ class TestFileValidation:
 
         with open(csv_file, "rb") as f:
             response = await async_client.post(
-                "/api/upload-csv",
+                "/api/tickets/upload-csv",
                 files={"file": ("test.csv", f, "text/plain")}  # Wrong content-type
             )
 

@@ -27,16 +27,17 @@ class TestCSVUploadSuccess:
         """
         csv_content = b"subject,body\nTest Bug,Description here\nFeature Request,User wants X\nBug Report,System crash on startup\nFeedback,More features needed"
         response = await async_client.post(
-            "/api/upload-csv",
+            "/api/tickets/upload-csv",
             files={"file": ("test.csv", io.BytesIO(csv_content), "text/csv")}
         )
 
         assert response.status_code == 200
         data = response.json()
-        assert "success" in data
-        assert "file_info" in data
-        assert "tickets_created" in data
-        assert "clustering" in data
+        # Check for actual API response schema (queue-based)
+        assert "message" in data
+        assert "filename" in data
+        assert "tickets_count" in data
+        assert "jobs" in data
 
     @pytest.mark.asyncio
     async def test_csv_upload_accepts_application_csv_content_type(self, async_client):
@@ -46,14 +47,15 @@ class TestCSVUploadSuccess:
         """
         csv_content = b"subject,body\nBug,Description\nIssue,Another problem\nFeature,Something cool"
         response = await async_client.post(
-            "/api/upload-csv",
+            "/api/tickets/upload-csv",
             files={"file": ("test.csv", io.BytesIO(csv_content), "application/csv")}
         )
 
         assert response.status_code == 200
         data = response.json()
-        assert "success" in data
-        assert "file_info" in data
+        # Check for actual API response schema (queue-based)
+        assert "message" in data
+        assert "filename" in data
 
     @pytest.mark.asyncio
     async def test_csv_upload_response_has_correct_schema(self, async_client):
@@ -63,31 +65,24 @@ class TestCSVUploadSuccess:
         """
         csv_content = b"subject,body\nTest,Description\nAnother,More content here\nThird,Yet another ticket"
         response = await async_client.post(
-            "/api/upload-csv",
+            "/api/tickets/upload-csv",
             files={"file": ("test.csv", io.BytesIO(csv_content), "text/csv")}
         )
 
         assert response.status_code == 200
         data = response.json()
 
-        # Check for required response schema fields
-        assert "success" in data
-        assert "file_info" in data
-        assert "tickets_created" in data
-        assert "clustering" in data
-        assert "errors" in data
+        # Check for actual API response schema (queue-based)
+        assert "message" in data
+        assert "filename" in data
+        assert "tickets_count" in data
+        assert "jobs" in data
 
-        # Validate file_info structure
-        file_info = data["file_info"]
-        assert "filename" in file_info
-        assert "rows_processed" in file_info
-        assert "rows_skipped" in file_info
-        assert "tickets_extracted" in file_info
-        assert "encoding" in file_info
-
-        # Validate clustering structure
-        clustering = data["clustering"]
-        assert "clusters_created" in clustering
-        assert "total_tickets_clustered" in clustering
+        # Validate jobs structure
+        jobs = data["jobs"]
+        assert "batch_count" in jobs
+        assert "stage1_job_count" in jobs
+        assert "finalizer_job_id" in jobs
+        assert "batch_size" in jobs
 
         assert response.headers.get("content-type") == "application/json"

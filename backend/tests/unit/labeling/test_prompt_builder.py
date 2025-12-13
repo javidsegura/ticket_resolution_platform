@@ -50,7 +50,7 @@ class TestLabelingPromptBuilder:
     def test_build_prompt_mentions_return_format(self):
         """Test that prompt mentions return format."""
         prompt = build_labeling_prompt("Content", "test.pdf")
-        assert "SINGLE keyword" in prompt
+        assert "1-2 words" in prompt
 
     def test_build_prompt_with_special_characters_in_filename(self):
         """Test prompt generation with special characters in filename."""

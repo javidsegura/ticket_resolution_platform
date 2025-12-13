@@ -1,0 +1,7 @@
+subject,body
+Login Bug - Cannot access dashboard,Users are reporting they cannot login to the dashboard after the recent update. Error message shows 'Invalid credentials' even with correct password.
+Feature Request - Dark Mode,Please add dark mode support to the application. Many users work late at night and would appreciate this feature.
+Performance Issue - Slow page load,The tickets page takes 10+ seconds to load when there are more than 100 tickets. This needs optimization.
+UI Bug - Button alignment,The submit button on the upload form is misaligned on mobile devices.
+Security Concern - API exposure,The API endpoint /api/internal/admin is publicly accessible without authentication.
+Enhancement - Export to Excel,Add ability to export ticket data to Excel format for reporting purposes.

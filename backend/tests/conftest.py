@@ -8,30 +8,70 @@ Infrastructure Note:
 - Requires: Colima, Docker, and docker-compose
 """
 
+import os
+
+
+def pytest_configure(config):
+	"""
+	Pytest hook that runs BEFORE any imports or test collection.
+	This ensures environment variables are set before app initialization.
+	"""
+	# Set test environment BEFORE any imports that trigger initialization
+	os.environ.setdefault("ENVIRONMENT", "test")
+	os.environ.setdefault("OPENAI_API_KEY", "test-key-123")
+	os.environ.setdefault("OPENAI_MODEL", "gpt-4")
+	os.environ.setdefault("SLACK_BOT_TOKEN", "xoxb-test-token")
+	os.environ.setdefault("SLACK_CHANNEL_ID", "C123456789")
+
+	# Database configuration
+	os.environ.setdefault("REDIS_URL", "redis://localhost:6379")
+	os.environ.setdefault("MYSQL_USER", "root")
+	os.environ.setdefault("MYSQL_PASSWORD", "rootpassword")
+	os.environ.setdefault("MYSQL_HOST", "localhost")
+	os.environ.setdefault("MYSQL_PORT", "3307")
+	os.environ.setdefault("MYSQL_DATABASE", "ai_ticket_platform")
+	os.environ.setdefault("MYSQL_SYNC_DRIVER", "mysql+pymysql")
+	os.environ.setdefault("MYSQL_ASYNC_DRIVER", "mysql+aiomysql")
+
+	# AWS configuration (test values)
+	os.environ.setdefault("AWS_ACCESS_KEY_ID", "test-key")
+	os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "test-secret")
+	os.environ.setdefault("AWS_MAIN_REGION", "us-east-1")
+	os.environ.setdefault("S3_MAIN_BUCKET_NAME", "test-bucket")
+
+	# Chroma and Gemini configuration (test values)
+	os.environ.setdefault("CHROMA_HOST", "localhost")
+	os.environ.setdefault("CHROMA_PORT", "8000")
+	os.environ.setdefault("CHROMA_COLLECTION_NAME", "test_collection")
+	os.environ.setdefault("GEMINI_API_KEY", "test-gemini-key")
+	os.environ.setdefault("GEMINI_MODEL", "gemini-1.5-flash")
+
+	# Cloud and other configuration
+	os.environ.setdefault("CLOUD_PROVIDER", "aws")
+	os.environ.setdefault("FRONTEND_URL", "http://localhost:5173")
+	os.environ.setdefault("REDIS_MAX_CONNECTIONS", "10")
+
+	# Firebase configuration
+	os.environ.setdefault("USING_FIREBASE_EMULATOR", "true")
+	os.environ.setdefault("FB_PROJECT_ID", "url-shortener-abadb")
+	os.environ.setdefault("FB_AUTH_EMULATOR_HOST", "127.0.0.1:9099")
+
+
+# Now safe to import other modules after environment is configured
 import pytest
 import pytest_asyncio
 import asyncio
-import os
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
 
-from src.ai_ticket_platform.main import app
+# DO NOT import app at module level - it triggers Redis initialization
+# Import app inside fixtures instead
+# from src.ai_ticket_platform.main import app
+
 from src.ai_ticket_platform.database.generated_models import Base
 from src.ai_ticket_platform.dependencies.database import get_db
 from src.ai_ticket_platform.dependencies.settings import get_app_settings
-
-
-# ============================================================================
-# Environment Setup for Testing
-# ============================================================================
-
-# Set test environment before any app initialization
-os.environ.setdefault("ENVIRONMENT", "test")
-os.environ.setdefault("GEMINI_API_KEY", "test-key-123")
-os.environ.setdefault("GEMINI_MODEL", "gemini-1.5-flash")
-os.environ.setdefault("SLACK_BOT_TOKEN", "xoxb-test-token")
-os.environ.setdefault("SLACK_CHANNEL_ID", "C123456789")
 
 
 # ============================================================================
@@ -88,8 +128,8 @@ async def db_session(setup_test_db):
 class TestSettings:
     """Test settings object for dependency injection"""
     ENVIRONMENT = 'test'
-    GEMINI_API_KEY = 'test-key-123'
-    GEMINI_MODEL = 'gemini-1.5-flash'
+    OPENAI_API_KEY = 'test-key-123'
+    OPENAI_MODEL = 'gpt-4'
     SLACK_BOT_TOKEN = 'xoxb-test-token'
     SLACK_CHANNEL_ID = 'C123456789'
     DATABASE_URL = TEST_DATABASE_URL
@@ -112,6 +152,7 @@ async def async_client(db_session, test_settings):
     Uses the test database session.
     """
     from httpx import ASGITransport
+    from src.ai_ticket_platform.main import app  # Import here after pytest_configure runs
 
     async def override_get_db():
         yield db_session
@@ -135,6 +176,8 @@ def client(db_session):
     Provide a synchronous test client for making requests to the app.
     Uses the test database session.
     """
+    from src.ai_ticket_platform.main import app  # Import here after pytest_configure runs
+
     async def override_get_db():
         yield db_session
 
