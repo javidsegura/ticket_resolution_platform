@@ -162,34 +162,179 @@
     debug:
       msg: "Previous backend tag: {{ previous_backend_tag | default('none') }}"
 
-  # Deploy new version
-  - name: Deploy new backend version
-    community.docker.docker_compose_v2:
-      project_src: "{{ remote_project_path }}/deployment"
-      files:
-        - docker-compose.yml
-        - docker-compose.remote.yml
-      project_name: "{{ project_name }}"
-      state: present
-      pull: always
-      recreate: always
+  # Zero-downtime deployment using rolling update pattern
+  # Step 1: Pull new image first (without recreating containers)
+  - name: Pull new backend image
+    ansible.builtin.shell: |
+      cd {{ remote_project_path }}/deployment
+      ENVIRONMENT={{ stage_environment }} \
+      BACKEND_ENV_FILE={{ dest_backend_env_synced_path }} \
+      SERVER_PUBLIC_IP={{ ansible_default_ipv4.address | default(ansible_host) }} \
+      BACKEND_IMAGE_TAG={{ backend_image_tag }} \
+      docker compose -p {{ project_name }} \
+        -f docker-compose.yml \
+        -f docker-compose.remote.yml \
+        pull backend
     environment:
       ENVIRONMENT: "{{ stage_environment }}"
       BACKEND_ENV_FILE: "{{ dest_backend_env_synced_path }}"
       SERVER_PUBLIC_IP: "{{ ansible_default_ipv4.address | default(ansible_host) }}"
       BACKEND_IMAGE_TAG: "{{ backend_image_tag }}"
+    become_user: "{{ target_user }}"
 
+  # Step 2: Temporarily remove port mapping from docker-compose.remote.yml for scaling
+  # We'll backup the original and create a version without ports
+  - name: Backup original docker-compose.remote.yml
+    ansible.builtin.copy:
+      src: "{{ remote_project_path }}/deployment/docker-compose.remote.yml"
+      dest: "{{ remote_project_path }}/deployment/docker-compose.remote.yml.backup"
+      remote_src: yes
+      owner: "{{ target_user }}"
+      group: docker
+      mode: "0644"
 
-  # Health check with retries
-  - name: Wait for backend dependency health check
+  - name: Remove port mapping from docker-compose.remote.yml for scaling
+    ansible.builtin.shell: |
+      cd {{ remote_project_path }}/deployment && \
+      python3 << 'PYTHON_SCRIPT'
+      import re
+      
+      with open('docker-compose.remote.yml', 'r') as f:
+          content = f.read()
+      
+      # Remove the ports section (ports: and the following - "8000:8000" line)
+      # Match: ports: followed by newline and indented port mapping
+      pattern = r'^\s+ports:\s*\n\s+- "8000:8000"\s*\n'
+      content = re.sub(pattern, '', content, flags=re.MULTILINE)
+      
+      with open('docker-compose.remote.yml', 'w') as f:
+          f.write(content)
+      PYTHON_SCRIPT
+    become_user: "{{ target_user }}"
+
+  # Step 3: Recreate existing container without port mapping (zero-downtime)
+  - name: Recreate existing backend container without port mapping
+    ansible.builtin.shell: |
+      cd {{ remote_project_path }}/deployment
+      ENVIRONMENT={{ stage_environment }} \
+      BACKEND_ENV_FILE={{ dest_backend_env_synced_path }} \
+      SERVER_PUBLIC_IP={{ ansible_default_ipv4.address | default(ansible_host) }} \
+      BACKEND_IMAGE_TAG={{ previous_backend_tag | default(backend_image_tag) }} \
+      docker compose -p {{ project_name }} \
+        -f docker-compose.yml \
+        -f docker-compose.remote.yml \
+        up -d --force-recreate --no-deps backend
+    environment:
+      ENVIRONMENT: "{{ stage_environment }}"
+      BACKEND_ENV_FILE: "{{ dest_backend_env_synced_path }}"
+      SERVER_PUBLIC_IP: "{{ ansible_default_ipv4.address | default(ansible_host) }}"
+      BACKEND_IMAGE_TAG: "{{ previous_backend_tag | default(backend_image_tag) }}"
+    become_user: "{{ target_user }}"
+    when: previous_tag_stat.stat.exists
+    ignore_errors: yes
+
+  # Step 4: Scale backend to 2 instances (old + new) - this starts new container with new image
+  - name: Scale backend to 2 instances for zero-downtime deployment
+    ansible.builtin.shell: |
+      cd {{ remote_project_path }}/deployment
+      ENVIRONMENT={{ stage_environment }} \
+      BACKEND_ENV_FILE={{ dest_backend_env_synced_path }} \
+      SERVER_PUBLIC_IP={{ ansible_default_ipv4.address | default(ansible_host) }} \
+      BACKEND_IMAGE_TAG={{ backend_image_tag }} \
+      docker compose -p {{ project_name }} \
+        -f docker-compose.yml \
+        -f docker-compose.remote.yml \
+        up -d --scale backend=2 --no-deps backend
+    environment:
+      ENVIRONMENT: "{{ stage_environment }}"
+      BACKEND_ENV_FILE: "{{ dest_backend_env_synced_path }}"
+      SERVER_PUBLIC_IP: "{{ ansible_default_ipv4.address | default(ansible_host) }}"
+      BACKEND_IMAGE_TAG: "{{ backend_image_tag }}"
+    become_user: "{{ target_user }}"
+
+  # Step 5: Wait for new backend instance to be healthy
+  - name: Wait for new backend instance to be ready
+    ansible.builtin.pause:
+      seconds: 15
+    register: wait_result
+
+  - name: Wait for backend dependency health check (new instance via nginx)
     ansible.builtin.uri:
-      url: "http://{{ ansible_default_ipv4.address | default(ansible_host) }}:8000/api/health/dependencies"
+      url: "http://{{ ansible_default_ipv4.address | default(ansible_host) }}/api/health/dependencies"
       method: GET
       status_code: 200
     register: health_check
     retries: "{{ health_check_retries }}"
     delay: "{{ health_check_delay }}"
     until: health_check.status == 200
+    ignore_errors: yes
+
+  # Step 6: Identify and stop the old container explicitly (zero-downtime)
+  # This ensures we stop the old container, not the new one
+  - name: Get old backend container ID
+    ansible.builtin.shell: |
+      docker ps --filter "name={{ project_name }}-backend" --filter "ancestor=javidsegura/ai_ticket_platform:{{ previous_backend_tag | default('unknown') }}" --format "{{ '{{' }}.ID{{ '}}' }}" | head -n 1
+    register: old_container_id
+    when: previous_tag_stat.stat.exists
+    become_user: "{{ target_user }}"
+    changed_when: false
+
+  - name: Stop old backend container explicitly
+    ansible.builtin.shell: |
+      docker stop {{ old_container_id.stdout }} || true
+    when:
+      - previous_tag_stat.stat.exists
+      - old_container_id.stdout | length > 0
+    become_user: "{{ target_user }}"
+    ignore_errors: yes
+
+  # Step 7: Scale down to 1 instance (should only have the new one now)
+  # Remove the override file to restore port mapping
+  # Step 7: Restore original docker-compose.remote.yml with port mapping
+  - name: Restore original docker-compose.remote.yml
+    ansible.builtin.copy:
+      src: "{{ remote_project_path }}/deployment/docker-compose.remote.yml.backup"
+      dest: "{{ remote_project_path }}/deployment/docker-compose.remote.yml"
+      remote_src: yes
+      owner: "{{ target_user }}"
+      group: docker
+      mode: "0644"
+
+  - name: Remove backup file
+    ansible.builtin.file:
+      path: "{{ remote_project_path }}/deployment/docker-compose.remote.yml.backup"
+      state: absent
+
+  # Step 8: Scale down to 1 instance (should only have the new one now)
+  # Note: We don't use the override file here, so port mapping is restored
+  - name: Scale backend down to 1 instance (cleanup)
+    ansible.builtin.shell: |
+      cd {{ remote_project_path }}/deployment
+      ENVIRONMENT={{ stage_environment }} \
+      BACKEND_ENV_FILE={{ dest_backend_env_synced_path }} \
+      SERVER_PUBLIC_IP={{ ansible_default_ipv4.address | default(ansible_host) }} \
+      BACKEND_IMAGE_TAG={{ backend_image_tag }} \
+      docker compose -p {{ project_name }} \
+        -f docker-compose.yml \
+        -f docker-compose.remote.yml \
+        up -d --scale backend=1
+    environment:
+      ENVIRONMENT: "{{ stage_environment }}"
+      BACKEND_ENV_FILE: "{{ dest_backend_env_synced_path }}"
+      SERVER_PUBLIC_IP: "{{ ansible_default_ipv4.address | default(ansible_host) }}"
+      BACKEND_IMAGE_TAG: "{{ backend_image_tag }}"
+    become_user: "{{ target_user }}"
+
+  # Step 9: Final health check after scaling down (via nginx)
+  - name: Final health check after zero-downtime deployment
+    ansible.builtin.uri:
+      url: "http://{{ ansible_default_ipv4.address | default(ansible_host) }}/api/health/dependencies"
+      method: GET
+      status_code: 200
+    register: final_health_check
+    retries: "{{ health_check_retries }}"
+    delay: "{{ health_check_delay }}"
+    until: final_health_check.status == 200
     ignore_errors: yes
 
   # Rollback if health check fails
