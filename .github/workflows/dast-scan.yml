@@ -1,0 +1,80 @@
+name: DAST Security Scan
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  dast-scan:
+    runs-on: ubuntu-latest
+    # Don't block on this - it's informational
+    continue-on-error: true
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create test environment file
+        env:
+          MYSQL_PASSWORD: ${{ secrets.TEST_MYSQL_PASSWORD }}
+          FB_PROJECT_ID: ${{ secrets.TEST_FB_PROJECT_ID }}
+        run: |
+          mkdir -p backend/env_config/synced
+          cat > backend/env_config/synced/.env.test << EOF
+          ENVIRONMENT="test"
+          CLOUD_PROVIDER="azure"
+          USING_FIREBASE_EMULATOR="true"
+          FB_AUTH_EMULATOR_HOST="localhost:19099"
+          FB_PROJECT_ID="${FB_PROJECT_ID}"
+          REDIS_URL="redis://redis:6379"
+          MYSQL_USER="root"
+          MYSQL_PASSWORD="${MYSQL_PASSWORD}"
+          MYSQL_HOST="database"
+          MYSQL_PORT="3306"
+          MYSQL_DATABASE="ai_ticket_platform"
+          MYSQL_SYNC_DRIVER="mysql+pymysql"
+          MYSQL_ASYNC_DRIVER="mysql+aiomysql"
+          AWS_MAIN_REGION="us-east-1"
+          S3_MAIN_BUCKET_NAME="test-bucket"
+          EOF
+
+      - name: Start Docker services (Redis, DB, Backend)
+        env:
+          ENVIRONMENT: test
+          BACKEND_ENV_FILE: backend/env_config/synced/.env.test
+        run: |
+          cd deployment
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+          echo "Waiting for services to start..."
+          sleep 30
+
+      - name: Wait for backend to be ready
+        run: |
+          timeout 90s bash -c 'until curl -s --fail http://localhost:8000/api/health/ping; do echo "Waiting..."; sleep 3; done' || true
+
+      - name: Run OWASP ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.10.0
+        with:
+          target: 'http://localhost:8000'
+          cmd_options: '-a'
+          fail_action: false
+        continue-on-error: true
+
+      - name: Upload ZAP report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-report
+          path: report_html.html
+          retention-days: 7
+
+      - name: Stop Docker services
+        if: always()
+        run: |
+          cd deployment
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml down -v || true
+
